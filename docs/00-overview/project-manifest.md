@@ -1,7 +1,8 @@
 # Iron Grid - Project Manifest
 
 **Version:** 1.0\
-**Status:** Draft (Living Document)
+**Status:** Draft (Living Document)\
+**Audience:** All contributors (human and AI) — the canonical top-level charter
 
 ------------------------------------------------------------------------
 
@@ -177,3 +178,13 @@ Every AI agent must:
 # Project Motto
 
 > Documentation is the product. Code is the implementation.
+
+------------------------------------------------------------------------
+
+# Cross-references
+
+-   `game-specification.md` — single source of truth for gameplay behavior.
+-   `architecture.md` — system layers and package boundaries.
+-   `definition-of-ready.md` — the gate every feature must pass before
+    implementation (AI Development Rule #5).
+-   `master-index.md` — full documentation map, priority order and loading guide.

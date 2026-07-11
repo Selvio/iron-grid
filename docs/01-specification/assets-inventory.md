@@ -2,6 +2,7 @@
 
 **Version:** 2.0  
 **Status:** Final asset-scope baseline for the MVP  
+**Audience:** Art, frontend, game design, QA, AI contributors  
 **Source package:** `PangeaWars (v.1.0).zip`  
 **Author credit required:** Aleksandr Makarov / @IKnowKingRabbit
 
@@ -657,3 +658,11 @@ It is **not** a complete ready-to-ship game art package. The primary gaps are:
 - Explicit metadata
 
 These gaps do not prevent development, but they must be treated as documented asset tasks rather than silently invented by implementation agents.
+
+---
+
+# Cross-references
+
+- `game-specification.md` — §7 (map/render), §8 (terrain model), §9.5 (sprite mapping), §28 (animation contract), §33.3–§33.4 (open art blockers).
+- `frontend.md` — §4 rendering model, §7 animation contract.
+- `master-index.md` — documentation map and loading guide (Art task profile).

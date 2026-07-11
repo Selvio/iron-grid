@@ -1,6 +1,13 @@
 # Iron Grid - Project Overview
 
 **Version:** 1.0
+**Status:** Living document
+**Audience:** Onboarding — all new human and AI contributors
+
+> High-level executive summary for onboarding. It **references** rather than
+> restates the canonical sources: the canonical MVP scope and principles live in
+> `project-manifest.md`, and gameplay behavior in `game-specification.md`. This
+> summary must never contradict them.
 
 ## Executive Summary
 
@@ -84,3 +91,12 @@ dependencies - Fully data-driven
 -   Every match is reproducible through replay events.
 -   No gameplay logic exists only in the client.
 -   Documentation remains the primary source of truth.
+
+------------------------------------------------------------------------
+
+# Cross-references
+
+-   `project-manifest.md` — canonical vision, principles and MVP scope.
+-   `game-specification.md` — single source of truth for gameplay behavior.
+-   `architecture.md` — system layers and package boundaries.
+-   `master-index.md` — full documentation map and loading guide.

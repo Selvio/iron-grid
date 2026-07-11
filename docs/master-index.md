@@ -62,7 +62,7 @@ same change.
 | `coding-standards.md` | Coding conventions. |
 | `testing.md` | Testing strategy and acceptance scenarios. |
 | `roadmap.md` | Milestones and execution order. |
-| `definition-of-ready.md` | Requirements a task must satisfy before implementation. |
+| `definition-of-ready.md` | The gate a task must pass **before** implementation starts (entry gate; the Definition of Done is the exit gate). |
 
 ## decisions
 
@@ -93,6 +93,11 @@ Source code is never the source of truth.
 ------------------------------------------------------------------------
 
 # AI Loading Guide
+
+> Any task that produces code also loads `architecture.md` (layer and package
+> boundaries), `coding-standards.md` (conventions) and `testing.md` (test
+> strategy and the Definition of Done). They are omitted from the per-task lists
+> below to avoid repetition, but they are binding on every implementation task.
 
 ## Gameplay task
 
