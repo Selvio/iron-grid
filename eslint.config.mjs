@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Documentation is not lintable source (cspell covers the Markdown); this
+    // also excludes the vendored Claude Design export under docs/05-design
+    // (support.js, *.dc.html). See docs/05-design/design-reference.md.
+    "docs/**",
   ]),
 ]);
 
