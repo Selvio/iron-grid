@@ -81,7 +81,7 @@ package boundaries enforce them; code must not attempt to circumvent them.
 
 | Writing code in… | May import | Must never import |
 |---|---|---|
-| `packages/game-engine` | TypeScript standard library only (it **owns** the shared `GameData` type and receives the data as an argument) | `next`, `react`, `phaser`, `drizzle-orm`, `pg`, `@neondatabase/serverless`, `resend`, `@auth/core`, any I/O, **and `game-data`** (`rules.yaml` → `engine_contract.forbidden_dependencies`) |
+| `packages/game-engine` | TypeScript standard library only (it **owns** the shared `GameData` type and receives the data as an argument) | The framework deps in `rules.yaml` → `engine_contract.forbidden_dependencies` (`next`, `react`, `phaser`, `drizzle-orm`, `pg`, `@neondatabase/serverless`, `resend`, `@auth/core`); plus any I/O and **`game-data`** itself (`architecture.md` §3, §5; `engine_contract.purity.external_io: false`) |
 | `packages/game-data` | `zod`, a YAML parser, `game-engine` types | Framework/runtime deps of app (`next`, `react`, `phaser`, `drizzle-orm`, `resend`, `@auth/core`) |
 | `app/` (backend + frontend) | The full stack, plus both packages via `workspace:*` | — (but app code may **never** be imported *by* the packages) |
 

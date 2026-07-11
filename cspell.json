@@ -29,7 +29,13 @@
     "Radix",
     "Manrope",
     "JetBrains",
-    "kebab"
+    "kebab",
+    "Pangea",
+    "Makarov",
+    "IKnowKingRabbit",
+    "autotile",
+    "autotiles",
+    "recomputable"
   ],
   "ignorePaths": [
     "node_modules/**",

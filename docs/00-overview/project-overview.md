@@ -1,4 +1,4 @@
-# Iron Grid - Project Overview
+# Iron Grid — Project Overview
 
 **Version:** 1.0
 **Status:** Living document

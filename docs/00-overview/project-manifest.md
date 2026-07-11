@@ -1,4 +1,4 @@
-# Iron Grid - Project Manifest
+# Iron Grid — Project Manifest
 
 **Version:** 1.0\
 **Status:** Draft (Living Document)\

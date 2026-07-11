@@ -107,8 +107,9 @@ Source code is never the source of truth.
 
 > Any task that produces code also loads `architecture.md` (layer and package
 > boundaries), `coding-standards.md` (conventions) and `testing.md` (test
-> strategy and the Definition of Done). They are omitted from the per-task lists
-> below to avoid repetition, but they are binding on every implementation task.
+> strategy and the Definition of Done), and must pass `definition-of-ready.md`
+> before implementation starts. They are omitted from the per-task lists below to
+> avoid repetition, but they are binding on every implementation task.
 
 ## Gameplay task
 

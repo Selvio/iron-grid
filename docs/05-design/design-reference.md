@@ -134,11 +134,13 @@ The persistent HUD regions (per `frontend.md` §3):
 - **Board overlays** — movement range, attack range, path preview and tile
   tooltips, rendered as DOM over the canvas stand-in.
 
-The mockup exposes the interaction loop of `frontend.md` §5 as selectable states:
-**idle**, **unit selected** (range + path + move/fuel readout), **destination /
-action menu**, **combat preview** (min–max damage + counterattack, server-resolved,
-no undo), **post-action** (acted units greyed), and **fog of war** (hidden tiles,
-forest concealment, submerged submarine).
+The mockup exposes the interaction loop of `frontend.md` §5 as eight selectable
+states: **idle**, **unit selected** (range + path + move/fuel readout),
+**destination / action menu**, **combat preview** (min–max damage + counterattack,
+server-resolved, no undo), **post-action** (acted units greyed), **fog of war**
+(hidden tiles, forest concealment, submerged submarine), **loaded transport**
+(APC carrying cargo — `CARGO 1/2`, cargo identity owner-only, §16), and
+**capturing** (infantry capturing a City with capture-progress, §13).
 
 ---
 
@@ -152,11 +154,10 @@ forest concealment, submerged submarine).
 - **Reduced motion.** The mockup toggles motion via the Tweaks panel; the
   production target additionally honors `prefers-reduced-motion` by default
   (`frontend.md` §10). *(Pending design correction.)*
-- **Unit states pending.** Loaded-transport (cargo) and capture-in-progress
-  visual states are specified (`game-specification.md` §13, §16) but not yet in
-  the mockup. *(Pending design correction.)*
+- **Opponent-turn replay** is described (§5) but not yet captured as a screenshot;
+  the flow is specified in `frontend.md` §8.
 
-When these are addressed in the Claude Design project, update §6–§7 here.
+When these are addressed in the Claude Design project, update §5–§7 here.
 
 ---
 
