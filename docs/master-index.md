@@ -50,9 +50,10 @@ same change.
 | Document | Purpose |
 |---|---|
 | `architecture.md` | System architecture and package boundaries. |
+| `domain-model.md` | **Canonical, technology-agnostic domain entities and relationships** (Match, Player, Unit, Property, Event, match state). The engine state shape and the database schema both derive from this. |
 | `frontend.md` | Next.js + Phaser implementation. |
 | `backend.md` | APIs, engine integration, replay, auth, concurrency. |
-| `database.md` | PostgreSQL 17 and Drizzle schema. |
+| `database.md` | How the domain model maps to PostgreSQL 17 + Drizzle: tables, migrations, append-only event log, data-version pinning, optimistic concurrency. |
 
 ## 04-development
 
@@ -114,6 +115,7 @@ Load:
 Load:
 - `project-manifest.md`
 - `backend.md`
+- `domain-model.md`
 - `database.md`
 - `rules.yaml`
 - relevant YAML data files
@@ -122,6 +124,7 @@ Load:
 
 Load:
 - `project-manifest.md`
+- `domain-model.md`
 - `database.md`
 - `rules.yaml`
 

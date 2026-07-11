@@ -1,0 +1,30 @@
+{
+  "version": "0.2",
+  "language": "en",
+  "words": [
+    "Phaser",
+    "tilemap",
+    "tilemaps",
+    "tweening",
+    "tween",
+    "tweens",
+    "Drizzle",
+    "Neon",
+    "pnpm",
+    "Zod",
+    "Resend",
+    "jsonb",
+    "timestamptz",
+    "bytea",
+    "uuid",
+    "Neotank",
+    "roster",
+    "AWBW",
+    "camelCase"
+  ],
+  "ignorePaths": [
+    "node_modules/**",
+    ".next/**",
+    "pnpm-lock.yaml"
+  ]
+}
