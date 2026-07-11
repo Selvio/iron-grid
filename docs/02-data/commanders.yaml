@@ -1,0 +1,803 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "design-blocked"
+document_purpose: >
+  Canonical commander and faction schema for the Iron Grid MVP. This file
+  defines the complete data model, faction bindings, power-meter contract,
+  modifier vocabulary, effect vocabulary, validation rules, and the four
+  required commander slots. Commander names, portraits, passive abilities,
+  power effects and meter costs are intentionally unresolved because they
+  were not defined in the approved design conversation. Implementation agents
+  must not invent those values.
+
+game_reference:
+  inspiration: "Advance Wars 2: Black Hole Rising"
+  iron_grid_override:
+    commander_count: 4
+    one_commander_per_faction: true
+    passive_abilities_per_commander: 1
+    powers_per_commander: 1
+    super_powers_enabled: false
+    duplicate_commander_selection_allowed: false
+    duplicate_faction_selection_allowed: false
+  design_policy: >
+    Commanders provide all faction gameplay differences. Factions themselves
+    are visual only.
+
+source_references:
+  - id: "game-specification"
+    path: "docs/01-specification/game-specification.md"
+    authority: "commander scope and unresolved design blockers"
+  - id: "rules"
+    path: "docs/02-data/rules.yaml"
+    authority: "activation, replay, determinism and match-flow integration"
+  - id: "units"
+    path: "docs/02-data/units.yaml"
+    authority: "unit IDs, categories and stat vocabulary"
+  - id: "assets-inventory"
+    path: "docs/01-specification/assets-inventory.md"
+    authority: "four available faction unit palettes"
+
+conventions:
+  authoritative_runtime: "server"
+  hardcoded_commander_name_checks_forbidden: true
+  modifier_application: "declarative"
+  active_match_data_version_locked: true
+  faction_identity:
+    determined_by_commander: true
+    gameplay_modifiers_from_faction: false
+  selection:
+    first_picker: "server_random"
+    second_picker_sees_first_choice: true
+    both_players_ready_required: true
+  meter:
+    storage_unit: "integer_points"
+    minimum: 0
+    overflow_policy: "preserve unless power definition explicitly consumes all"
+    client_calculation_authoritative: false
+  power:
+    activation: "manual"
+    consumes_unit_action: false
+    may_activate_once_per_turn: true
+    allowed_only_during_owner_turn: true
+    activation_persists_immediately: true
+    replay_event_required: true
+  percentages:
+    baseline_attack: 100
+    baseline_defense: 100
+    baseline_income: 100
+    baseline_capture: 100
+    baseline_repair_cost: 100
+  duration_models:
+    - instantaneous
+    - until_end_of_current_turn
+    - until_start_of_next_owner_turn
+    - fixed_owner_turns
+  stacking:
+    passive_with_power: "stack according to modifier operation and priority"
+    multiple_powers: "not possible for one commander in MVP"
+    source_order_required: true
+
+enums:
+  faction_ids:
+    - blue
+    - green
+    - red
+    - yellow
+  commander_statuses:
+    - draft
+    - approved
+    - disabled
+    - blocked
+  modifier_scopes:
+    - all_units
+    - unit_ids
+    - unit_categories
+    - movement_types
+    - terrain_ids
+    - property_ids
+  modifier_targets:
+    - attack
+    - defense
+    - movement_points
+    - vision_range
+    - min_attack_range
+    - max_attack_range
+    - fuel_capacity
+    - daily_fuel_consumption
+    - ammo_capacity
+    - unit_cost
+    - repair_cost
+    - repair_amount
+    - capture_power
+    - property_income
+    - terrain_defense_stars
+    - luck_min
+    - luck_max
+    - bad_luck_min
+    - bad_luck_max
+    - power_meter_gain
+  modifier_operations:
+    - add
+    - multiply
+    - set
+    - min
+    - max
+  effect_types:
+    - heal_units
+    - damage_units
+    - resupply_units
+    - grant_funds
+    - drain_funds
+    - reveal_tiles
+    - hide_units
+    - alter_terrain
+    - move_units
+    - reset_unit_actions
+    - modify_capture_progress
+    - set_weather
+  trigger_types:
+    - always
+    - owner_turn_start
+    - owner_turn_end
+    - before_combat
+    - after_combat
+    - after_unit_destroyed
+    - after_property_captured
+    - power_activated
+  meter_sources:
+    - damage_dealt_value
+    - damage_received_value
+    - unit_destroyed_value
+    - property_captured
+    - fixed_per_turn
+  targeting_models:
+    - global_owned_units
+    - global_enemy_units
+    - all_units
+    - selected_unit
+    - selected_area
+    - units_matching_scope
+  portrait_statuses:
+    - missing
+    - placeholder
+    - approved
+
+factions:
+
+  blue:
+    id: "blue"
+    display_name: null
+    display_name_status: "unresolved"
+    color_role: "blue"
+    unit_sprite_sheet: "BlueUnitsSpriteSheet.png"
+    commander_id: "commander_blue"
+    gameplay_modifiers: []
+    visual:
+      unit_palette_available: true
+      property_palette_available: false
+      emblem_asset: null
+      portrait_frame_asset: null
+    implementation_status: "blocked"
+    blockers:
+      - faction_display_name
+      - emblem_asset
+      - property_ownership_visuals
+
+  green:
+    id: "green"
+    display_name: null
+    display_name_status: "unresolved"
+    color_role: "green"
+    unit_sprite_sheet: "GreenUnitsSpriteSheet.png"
+    commander_id: "commander_green"
+    gameplay_modifiers: []
+    visual:
+      unit_palette_available: true
+      property_palette_available: false
+      emblem_asset: null
+      portrait_frame_asset: null
+    implementation_status: "blocked"
+    blockers:
+      - faction_display_name
+      - emblem_asset
+      - property_ownership_visuals
+
+  red:
+    id: "red"
+    display_name: null
+    display_name_status: "unresolved"
+    color_role: "red"
+    unit_sprite_sheet: "RedUnitsSpriteSheet.png"
+    commander_id: "commander_red"
+    gameplay_modifiers: []
+    visual:
+      unit_palette_available: true
+      property_palette_available: false
+      emblem_asset: null
+      portrait_frame_asset: null
+    implementation_status: "blocked"
+    blockers:
+      - faction_display_name
+      - emblem_asset
+      - property_ownership_visuals
+
+  yellow:
+    id: "yellow"
+    display_name: null
+    display_name_status: "unresolved"
+    color_role: "yellow"
+    unit_sprite_sheet: "YellowUnitsSpriteSheet.png"
+    commander_id: "commander_yellow"
+    gameplay_modifiers: []
+    visual:
+      unit_palette_available: true
+      property_palette_available: false
+      emblem_asset: null
+      portrait_frame_asset: null
+    implementation_status: "blocked"
+    blockers:
+      - faction_display_name
+      - emblem_asset
+      - property_ownership_visuals
+
+modifier_schema:
+  required_fields:
+    - id
+    - target
+    - operation
+    - value
+    - scope
+    - priority
+  optional_fields:
+    - conditions
+    - duration
+    - source
+  example:
+    id: "example_air_attack_bonus"
+    target: "attack"
+    operation: "multiply"
+    value: 1.10
+    scope:
+      type: "unit_categories"
+      values:
+        - air
+    conditions:
+      owner_only: true
+      active_power_required: false
+    priority: 100
+
+effect_schema:
+  required_fields:
+    - id
+    - type
+    - targeting
+    - parameters
+    - resolution_order
+  example:
+    id: "example_heal"
+    type: "heal_units"
+    targeting:
+      model: "global_owned_units"
+      scope:
+        type: "all_units"
+        values: []
+    parameters:
+      true_hp_amount: 10
+      max_true_hp: 100
+    resolution_order: 100
+
+meter_schema:
+  required_fields:
+    - max_points
+    - initial_points
+    - power_cost
+    - gain_rules
+    - overflow_policy
+    - cost_growth_rule
+  unresolved_fields:
+    - points_per_star
+    - damage_dealt_multiplier
+    - damage_received_multiplier
+    - repeated_use_cost_growth
+  canonical_constraint: >
+    No commander may be enabled until all meter fields are numeric and
+    validated by deterministic tests.
+
+power_schema:
+  required_fields:
+    - id
+    - display_name
+    - cost
+    - duration
+    - immediate_effects
+    - temporary_modifiers
+    - activation_conditions
+    - deactivation_conditions
+  activation_conditions:
+    required:
+      - match_active
+      - owner_is_active_player
+      - meter_at_least_cost
+      - power_not_already_active
+      - power_not_used_this_turn
+  resolution_order:
+    - validate_activation
+    - deduct_meter
+    - apply_immediate_effects
+    - register_temporary_modifiers
+    - recalculate_visibility_if_required
+    - recalculate_legal_actions_if_required
+    - emit_power_activated
+    - increment_state_version
+
+commander_template:
+  required_fields:
+    - id
+    - display_name
+    - faction_id
+    - status
+    - passive
+    - meter
+    - power
+    - visual
+    - implementation
+  passive:
+    required_fields:
+      - display_name
+      - description
+      - modifiers
+      - triggered_effects
+  implementation:
+    required_fields:
+      - enabled_in_mvp
+      - blockers
+      - acceptance_tests
+
+commanders:
+
+  commander_blue:
+    id: "commander_blue"
+    display_name: null
+    faction_id: "blue"
+    status: "blocked"
+    design_identity:
+      archetype: null
+      gameplay_role: null
+      strengths: []
+      weaknesses: []
+      design_notes: null
+    passive:
+      display_name: null
+      description: null
+      modifiers: []
+      triggered_effects: []
+      status: "unresolved"
+    meter:
+      max_points: null
+      initial_points: 0
+      power_cost: null
+      gain_rules:
+        damage_dealt_value_multiplier: null
+        damage_received_value_multiplier: null
+        destroyed_unit_value_multiplier: null
+        property_capture_points: null
+        fixed_points_per_owner_turn: null
+      overflow_policy: "preserve"
+      cost_growth_rule:
+        type: null
+        value: null
+      status: "unresolved"
+    power:
+      id: "commander_blue_power"
+      display_name: null
+      description: null
+      cost: null
+      duration:
+        model: null
+        owner_turn_count: null
+      immediate_effects: []
+      temporary_modifiers: []
+      activation_conditions:
+        match_active: true
+        owner_is_active_player: true
+        power_not_active: true
+        power_not_used_this_turn: true
+      deactivation_conditions: []
+      visibility_recalculation_required: false
+      legal_action_recalculation_required: false
+      status: "unresolved"
+    visual:
+      portrait_asset: null
+      portrait_status: "missing"
+      power_icon_asset: null
+      selection_card_asset: null
+      faction_emblem_asset: null
+    implementation:
+      enabled_in_mvp: false
+      blockers:
+        - commander_name
+        - passive_design
+        - meter_formula
+        - power_design
+        - portrait_asset
+        - power_icon_asset
+      acceptance_tests: []
+
+  commander_green:
+    id: "commander_green"
+    display_name: null
+    faction_id: "green"
+    status: "blocked"
+    design_identity:
+      archetype: null
+      gameplay_role: null
+      strengths: []
+      weaknesses: []
+      design_notes: null
+    passive:
+      display_name: null
+      description: null
+      modifiers: []
+      triggered_effects: []
+      status: "unresolved"
+    meter:
+      max_points: null
+      initial_points: 0
+      power_cost: null
+      gain_rules:
+        damage_dealt_value_multiplier: null
+        damage_received_value_multiplier: null
+        destroyed_unit_value_multiplier: null
+        property_capture_points: null
+        fixed_points_per_owner_turn: null
+      overflow_policy: "preserve"
+      cost_growth_rule:
+        type: null
+        value: null
+      status: "unresolved"
+    power:
+      id: "commander_green_power"
+      display_name: null
+      description: null
+      cost: null
+      duration:
+        model: null
+        owner_turn_count: null
+      immediate_effects: []
+      temporary_modifiers: []
+      activation_conditions:
+        match_active: true
+        owner_is_active_player: true
+        power_not_active: true
+        power_not_used_this_turn: true
+      deactivation_conditions: []
+      visibility_recalculation_required: false
+      legal_action_recalculation_required: false
+      status: "unresolved"
+    visual:
+      portrait_asset: null
+      portrait_status: "missing"
+      power_icon_asset: null
+      selection_card_asset: null
+      faction_emblem_asset: null
+    implementation:
+      enabled_in_mvp: false
+      blockers:
+        - commander_name
+        - passive_design
+        - meter_formula
+        - power_design
+        - portrait_asset
+        - power_icon_asset
+      acceptance_tests: []
+
+  commander_red:
+    id: "commander_red"
+    display_name: null
+    faction_id: "red"
+    status: "blocked"
+    design_identity:
+      archetype: null
+      gameplay_role: null
+      strengths: []
+      weaknesses: []
+      design_notes: null
+    passive:
+      display_name: null
+      description: null
+      modifiers: []
+      triggered_effects: []
+      status: "unresolved"
+    meter:
+      max_points: null
+      initial_points: 0
+      power_cost: null
+      gain_rules:
+        damage_dealt_value_multiplier: null
+        damage_received_value_multiplier: null
+        destroyed_unit_value_multiplier: null
+        property_capture_points: null
+        fixed_points_per_owner_turn: null
+      overflow_policy: "preserve"
+      cost_growth_rule:
+        type: null
+        value: null
+      status: "unresolved"
+    power:
+      id: "commander_red_power"
+      display_name: null
+      description: null
+      cost: null
+      duration:
+        model: null
+        owner_turn_count: null
+      immediate_effects: []
+      temporary_modifiers: []
+      activation_conditions:
+        match_active: true
+        owner_is_active_player: true
+        power_not_active: true
+        power_not_used_this_turn: true
+      deactivation_conditions: []
+      visibility_recalculation_required: false
+      legal_action_recalculation_required: false
+      status: "unresolved"
+    visual:
+      portrait_asset: null
+      portrait_status: "missing"
+      power_icon_asset: null
+      selection_card_asset: null
+      faction_emblem_asset: null
+    implementation:
+      enabled_in_mvp: false
+      blockers:
+        - commander_name
+        - passive_design
+        - meter_formula
+        - power_design
+        - portrait_asset
+        - power_icon_asset
+      acceptance_tests: []
+
+  commander_yellow:
+    id: "commander_yellow"
+    display_name: null
+    faction_id: "yellow"
+    status: "blocked"
+    design_identity:
+      archetype: null
+      gameplay_role: null
+      strengths: []
+      weaknesses: []
+      design_notes: null
+    passive:
+      display_name: null
+      description: null
+      modifiers: []
+      triggered_effects: []
+      status: "unresolved"
+    meter:
+      max_points: null
+      initial_points: 0
+      power_cost: null
+      gain_rules:
+        damage_dealt_value_multiplier: null
+        damage_received_value_multiplier: null
+        destroyed_unit_value_multiplier: null
+        property_capture_points: null
+        fixed_points_per_owner_turn: null
+      overflow_policy: "preserve"
+      cost_growth_rule:
+        type: null
+        value: null
+      status: "unresolved"
+    power:
+      id: "commander_yellow_power"
+      display_name: null
+      description: null
+      cost: null
+      duration:
+        model: null
+        owner_turn_count: null
+      immediate_effects: []
+      temporary_modifiers: []
+      activation_conditions:
+        match_active: true
+        owner_is_active_player: true
+        power_not_active: true
+        power_not_used_this_turn: true
+      deactivation_conditions: []
+      visibility_recalculation_required: false
+      legal_action_recalculation_required: false
+      status: "unresolved"
+    visual:
+      portrait_asset: null
+      portrait_status: "missing"
+      power_icon_asset: null
+      selection_card_asset: null
+      faction_emblem_asset: null
+    implementation:
+      enabled_in_mvp: false
+      blockers:
+        - commander_name
+        - passive_design
+        - meter_formula
+        - power_design
+        - portrait_asset
+        - power_icon_asset
+      acceptance_tests: []
+
+selection_rules:
+  prerequisites:
+    - match_status_is_commander_selection
+    - player_is_match_member
+    - player_has_not_locked_selection
+  first_picker:
+    determined_by: "server_random"
+    may_select:
+      - commander_blue
+      - commander_green
+      - commander_red
+      - commander_yellow
+  second_picker:
+    sees_first_selection: true
+    cannot_select_first_commander: true
+    cannot_select_first_faction: true
+  locking:
+    selection_may_change_before_lock: true
+    locked_selection_is_immutable: true
+    both_locked_transitions_to_ready_check: true
+
+modifier_resolution:
+  ordered_steps:
+    - load_base_unit_or_rule_value
+    - apply_passive_set_operations
+    - apply_passive_multiply_operations
+    - apply_passive_add_operations
+    - apply_power_set_operations
+    - apply_power_multiply_operations
+    - apply_power_add_operations
+    - apply_min_and_max_constraints
+    - round_according_to_target_rule
+  priority:
+    lower_number_first: true
+    equal_priority_tie_breaker: "modifier_id lexical ascending"
+  safeguards:
+    attack_minimum: 0
+    defense_minimum: 0
+    movement_points_minimum: 0
+    vision_range_minimum: 0
+    unit_cost_minimum: 0
+    property_income_minimum: 0
+    luck_range_must_remain_valid: true
+
+meter_resolution:
+  event_inputs:
+    - attacker_unit_cost
+    - defender_unit_cost
+    - attacker_true_hp_damage
+    - defender_true_hp_damage
+    - unit_destroyed
+    - property_captured
+  deterministic: true
+  arithmetic: "integer-only after defined rounding"
+  replay_fields:
+    - meter_before
+    - meter_gained
+    - meter_after
+    - source_event_id
+  implementation_status: "blocked"
+  blocker: "Exact Iron Grid meter formula and repeated-use behavior are not approved."
+
+power_resolution:
+  replay_event: "power_activated"
+  event_fields:
+    - commander_id
+    - power_id
+    - meter_before
+    - cost
+    - meter_after
+    - immediate_effect_results
+    - active_modifier_ids
+    - duration
+  fog_safety:
+    hidden_targets_must_not_leak: true
+    player_projection_required: true
+  concurrency:
+    expected_state_version_required: true
+    activation_atomic: true
+    duplicate_idempotency_key_returns_original_result: true
+
+cross_file_contracts:
+  rules_yaml:
+    path: "rules.yaml"
+    requirements:
+      - "commander_count must remain 4."
+      - "one_per_faction must remain true."
+      - "super_power_enabled must remain false."
+      - "activate_power remains blocked until every commander is approved."
+  units_yaml:
+    path: "units.yaml"
+    requirements:
+      - "All unit_ids used by modifier scopes must resolve."
+      - "All unit categories and movement types must use units.yaml vocabulary."
+  terrain_yaml:
+    path: "terrain.yaml"
+    requirements:
+      - "All terrain_ids used by modifier scopes must resolve."
+  properties_yaml:
+    path: "properties.yaml"
+    requirements:
+      - "All property_ids used by modifier scopes must resolve."
+  maps_yaml:
+    path: "maps.yaml"
+    requirements:
+      - "Map definitions may not hardcode commander bonuses."
+  game_specification:
+    path: "game-specification.md"
+    requirements:
+      - "Commander design must be approved there before null fields are populated."
+
+implementation_constraints:
+  - "Do not enable a commander with null name, passive, power cost or meter rules."
+  - "Do not infer commander effects from faction color."
+  - "Do not copy Nintendo commander names, portraits or narrative."
+  - "Do not hardcode checks such as commander.id === a specific name in engine logic."
+  - "Do not add faction bonuses outside commander data."
+  - "Do not let the client calculate authoritative meter gain."
+  - "Do not activate a power when meter is insufficient."
+  - "Do not allow duplicate commander or faction selection."
+  - "Do not expose hidden power targets or effects through replay projections."
+  - "Active matches remain bound to the starting commander-data version."
+
+design_requirements_before_approval:
+  per_commander:
+    - original_display_name
+    - faction_display_name
+    - gameplay_archetype
+    - one_clear_strength
+    - one_meaningful_weakness
+    - passive_name
+    - passive_description
+    - passive_structured_modifiers
+    - power_name
+    - power_description
+    - power_cost
+    - meter_gain_formula
+    - power_duration
+    - immediate_effects
+    - temporary_modifiers
+    - portrait
+    - power_icon
+    - at_least_ten_acceptance_tests
+  global_balance:
+    - no_commander_is_strictly_better_in_all_situations
+    - each_commander_has_counterplay
+    - bonuses_use_existing_engine_vocabulary
+    - no_effect_requires_undocumented_gameplay_system
+    - mirrorless_1v1_matchups_are_reviewed
+    - all_six_commander_pairings_are_tested
+    - early_game_property_timing_is_tested
+    - land_air_naval_map_performance_is_tested
+
+required_validation_tests:
+  - "Exactly four factions exist."
+  - "Exactly four commander slots exist."
+  - "Every faction references exactly one commander."
+  - "Every commander references exactly one faction."
+  - "Faction gameplay_modifiers arrays are empty."
+  - "No commander is enabled while status is blocked."
+  - "No commander is enabled with null display_name."
+  - "No commander is enabled with null power cost."
+  - "No commander is enabled with unresolved meter gain rules."
+  - "Duplicate commander selection is rejected."
+  - "Duplicate faction selection is rejected."
+  - "Second picker cannot choose the first picker's commander."
+  - "Modifier targets, operations, scopes and duration models use declared enums."
+  - "Every unit, terrain or property scope reference resolves in its canonical file."
+  - "Meter changes are deterministic and persisted in replay events."
+  - "Power activation rejects insufficient meter."
+  - "Power activation rejects stale state version."
+  - "Power activation cannot leak hidden targets under fog."
+  - "No Super Power field is required or enabled."

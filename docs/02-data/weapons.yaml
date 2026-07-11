@@ -1,0 +1,962 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "definitive-baseline"
+document_purpose: >
+  Canonical weapon definitions for the Iron Grid MVP. This file defines
+  weapon identity, fire mode, range model, ammunition behavior, legal target
+  classes, selection priority, counterattack behavior, visibility constraints,
+  and rendering metadata. Matchup-specific base damage values are intentionally
+  excluded and must be defined only in damage-chart.yaml.
+
+game_reference:
+  ruleset: "Advance Wars 2: Black Hole Rising"
+  implementation_policy: >
+    Weapon names are stable Iron Grid identifiers chosen to describe AW2-style
+    behavior. A shared weapon name does not imply shared damage values; damage
+    remains attacker-unit-versus-defender-unit data.
+  important_rule: >
+    Advance Wars does not calculate damage from generic weapon power. A weapon
+    only determines whether and how an attack may occur. damage-chart.yaml
+    determines the base percentage for each unit matchup.
+
+source_references:
+  - id: "wars-wiki-aw2-damage"
+    type: "technical-reference"
+    url: "https://warswiki.org/wiki/Damage/Advance_Wars_2_chart"
+    covers:
+      - primary_and_secondary_weapon_matchups
+      - legal_targets
+  - id: "wars-wiki-unit-pages"
+    type: "technical-reference"
+    base_url: "https://warswiki.org/wiki/"
+    covers:
+      - weapon_names
+      - ammunition
+      - ranges
+      - target_categories
+  - id: "awbw-unit-chart"
+    type: "technical-reference"
+    url: "https://awbw.amarriner.com/units.php"
+    covers:
+      - unit_ammo
+      - ranges
+  - id: "nintendo-aw2-manual"
+    type: "primary-reference"
+    url: "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/game_boy_advance_8/Manual_GameBoyAdvance_AdvanceWars2BlackHoleRising_EN_DE_FR_ES_IT.pdf"
+    covers:
+      - attack_actions
+      - direct_and_indirect_combat
+      - ammunition
+      - counterattacks
+
+conventions:
+  grid_distance: "manhattan"
+  direct_range:
+    min: 1
+    max: 1
+  attack_origin: "attacker_current_tile_after_any_valid_movement"
+  authoritative_runtime: "server"
+  damage_source: "damage-chart.yaml"
+  random_source: "server-owned deterministic match RNG"
+  ammo_storage: >
+    Ammunition is stored on the unit instance as one primary-ammo pool.
+    Weapons with ammo_consumption 1 consume that pool. Infinite-ammo weapons
+    do not consume or require the pool.
+  selection_policy:
+    order:
+      - primary
+      - secondary
+    rule: >
+      Select the primary weapon when it has sufficient ammunition and has a
+      non-null damage entry against the target's current target profile.
+      Otherwise select the secondary weapon when it has a non-null damage entry.
+      If neither weapon has a valid damage entry, the attack is illegal.
+  counterattack_policy: >
+    Only direct weapons may counterattack. The surviving defender must have a
+    valid direct weapon against the attacker after receiving damage. Indirect
+    weapons never counterattack.
+  target_legality_policy: >
+    target_domains and state rules provide coarse validation. The definitive
+    legal matchup is a non-null entry in damage-chart.yaml for the attacking
+    unit, selected weapon slot, and defending unit/state.
+  line_of_sight:
+    direct: "No separate line-of-sight ray; target must be orthogonally adjacent."
+    indirect: >
+      Range is Manhattan distance. Ordinary terrain and units do not block
+      indirect fire. Fog-of-war visibility rules still apply to targetability.
+  damage_to_zero_policy: >
+    Normal weapon attacks may destroy units. Special map weapons such as the
+    Missile Silo are not unit weapons and belong in rules.yaml.
+
+enums:
+  slots:
+    - primary
+    - secondary
+  fire_modes:
+    - direct
+    - indirect
+  ammo_models:
+    - finite_primary_pool
+    - infinite
+  target_domains:
+    - ground
+    - air
+    - naval
+    - submarine
+    - terrain_object
+  target_altitudes:
+    - surface
+    - airborne
+    - submerged
+  effect_types:
+    - kinetic
+    - explosive
+    - missile
+    - rocket
+    - bomb
+    - torpedo
+    - small_arms
+    - anti_air
+  animation_profiles:
+    - small_arms
+    - bazooka
+    - cannon_direct
+    - cannon_indirect
+    - rocket_indirect
+    - missile_indirect
+    - vulcan
+    - aircraft_missile
+    - helicopter_missile
+    - bomb
+    - torpedo
+    - naval_cannon
+    - naval_anti_air
+
+defaults:
+  ammo_consumption: 1
+  can_fire_after_move: true
+  can_counterattack: true
+  requires_visible_target: true
+  can_target_friendly: false
+  can_target_self: false
+  can_target_empty_tile: false
+  creates_area_damage: false
+  minimum_resulting_hp: 0
+  projectile_asset: null
+  impact_asset: null
+
+weapons:
+
+  machine_gun:
+    id: "machine_gun"
+    display_name: "Machine Gun"
+    slot: "secondary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "infinite"
+      consumption: 0
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "small_arms"
+      animation_profile: "small_arms"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - infantry
+      - mech
+      - recon
+      - tank
+      - medium_tank
+      - neotank
+
+  bazooka:
+    id: "bazooka"
+    display_name: "Bazooka"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "explosive"
+      animation_profile: "bazooka"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - mech
+
+  artillery_cannon:
+    id: "artillery_cannon"
+    display_name: "Artillery Cannon"
+    slot: "primary"
+    fire_mode: "indirect"
+    range:
+      min: 2
+      max: 3
+      metric: "manhattan"
+      commander_modifiable: true
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: false
+      can_counterattack: false
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "explosive"
+      animation_profile: "cannon_indirect"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - artillery
+
+  light_tank_cannon:
+    id: "light_tank_cannon"
+    display_name: "Tank Cannon"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "kinetic"
+      animation_profile: "cannon_direct"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - tank
+
+  vulcan_cannon:
+    id: "vulcan_cannon"
+    display_name: "Vulcan Cannon"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - ground
+        - air
+      altitudes:
+        - surface
+        - airborne
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "anti_air"
+      animation_profile: "vulcan"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - anti_air
+
+  air_to_surface_missiles:
+    id: "air_to_surface_missiles"
+    display_name: "Air-to-Surface Missiles"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "missile"
+      animation_profile: "helicopter_missile"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - battle_copter
+
+  copter_machine_gun:
+    id: "copter_machine_gun"
+    display_name: "Copter Machine Gun"
+    slot: "secondary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "infinite"
+      consumption: 0
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - air
+      altitudes:
+        - surface
+        - airborne
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "small_arms"
+      animation_profile: "small_arms"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - battle_copter
+
+  surface_to_air_missiles:
+    id: "surface_to_air_missiles"
+    display_name: "Surface-to-Air Missiles"
+    slot: "primary"
+    fire_mode: "indirect"
+    range:
+      min: 3
+      max: 5
+      metric: "manhattan"
+      commander_modifiable: true
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - air
+      altitudes:
+        - airborne
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: false
+      can_counterattack: false
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "missile"
+      animation_profile: "missile_indirect"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - missiles
+
+  rocket_launcher:
+    id: "rocket_launcher"
+    display_name: "Rocket Launcher"
+    slot: "primary"
+    fire_mode: "indirect"
+    range:
+      min: 3
+      max: 5
+      metric: "manhattan"
+      commander_modifiable: true
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: false
+      can_counterattack: false
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "rocket"
+      animation_profile: "rocket_indirect"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - rockets
+
+  medium_tank_cannon:
+    id: "medium_tank_cannon"
+    display_name: "Medium Tank Cannon"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "kinetic"
+      animation_profile: "cannon_direct"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - medium_tank
+
+  anti_submarine_torpedoes:
+    id: "anti_submarine_torpedoes"
+    display_name: "Cruiser Missiles"
+    canonical_aw2_name: "Missiles"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - submarine
+      altitudes:
+        - surface
+        - submerged
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: true
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "torpedo"
+      animation_profile: "torpedo"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - cruiser
+    notes:
+      - >
+        The existing units.yaml ID is preserved for compatibility. AW2 reference
+        material commonly labels the Cruiser primary weapon "Missiles", although
+        its gameplay role is anti-submarine.
+
+  naval_anti_air_gun:
+    id: "naval_anti_air_gun"
+    display_name: "Naval Anti-Air Gun"
+    canonical_aw2_name: "Anti-Air Gun"
+    slot: "secondary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "infinite"
+      consumption: 0
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - air
+      altitudes:
+        - airborne
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "anti_air"
+      animation_profile: "naval_anti_air"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - cruiser
+
+  air_to_air_missiles:
+    id: "air_to_air_missiles"
+    display_name: "Air-to-Air Missiles"
+    canonical_aw2_name: "Missiles"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - air
+      altitudes:
+        - airborne
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "missile"
+      animation_profile: "aircraft_missile"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - fighter
+
+  submarine_torpedoes:
+    id: "submarine_torpedoes"
+    display_name: "Torpedoes"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - naval
+        - submarine
+      altitudes:
+        - surface
+        - submerged
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: true
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+      allowed_attacker_states:
+        - surfaced
+        - submerged
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "torpedo"
+      animation_profile: "torpedo"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - submarine
+
+  bombs:
+    id: "bombs"
+    display_name: "Bombs"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "bomb"
+      animation_profile: "bomb"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - bomber
+
+  neotank_cannon:
+    id: "neotank_cannon"
+    display_name: "Neotank Cannon"
+    slot: "primary"
+    fire_mode: "direct"
+    range:
+      min: 1
+      max: 1
+      metric: "manhattan"
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: true
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: true
+      can_counterattack: true
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "kinetic"
+      animation_profile: "cannon_direct"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - neotank
+
+  naval_cannon:
+    id: "naval_cannon"
+    display_name: "Naval Cannon"
+    canonical_aw2_name: "Cannon"
+    slot: "primary"
+    fire_mode: "indirect"
+    range:
+      min: 2
+      max: 6
+      metric: "manhattan"
+      commander_modifiable: true
+    ammo:
+      model: "finite_primary_pool"
+      consumption: 1
+      fallback_when_primary_unavailable: false
+    targeting:
+      domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+      altitudes:
+        - surface
+      requires_visible_target: true
+      can_target_hidden_unit_when_detected: true
+      can_target_submerged: false
+      damage_entry_required: true
+    action_rules:
+      can_fire_after_move: false
+      can_counterattack: false
+      consumes_unit_activation: true
+    damage:
+      source: "damage-chart.yaml"
+      generic_power: null
+    presentation:
+      effect_type: "explosive"
+      animation_profile: "naval_cannon"
+      projectile_asset: null
+      impact_asset: null
+      sound_asset: null
+    used_by:
+      - battleship
+
+selection_rules:
+  resolve_weapon:
+    inputs:
+      - attacker_unit_type
+      - attacker_ammo
+      - attacker_special_state
+      - defender_unit_type
+      - defender_special_state
+      - distance
+      - attacker_moved_this_activation
+      - visibility_result
+    steps:
+      - "Read the attacker unit's primary_weapon_id and secondary_weapon_id from units.yaml."
+      - "Evaluate primary range, movement, state, visibility, domain, and damage-chart entry."
+      - "Require sufficient ammo when primary uses finite_primary_pool."
+      - "If primary is valid, select primary."
+      - "Otherwise evaluate secondary."
+      - "If secondary is valid, select secondary."
+      - "Otherwise reject the attack."
+    output:
+      - selected_weapon_id
+      - selected_slot
+      - ammo_consumed
+      - legal_damage_entry
+  important_cases:
+    mech:
+      - "Bazooka is selected against armored targets when ammo exists."
+      - "Machine Gun is selected against targets without a valid Bazooka entry."
+      - "Machine Gun is used as fallback when Bazooka ammo is zero and its matchup is legal."
+    tank_family:
+      - "Cannon is selected when its damage entry exists and ammo is available."
+      - "Machine Gun is used for eligible soft targets or as legal fallback."
+    battle_copter:
+      - "Air-to-Surface Missiles use finite ammo."
+      - "Copter Machine Gun is infinite-ammo fallback for eligible targets."
+    cruiser:
+      - "Primary finite-ammo weapon attacks Submarines."
+      - "Secondary infinite-ammo Anti-Air Gun attacks air units."
+    no_secondary_units:
+      - "An empty primary ammo pool makes the unit unable to attack."
+
+cross_file_contracts:
+  units_yaml:
+    required_path: "units.yaml"
+    rules:
+      - "Every non-null primary_weapon_id and secondary_weapon_id must resolve here."
+      - "Weapon slot must match its placement in the unit definition."
+      - "Weapon range must match the unit combat range."
+      - "Every used_by unit must reference the weapon."
+  damage_chart_yaml:
+    required_path: "damage-chart.yaml"
+    rules:
+      - "Every legal attack must have one explicit numeric base-damage entry."
+      - "Every illegal attack must be null or absent according to the damage-chart schema."
+      - "Damage values may differ even when units share the same weapon ID."
+      - "Submarine surfaced/submerged targetability must be explicit."
+  rules_yaml:
+    required_path: "rules.yaml"
+    rules:
+      - "Damage formula, luck, rounding, and CO modifiers belong outside this file."
+      - "Missile Silo is a map action, not a weapon in this file."
+  assets:
+    rules:
+      - "No dedicated projectile or impact sprites are confirmed in the Pangea Wars pack."
+      - "Null presentation assets require Phaser effects or separately approved asset work."
+
+implementation_constraints:
+  - "Do not derive base damage from effect_type, caliber, weapon name, domain, or role."
+  - "Do not let the client choose the weapon slot."
+  - "Do not permit indirect fire after movement unless a future explicit rule overrides it."
+  - "Do not permit indirect counterattacks."
+  - "Do not consume ammo for an invalid or rejected action."
+  - "Consume ammo exactly once after a combat action commits."
+  - "Counterattacks resolve weapon selection independently using defender post-hit state."
+  - "Persist selected weapon ID and ammo before/after in replay events."
+  - "A replay never reruns weapon selection against changed data."
+  - "Active matches remain bound to their starting data version."
+
+required_replay_fields:
+  - attacker_unit_id
+  - defender_unit_id
+  - selected_weapon_id
+  - selected_slot
+  - attacker_ammo_before
+  - attacker_ammo_after
+  - attack_distance
+  - attacker_moved_before_attack
+  - attacker_special_state
+  - defender_special_state
+  - base_damage
+  - luck_roll
+  - final_damage
+  - defender_hp_before
+  - defender_hp_after
+
+required_validation_tests:
+  - "All weapon IDs referenced by units.yaml resolve."
+  - "All weapon used_by references resolve to enabled units."
+  - "Every primary weapon has finite_primary_pool ammo."
+  - "Every secondary weapon has infinite ammo for the AW2 MVP roster."
+  - "Every indirect weapon has can_fire_after_move false."
+  - "Every indirect weapon has can_counterattack false."
+  - "Every direct weapon has range 1-1."
+  - "Artillery range is 2-3."
+  - "Rockets and Missiles range is 3-5."
+  - "Battleship range is 2-6."
+  - "Cruiser primary targets Submarine only in AW2."
+  - "Cruiser secondary targets air units."
+  - "Submarine Torpedoes can target valid naval and submarine states."
+  - "Bomber cannot target air units."
+  - "Fighter cannot target ground or naval units."
+  - "Missiles cannot target ground or naval units."
+  - "No weapon contains generic base-power values."
+  - "Every legal matchup is sourced from damage-chart.yaml."

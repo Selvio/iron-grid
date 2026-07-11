@@ -1,0 +1,1785 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "definitive-baseline"
+document_purpose: >
+  Canonical structured definition of every unit enabled for the Iron Grid MVP.
+  This file defines unit identity, logistics, movement, production, repair,
+  weapons, transport behavior, special abilities, rendering references, and
+  validation constraints. Weapon-vs-target damage values do not belong here;
+  they belong in damage-chart.yaml.
+
+game_reference:
+  ruleset: "Advance Wars 2: Black Hole Rising"
+  roster_policy: "Only the 19 standard AW2 units represented by the approved Pangea Wars mappings."
+  excluded_policy: "All additional Pangea Wars unit rows remain disabled for the MVP."
+
+source_references:
+  - id: "awbw-unit-chart"
+    type: "technical-reference"
+    url: "https://awbw.amarriner.com/units.php"
+    covers:
+      - cost
+      - movement
+      - ammo
+      - fuel
+      - daily_fuel
+      - vision
+      - range
+      - movement_type
+  - id: "wars-wiki-aw2-damage"
+    type: "technical-reference"
+    url: "https://warswiki.org/wiki/Damage/Advance_Wars_2_chart"
+    covers:
+      - roster
+      - weapon_matchups
+  - id: "nintendo-aw2-manual"
+    type: "primary-reference"
+    url: "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/game_boy_advance_Wars_2BlackHoleRising_EN_DE_FR_ES_IT.pdf"
+    covers:
+      - unit_actions
+      - capture
+      - supply
+      - transport
+      - fuel
+      - fog_of_war
+      - production
+      - repair
+  - id: "pangea-assets-inventory"
+    type: "project-reference"
+    path: "docs/01-specification/assets-inventory.md"
+    covers:
+      - sprite_rows
+      - faction_sheets
+      - animation_columns
+      - shadows
+
+conventions:
+  coordinate_system: "orthogonal-grid"
+  hp:
+    true_max: 100
+    displayed_max: 10
+    display_formula: "ceil(true_hp / 10)"
+  direct_range:
+    min: 1
+    max: 1
+  no_attack_range: null
+  no_ammo: null
+  no_weapon: null
+  no_daily_fuel: 0
+  action_commit_policy: "immediate-and-irreversible"
+  authoritative_runtime: "server"
+  asset_frame:
+    width_px: 32
+    height_px: 32
+  sprite_sheet:
+    header_height_px: 16
+    row_height_px: 32
+    columns: 28
+  animation_columns:
+    idle: [0, 1, 2, 3]
+    move_side: [4, 5, 6, 7, 8]
+    move_down: [9, 10, 11, 12]
+    move_up: [13, 14, 15, 16]
+    attack: [17, 18, 19, 20]
+    hit: [21, 22, 23]
+    death: [24, 25, 26, 27]
+  faction_sprite_sheets:
+    blue: "BlueUnitsSpriteSheet.png"
+    green: "GreenUnitsSpriteSheet.png"
+    red: "RedUnitsSpriteSheet.png"
+    yellow: "YellowUnitsSpriteSheet.png"
+
+enums:
+  categories:
+    - ground
+    - air
+    - naval
+  movement_types:
+    - foot
+    - mech
+    - tires
+    - treads
+    - air
+    - ship
+    - transport_ship
+  combat_types:
+    - none
+    - direct
+    - indirect
+  production_properties:
+    - base
+    - airport
+    - port
+  repair_properties:
+    - city
+    - base
+    - airport
+    - port
+    - headquarters
+  target_domains:
+    - ground
+    - air
+    - naval
+    - submarine
+    - terrain_object
+  special_states:
+    - surfaced
+    - submerged
+  unit_actions:
+    - wait
+    - attack
+    - capture
+    - supply
+    - load
+    - unload
+    - join
+    - dive
+    - surface
+
+defaults:
+  max_true_hp: 100
+  starts_with_full_fuel: true
+  starts_with_full_ammo: true
+  produced_unit_has_acted: true
+  can_join_same_type: true
+  can_be_loaded: true
+  destroys_cargo_on_death: true
+  terrain_defense_eligible: true
+  receives_property_income: false
+  capture_power: 0
+  supply_range: 0
+  transport_capacity: 0
+
+units:
+
+  infantry:
+    id: "infantry"
+    display_name: "Infantry"
+    category: "ground"
+    role_tags:
+      - foot_soldier
+      - capturer
+      - anti_infantry
+    enabled_in_mvp: true
+    cost: 1000
+    max_true_hp: 100
+    movement:
+      points: 3
+      type: "foot"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: true
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 0
+      max_ammo: null
+      primary_ammo_per_attack: 0
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: true
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: null
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+    capabilities:
+      can_capture: true
+      capture_power_formula: "displayed_hp"
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: true
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - apc
+        - transport_copter
+        - lander
+    production:
+      property: "base"
+      available_on_first_production_turn: true
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 0
+      row_id: "unit_r00"
+      shadow: null
+      size_class: "small"
+      animation_profile: "infantry"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 1000
+      expected_move: 3
+      expected_vision: 2
+
+  mech:
+    id: "mech"
+    display_name: "Mech"
+    category: "ground"
+    role_tags:
+      - foot_soldier
+      - capturer
+      - anti_armor
+    enabled_in_mvp: true
+    cost: 3000
+    max_true_hp: 100
+    movement:
+      points: 2
+      type: "mech"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: true
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 70
+      daily_fuel:
+        default: 0
+      max_ammo: 3
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: true
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "bazooka"
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+    capabilities:
+      can_capture: true
+      capture_power_formula: "displayed_hp"
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: true
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - apc
+        - transport_copter
+        - lander
+    production:
+      property: "base"
+      available_on_first_production_turn: true
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 2
+      row_id: "unit_r02"
+      shadow: null
+      size_class: "small"
+      animation_profile: "infantry"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 3000
+      expected_move: 2
+      expected_ammo: 3
+      expected_vision: 2
+
+  recon:
+    id: "recon"
+    display_name: "Recon"
+    category: "ground"
+    role_tags:
+      - scout
+      - anti_infantry
+      - fast_vehicle
+    enabled_in_mvp: true
+    cost: 4000
+    max_true_hp: 100
+    movement:
+      points: 8
+      type: "tires"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 80
+      daily_fuel:
+        default: 0
+      max_ammo: null
+      primary_ammo_per_attack: 0
+    vision:
+      base_range: 5
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: null
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 8
+      row_id: "unit_r08"
+      shadow: null
+      size_class: "medium"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 4000
+      expected_move: 8
+      expected_fuel: 80
+      expected_vision: 5
+
+  apc:
+    id: "apc"
+    display_name: "APC"
+    category: "ground"
+    role_tags:
+      - transport
+      - supply
+      - support
+    enabled_in_mvp: true
+    cost: 5000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 70
+      daily_fuel:
+        default: 0
+      max_ammo: null
+      primary_ammo_per_attack: 0
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "none"
+      min_range: null
+      max_range: null
+      primary_weapon_id: null
+      secondary_weapon_id: null
+      target_domains: []
+    capabilities:
+      can_capture: false
+      can_supply: true
+      supply_range: 1
+      supply_pattern: "orthogonally_adjacent"
+      supply_restores:
+        fuel: "maximum"
+        ammo: "maximum"
+        hp: 0
+      can_transport: true
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 1
+      allowed_cargo:
+        - infantry
+        - mech
+      loadable_into:
+        - lander
+      cargo_can_act_after_unload: false
+      destroy_cargo_on_transport_death: true
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 6
+      row_id: "unit_r06"
+      shadow: null
+      size_class: "medium"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 5000
+      expected_move: 6
+      expected_fuel: 70
+      expected_vision: 1
+      expected_transport_capacity: 1
+
+  artillery:
+    id: "artillery"
+    display_name: "Artillery"
+    category: "ground"
+    role_tags:
+      - indirect
+      - anti_ground
+      - fire_support
+    enabled_in_mvp: true
+    cost: 6000
+    max_true_hp: 100
+    movement:
+      points: 5
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 50
+      daily_fuel:
+        default: 0
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "indirect"
+      min_range: 2
+      max_range: 3
+      can_counterattack: false
+      primary_weapon_id: "artillery_cannon"
+      secondary_weapon_id: null
+      target_domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 10
+      row_id: "unit_r10"
+      shadow: null
+      size_class: "medium"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 6000
+      expected_move: 5
+      expected_ammo: 9
+      expected_range: [2, 3]
+
+  tank:
+    id: "tank"
+    display_name: "Tank"
+    category: "ground"
+    role_tags:
+      - direct
+      - anti_ground
+      - armored
+    enabled_in_mvp: true
+    cost: 7000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 70
+      daily_fuel:
+        default: 0
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 3
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "light_tank_cannon"
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+        - naval
+        - submarine
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 9
+      row_id: "unit_r09"
+      shadow: null
+      size_class: "medium"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 7000
+      expected_move: 6
+      expected_ammo: 9
+      expected_fuel: 70
+      expected_vision: 3
+
+  anti_air:
+    id: "anti_air"
+    display_name: "Anti-Air"
+    category: "ground"
+    role_tags:
+      - direct
+      - anti_air
+      - anti_infantry
+      - armored
+    enabled_in_mvp: true
+    cost: 8000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 60
+      daily_fuel:
+        default: 0
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "vulcan_cannon"
+      secondary_weapon_id: null
+      target_domains:
+        - ground
+        - air
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 13
+      row_id: "unit_r13"
+      shadow: null
+      size_class: "medium"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 8000
+      expected_move: 6
+      expected_ammo: 9
+      expected_fuel: 60
+      expected_vision: 2
+
+  battle_copter:
+    id: "battle_copter"
+    display_name: "Battle Copter"
+    category: "air"
+    role_tags:
+      - direct
+      - anti_ground
+      - helicopter
+    enabled_in_mvp: true
+    cost: 9000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "air"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 2
+      max_ammo: 6
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 3
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: false
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "air_to_surface_missiles"
+      secondary_weapon_id: "copter_machine_gun"
+      target_domains:
+        - ground
+        - air
+        - naval
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - cruiser
+    production:
+      property: "airport"
+    repair:
+      properties:
+        - airport
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    terrain:
+      receives_defense_stars: false
+    special_states: []
+    rendering:
+      sprite_row: 29
+      row_id: "unit_r29"
+      shadow: "shadow_small"
+      size_class: "medium"
+      animation_profile: "helicopter"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 9000
+      expected_move: 6
+      expected_ammo: 6
+      expected_daily_fuel: 2
+      expected_vision: 3
+
+  transport_copter:
+    id: "transport_copter"
+    display_name: "Transport Copter"
+    category: "air"
+    role_tags:
+      - transport
+      - helicopter
+      - support
+    enabled_in_mvp: true
+    cost: 5000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "air"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 2
+      max_ammo: null
+      primary_ammo_per_attack: 0
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: false
+        submerged_submarine: false
+    combat:
+      type: "none"
+      min_range: null
+      max_range: null
+      primary_weapon_id: null
+      secondary_weapon_id: null
+      target_domains: []
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: true
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 1
+      allowed_cargo:
+        - infantry
+        - mech
+      loadable_into:
+        - cruiser
+      cargo_can_act_after_unload: false
+      destroy_cargo_on_transport_death: true
+    production:
+      property: "airport"
+    repair:
+      properties:
+        - airport
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    terrain:
+      receives_defense_stars: false
+    special_states: []
+    rendering:
+      sprite_row: 30
+      row_id: "unit_r30"
+      shadow: "shadow_small"
+      size_class: "medium"
+      animation_profile: "helicopter"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 5000
+      expected_move: 6
+      expected_fuel: 99
+      expected_daily_fuel: 2
+      expected_vision: 2
+      expected_transport_capacity: 1
+
+  missiles:
+    id: "missiles"
+    display_name: "Missiles"
+    category: "ground"
+    role_tags:
+      - indirect
+      - anti_air
+      - long_range
+    enabled_in_mvp: true
+    cost: 12000
+    max_true_hp: 100
+    movement:
+      points: 4
+      type: "tires"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 50
+      daily_fuel:
+        default: 0
+      max_ammo: 6
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 5
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "indirect"
+      min_range: 3
+      max_range: 5
+      can_counterattack: false
+      primary_weapon_id: "surface_to_air_missiles"
+      secondary_weapon_id: null
+      target_domains:
+        - air
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 15
+      row_id: "unit_r15"
+      shadow: null
+      size_class: "large"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 12000
+      expected_move: 4
+      expected_ammo: 6
+      expected_fuel: 50
+      expected_vision: 5
+      expected_range: [3, 5]
+
+  lander:
+    id: "lander"
+    display_name: "Lander"
+    category: "naval"
+    role_tags:
+      - transport
+      - amphibious
+      - support
+    enabled_in_mvp: true
+    cost: 12000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "transport_ship"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 1
+      max_ammo: null
+      primary_ammo_per_attack: 0
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "none"
+      min_range: null
+      max_range: null
+      primary_weapon_id: null
+      secondary_weapon_id: null
+      target_domains: []
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: true
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 2
+      allowed_cargo:
+        - infantry
+        - mech
+        - recon
+        - apc
+        - artillery
+        - tank
+        - anti_air
+        - missiles
+        - rockets
+        - medium_tank
+        - neotank
+      loadable_into: []
+      loading_terrain:
+        - shoal
+        - port
+      unloading_terrain_rule: "cargo_must_be_able_to_enter_adjacent_tile"
+      cargo_can_act_after_unload: false
+      destroy_cargo_on_transport_death: true
+    production:
+      property: "port"
+    repair:
+      properties:
+        - port
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 34
+      row_id: "unit_r34"
+      shadow: null
+      size_class: "large"
+      animation_profile: "naval"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 12000
+      expected_move: 6
+      expected_fuel: 99
+      expected_daily_fuel: 1
+      expected_vision: 1
+      expected_transport_capacity: 2
+
+  rockets:
+    id: "rockets"
+    display_name: "Rockets"
+    category: "ground"
+    role_tags:
+      - indirect
+      - anti_ground
+      - long_range
+    enabled_in_mvp: true
+    cost: 15000
+    max_true_hp: 100
+    movement:
+      points: 5
+      type: "tires"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 50
+      daily_fuel:
+        default: 0
+      max_ammo: 6
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "indirect"
+      min_range: 3
+      max_range: 5
+      can_counterattack: false
+      primary_weapon_id: "rocket_launcher"
+      secondary_weapon_id: null
+      target_domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 19
+      row_id: "unit_r19"
+      shadow: null
+      size_class: "large"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 15000
+      expected_move: 5
+      expected_ammo: 6
+      expected_fuel: 50
+      expected_vision: 1
+      expected_range: [3, 5]
+
+  medium_tank:
+    id: "medium_tank"
+    display_name: "Medium Tank"
+    category: "ground"
+    role_tags:
+      - direct
+      - heavy_armor
+      - anti_ground
+    enabled_in_mvp: true
+    cost: 16000
+    max_true_hp: 100
+    movement:
+      points: 5
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 50
+      daily_fuel:
+        default: 0
+      max_ammo: 8
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "medium_tank_cannon"
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+        - naval
+        - submarine
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 14
+      row_id: "unit_r14"
+      shadow: null
+      size_class: "large"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 16000
+      expected_move: 5
+      expected_ammo: 8
+      expected_fuel: 50
+      expected_vision: 1
+
+  cruiser:
+    id: "cruiser"
+    display_name: "Cruiser"
+    category: "naval"
+    role_tags:
+      - direct
+      - anti_air
+      - anti_submarine
+      - transport
+      - detector
+    enabled_in_mvp: true
+    cost: 18000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "ship"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 1
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 3
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: true
+        submerged_submarine: true
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "anti_submarine_torpedoes"
+      secondary_weapon_id: "naval_anti_air_gun"
+      target_domains:
+        - air
+        - naval
+        - submarine
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: true
+      can_dive: false
+      can_launch_missile_silo: false
+      detects_submerged_submarines: true
+      detection_range_rule: "adjacent"
+    transport:
+      capacity: 2
+      allowed_cargo:
+        - battle_copter
+        - transport_copter
+      loadable_into: []
+      cargo_can_act_after_unload: false
+      destroy_cargo_on_transport_death: true
+      cargo_resupplied_while_loaded: true
+    production:
+      property: "port"
+    repair:
+      properties:
+        - port
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 33
+      row_id: "unit_r33"
+      shadow: null
+      size_class: "large"
+      animation_profile: "naval"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 18000
+      expected_move: 6
+      expected_ammo: 9
+      expected_fuel: 99
+      expected_daily_fuel: 1
+      expected_vision: 3
+      expected_transport_capacity: 2
+
+  fighter:
+    id: "fighter"
+    display_name: "Fighter"
+    category: "air"
+    role_tags:
+      - direct
+      - anti_air
+      - interceptor
+    enabled_in_mvp: true
+    cost: 20000
+    max_true_hp: 100
+    movement:
+      points: 9
+      type: "air"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: false
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 5
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: false
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "air_to_air_missiles"
+      secondary_weapon_id: null
+      target_domains:
+        - air
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into: []
+    production:
+      property: "airport"
+    repair:
+      properties:
+        - airport
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    terrain:
+      receives_defense_stars: false
+    special_states: []
+    rendering:
+      sprite_row: 25
+      row_id: "unit_r25"
+      shadow: "shadow_big"
+      size_class: "large"
+      animation_profile: "fixed_wing_aircraft"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 20000
+      expected_move: 9
+      expected_ammo: 9
+      expected_fuel: 99
+      expected_daily_fuel: 5
+      expected_vision: 2
+
+  submarine:
+    id: "submarine"
+    display_name: "Submarine"
+    category: "naval"
+    role_tags:
+      - direct
+      - anti_naval
+      - stealth
+    enabled_in_mvp: true
+    cost: 20000
+    max_true_hp: 100
+    movement:
+      points: 5
+      type: "ship"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: false
+      can_move_and_join: true
+    logistics:
+      max_fuel: 60
+      daily_fuel:
+        surfaced: 1
+        submerged: 5
+      max_ammo: 6
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 5
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "submarine_torpedoes"
+      secondary_weapon_id: null
+      target_domains:
+        - naval
+        - submarine
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: true
+      dive_action_consumes_activation: true
+      surface_action_consumes_activation: true
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into: []
+    production:
+      property: "port"
+    repair:
+      properties:
+        - port
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states:
+      - surfaced
+      - submerged
+    initial_special_state: "surfaced"
+    visibility:
+      hidden_while_submerged: true
+      revealed_by:
+        - adjacent_cruiser
+      attack_reveals_temporarily: true
+    rendering:
+      sprite_rows:
+        surfaced: 40
+        submerged: 39
+      row_ids:
+        surfaced: "unit_r40"
+        submerged: "unit_r39"
+      shadow: null
+      size_class: "large"
+      animation_profile: "submarine"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 20000
+      expected_move: 5
+      expected_ammo: 6
+      expected_fuel: 60
+      expected_daily_fuel:
+        surfaced: 1
+        submerged: 5
+      expected_vision: 5
+
+  bomber:
+    id: "bomber"
+    display_name: "Bomber"
+    category: "air"
+    role_tags:
+      - direct
+      - anti_ground
+      - anti_naval
+      - heavy_aircraft
+    enabled_in_mvp: true
+    cost: 22000
+    max_true_hp: 100
+    movement:
+      points: 7
+      type: "air"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: false
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 5
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: false
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "bombs"
+      secondary_weapon_id: null
+      target_domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into: []
+    production:
+      property: "airport"
+    repair:
+      properties:
+        - airport
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    terrain:
+      receives_defense_stars: false
+    special_states: []
+    rendering:
+      sprite_row: 26
+      row_id: "unit_r26"
+      shadow: "shadow_big"
+      size_class: "large"
+      animation_profile: "fixed_wing_aircraft"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 22000
+      expected_move: 7
+      expected_ammo: 9
+      expected_fuel: 99
+      expected_daily_fuel: 5
+      expected_vision: 2
+
+  neotank:
+    id: "neotank"
+    display_name: "Neotank"
+    category: "ground"
+    role_tags:
+      - direct
+      - heavy_armor
+      - anti_ground
+      - elite_unit
+    enabled_in_mvp: true
+    cost: 22000
+    max_true_hp: 100
+    movement:
+      points: 6
+      type: "treads"
+      fuel_per_tile: 1
+      can_move_and_attack: true
+      can_move_and_capture: false
+      can_move_and_load: true
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 0
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+    vision:
+      base_range: 1
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: true
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "direct"
+      min_range: 1
+      max_range: 1
+      primary_weapon_id: "neotank_cannon"
+      secondary_weapon_id: "machine_gun"
+      target_domains:
+        - ground
+        - naval
+        - submarine
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into:
+        - lander
+    production:
+      property: "base"
+      availability_rule: "enabled_by_ruleset"
+    repair:
+      properties:
+        - city
+        - base
+        - headquarters
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 16
+      row_id: "unit_r16"
+      shadow: null
+      size_class: "large"
+      animation_profile: "ground_vehicle"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 22000
+      expected_move: 6
+      expected_ammo: 9
+      expected_fuel: 99
+      expected_vision: 1
+
+  battleship:
+    id: "battleship"
+    display_name: "Battleship"
+    category: "naval"
+    role_tags:
+      - indirect
+      - anti_ground
+      - anti_naval
+      - long_range
+      - capital_ship
+    enabled_in_mvp: true
+    cost: 28000
+    max_true_hp: 100
+    movement:
+      points: 5
+      type: "ship"
+      fuel_per_tile: 1
+      can_move_and_attack: false
+      can_move_and_capture: false
+      can_move_and_load: false
+      can_move_and_join: true
+    logistics:
+      max_fuel: 99
+      daily_fuel:
+        default: 1
+      max_ammo: 9
+      primary_ammo_per_attack: 1
+      destroyed_when_daily_fuel_unpayable: true
+    vision:
+      base_range: 2
+      mountain_bonus_eligible: false
+      hidden_unit_detection:
+        adjacent_forest: false
+        adjacent_reef: true
+        submerged_submarine: false
+    combat:
+      type: "indirect"
+      min_range: 2
+      max_range: 6
+      can_counterattack: false
+      primary_weapon_id: "naval_cannon"
+      secondary_weapon_id: null
+      target_domains:
+        - ground
+        - naval
+        - submarine
+        - terrain_object
+    capabilities:
+      can_capture: false
+      can_supply: false
+      can_transport: false
+      can_dive: false
+      can_launch_missile_silo: false
+    transport:
+      capacity: 0
+      allowed_cargo: []
+      loadable_into: []
+    production:
+      property: "port"
+    repair:
+      properties:
+        - port
+      hp_per_turn: 2
+      cost_per_displayed_hp_percent: 10
+    special_states: []
+    rendering:
+      sprite_row: 32
+      row_id: "unit_r32"
+      shadow: null
+      size_class: "large"
+      animation_profile: "naval"
+      faction_palette_from_sheet: true
+    validation:
+      expected_cost: 28000
+      expected_move: 5
+      expected_ammo: 9
+      expected_fuel: 99
+      expected_daily_fuel: 1
+      expected_vision: 2
+      expected_range: [2, 6]
+
+cross_unit_constraints:
+  roster:
+    expected_enabled_unit_count: 19
+    unique_ids_required: true
+    all_units_must_have_sprite_mapping: true
+  join:
+    same_owner_required: true
+    same_type_required: true
+    resulting_true_hp_max: 100
+    fuel_capped_at_unit_max: true
+    ammo_capped_at_unit_max: true
+    resulting_unit_has_acted: true
+  production:
+    client_cost_ignored: true
+    sufficient_funds_required: true
+    property_must_be_owned: true
+    property_tile_must_be_empty: true
+    created_unit_has_acted: true
+  transport:
+    nested_transport_forbidden: true
+    cargo_destroyed_with_transport: true
+    unloaded_unit_has_acted: true
+    cargo_not_counted_as_board_occupant: true
+  combat:
+    damage_values_external_file: "damage-chart.yaml"
+    weapon_definitions_external_file: "weapons.yaml"
+    direct_units_can_counterattack_when_valid: true
+    indirect_units_cannot_counterattack: true
+  rendering:
+    extra_sprite_rows_enabled: false
+    allowed_rows:
+      - 0
+      - 2
+      - 6
+      - 8
+      - 9
+      - 10
+      - 13
+      - 14
+      - 15
+      - 16
+      - 19
+      - 25
+      - 26
+      - 29
+      - 30
+      - 32
+      - 33
+      - 34
+      - 39
+      - 40
+
+implementation_blockers:
+  - id: "sprite-mapping-approval"
+    description: >
+      The proposed row mapping must be visually approved before the renderer
+      treats semantic names as final asset bindings.
+    affects:
+      - rendering
+      - animation
+  - id: "weapons-file"
+    description: >
+      weapons.yaml must define every referenced weapon ID before combat
+      implementation is ready.
+    affects:
+      - combat
+      - damage-preview
+  - id: "damage-chart-file"
+    description: >
+      damage-chart.yaml must contain the validated AW2 matchup matrix before
+      combat implementation is ready.
+    affects:
+      - combat
+      - counterattack
+  - id: "submarine-detection-verification"
+    description: >
+      Exact submerged detection and attack-reveal behavior must be validated
+      in game-specification tests.
+    affects:
+      - fog-of-war
+      - submarine
+  - id: "cruiser-cargo-resupply-verification"
+    description: >
+      Confirm whether loaded copters are automatically resupplied and when.
+    affects:
+      - transport
+      - supply
+  - id: "repair-property-verification"
+    description: >
+      Final properties.yaml must confirm exactly which owned property types
+      repair each category.
+    affects:
+      - repair
+      - start-of-turn
+
+required_validation_tests:
+  - "Exactly 19 units are enabled."
+  - "Every enabled unit ID is unique."
+  - "Every weapon reference resolves in weapons.yaml."
+  - "Every unit appears in damage-chart.yaml as attacker and defender where applicable."
+  - "Every movement type resolves in terrain.yaml."
+  - "Every production property resolves in properties.yaml."
+  - "Every repair property resolves in properties.yaml."
+  - "Every enabled unit has a valid approved sprite row."
+  - "Air units never receive terrain defense."
+  - "Indirect units cannot move and attack in the same activation."
+  - "Produced units begin with full HP, fuel and ammo and are marked acted."
+  - "Transport cargo type and capacity rules are enforced."
+  - "Submarine state selects the correct daily fuel and sprite row."
+  - "No disabled Pangea Wars row can be produced or placed in an official map."

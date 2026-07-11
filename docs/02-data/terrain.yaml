@@ -1,0 +1,886 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "definitive-baseline"
+document_purpose: >
+  Canonical logical terrain definitions for the Iron Grid MVP. This file
+  defines defense stars, traversal costs, fog behavior, terrain-object state,
+  rendering constraints, and cross-file validation. Property economy,
+  production, capture, repair and ownership rules are defined in
+  properties.yaml and referenced here.
+
+game_reference:
+  ruleset: "Advance Wars 2: Black Hole Rising"
+  terrain_policy: >
+    Reproduce AW2 terrain behavior. Terrain types whose Pangea Wars artwork is
+    not yet conclusively mapped remain data-defined but blocked from official
+    production maps until their visual asset status is approved.
+  weather_policy: "No weather system in the MVP."
+
+source_references:
+  - id: "nintendo-aw2-manual"
+    type: "primary-reference"
+    url: "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/game_boy_advance_8/Manual_GameBoyAdvance_AdvanceWars2BlackHoleRising_EN_DE_FR_ES_IT.pdf"
+    covers:
+      - terrain_roles
+      - fog_behavior
+      - properties
+      - pipes
+      - missile_silos
+  - id: "awbw-terrain"
+    type: "technical-reference"
+    url: "https://awbw.fandom.com/wiki/Terrain"
+    covers:
+      - defense_stars
+      - movement_costs
+      - vision_effects
+      - pipe_seam_equivalence
+  - id: "awbw-properties"
+    type: "technical-reference"
+    url: "https://awbw.fandom.com/wiki/Properties"
+    covers:
+      - property_defense
+      - property_movement
+      - capture_points
+      - missile_silo_effect
+  - id: "pangea-assets-inventory"
+    type: "project-reference"
+    path: "docs/01-specification/assets-inventory.md"
+    covers:
+      - terrain_atlas_geometry
+      - asset_confidence
+      - blocked_visual_mappings
+
+conventions:
+  tile_grid:
+    source_tile_width_px: 24
+    source_tile_height_px: 24
+    recommended_render_scale: 2
+    logical_map_width: 20
+    logical_map_height: 16
+  movement:
+    impassable: null
+    path_metric: "orthogonal"
+    entry_cost_policy: "Pay the cost of the destination tile."
+    fuel_policy: "Movement fuel is consumed per traversed tile, not by movement-point cost."
+    air_policy: >
+      Air pays 1 on all ordinary traversable terrain and receives no terrain
+      defense. Pipes and intact Pipe Seams remain impassable to air.
+  defense:
+    applies_to:
+      - ground
+      - naval
+    excludes:
+      - air
+    formula_reference: "game-specification.md"
+    description: >
+      Each defense star contributes defense scaled by the defender's displayed
+      HP. Terrain defense never applies to air units.
+  visibility:
+    ordinary_tiles_reveal_normally: true
+    hidden_terrain_requires_adjacency: true
+    adjacency_metric: "orthogonal"
+  rendering:
+    logical_terrain_separate_from_render_tile: true
+    render_tile_id_format: "terrain_r{row}_c{column}"
+    overlays_allowed: true
+  property_link:
+    definitions_file: "properties.yaml"
+    terrain_records_store_property_id_only: true
+
+enums:
+  terrain_groups:
+    - land
+    - water
+    - structure
+    - property
+    - special
+  movement_types:
+    - foot
+    - mech
+    - tires
+    - treads
+    - air
+    - ship
+    - transport_ship
+  unit_domains:
+    - ground
+    - air
+    - naval
+  fog_concealment:
+    - none
+    - ground
+    - naval
+  asset_statuses:
+    - confirmed
+    - mapping_required
+    - derivative_art_required
+    - blocked
+  state_models:
+    - static
+    - destructible
+    - single_use
+    - transformed
+
+defaults:
+  defense_stars: 0
+  movement_costs:
+    foot: null
+    mech: null
+    tires: null
+    treads: null
+    air: 1
+    ship: null
+    transport_ship: null
+  fog:
+    concealment: "none"
+    adjacency_reveals: false
+    vision_bonus:
+      eligible_unit_types: []
+      amount: 0
+  property_id: null
+  capturable: false
+  income: 0
+  state_model: "static"
+  destructible: false
+  blocks_line_of_sight: false
+  blocks_indirect_fire: false
+  official_map_allowed: true
+
+terrains:
+
+  plain:
+    id: "plain"
+    display_name: "Plain"
+    group: "land"
+    defense_stars: 1
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 2
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "grass base and grass transition regions"
+      preferred_base_tile: "terrain_r01_c01"
+      requires_overlay: false
+      notes:
+        - "Multiple edge and biome variants may share this logical terrain ID."
+    official_map_allowed: true
+
+  road:
+    id: "road"
+    display_name: "Road"
+    group: "land"
+    defense_stars: 0
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "road autotile regions"
+      preferred_base_tile: null
+      requires_overlay: false
+      autotile_required: true
+    official_map_allowed: true
+
+  bridge:
+    id: "bridge"
+    display_name: "Bridge"
+    group: "land"
+    defense_stars: 0
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "road segments composed over river or water"
+      preferred_base_tile: null
+      requires_overlay: true
+      notes:
+        - "No separately labeled bridge object exists in the package."
+        - "Visual composition must preserve the logical Bridge terrain ID."
+    official_map_allowed: false
+    unlock_condition: "Approve horizontal and vertical bridge compositions."
+
+  river:
+    id: "river"
+    display_name: "River"
+    group: "water"
+    defense_stars: 0
+    movement_costs:
+      foot: 2
+      mech: 1
+      tires: null
+      treads: null
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "water-channel and grass-bank autotiles"
+      preferred_base_tile: null
+      requires_overlay: false
+      autotile_required: true
+    official_map_allowed: true
+
+  forest:
+    id: "forest"
+    display_name: "Forest"
+    group: "land"
+    defense_stars: 2
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 3
+      treads: 2
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "ground"
+      adjacency_reveals: true
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+      air_units_concealed: false
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: "Hides ground units from non-adjacent enemy vision when fog is enabled."
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "forest variants in columns 6-9, rows 4-7"
+      preferred_base_tile: null
+      requires_overlay: false
+      autotile_required: false
+      visual_variants_allowed: true
+    official_map_allowed: true
+
+  mountain:
+    id: "mountain"
+    display_name: "Mountain"
+    group: "land"
+    defense_stars: 4
+    movement_costs:
+      foot: 2
+      mech: 1
+      tires: null
+      treads: null
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types:
+          - infantry
+          - mech
+        amount: 3
+      air_units_receive_bonus: false
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: "Infantry and Mech gain +3 vision while occupying Mountain during fog."
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "mountain variants in columns 6-9, rows 0-3"
+      preferred_base_tile: null
+      requires_overlay: false
+      visual_variants_allowed: true
+    official_map_allowed: true
+
+  sea:
+    id: "sea"
+    display_name: "Sea"
+    group: "water"
+    defense_stars: 0
+    movement_costs:
+      foot: null
+      mech: null
+      tires: null
+      treads: null
+      air: 1
+      ship: 1
+      transport_ship: 1
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "water base"
+      preferred_base_tile: "terrain_r01_c00"
+      requires_overlay: false
+    official_map_allowed: true
+
+  reef:
+    id: "reef"
+    display_name: "Reef"
+    group: "water"
+    defense_stars: 1
+    movement_costs:
+      foot: null
+      mech: null
+      tires: null
+      treads: null
+      air: 1
+      ship: 2
+      transport_ship: 2
+    fog:
+      concealment: "naval"
+      adjacency_reveals: true
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+      air_units_concealed: false
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: "Hides naval units from non-adjacent enemy vision when fog is enabled."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "possible shallow-water or island overlays; no approved dedicated mapping"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    unlock_condition: "Approve or create a dedicated Reef visual."
+
+  shoal:
+    id: "shoal"
+    display_name: "Shoal"
+    group: "water"
+    defense_stars: 0
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: 1
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: "Enables Lander loading and unloading where transport rules permit."
+    rendering:
+      asset_status: "confirmed"
+      atlas_regions:
+        - "sand and coast transition variants"
+      preferred_base_tile: null
+      requires_overlay: false
+      autotile_required: true
+    official_map_allowed: true
+
+  pipe:
+    id: "pipe"
+    display_name: "Pipe"
+    group: "structure"
+    defense_stars: 0
+    movement_costs:
+      foot: null
+      mech: null
+      tires: null
+      treads: null
+      air: null
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      special_behavior: "Permanent impassable barrier."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "no conclusively approved dedicated Pipe mapping"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    unlock_condition: "Approve or create Pipe art."
+
+  pipe_seam:
+    id: "pipe_seam"
+    display_name: "Pipe Seam"
+    group: "structure"
+    defense_stars: 0
+    movement_costs:
+      foot: null
+      mech: null
+      tires: null
+      treads: null
+      air: null
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: true
+      state_model: "destructible"
+      max_true_hp: 99
+      damage_chart_defender_id: "pipe_seam"
+      on_destroy_transform_to: "broken_pipe_seam"
+      owner: null
+      special_behavior: "Blocks all movement while intact and may be attacked as a terrain object."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "no conclusively approved intact/destroyed mapping"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    unlock_condition: "Approve or create intact and destroyed Pipe Seam art."
+
+  broken_pipe_seam:
+    id: "broken_pipe_seam"
+    display_name: "Broken Pipe Seam"
+    group: "land"
+    defense_stars: 1
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 2
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      state_model: "transformed"
+      transformed_from: "pipe_seam"
+      special_behavior: "Uses Plain gameplay properties after the seam is destroyed."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "destroyed seam overlay over Plain"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    map_placement_allowed: false
+
+  city:
+    id: "city"
+    display_name: "City"
+    group: "property"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: "city"
+      capturable: true
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "row 13 small urban building candidates"
+      preferred_base_tile: null
+      requires_overlay: true
+      ownership_overlay_required: true
+    official_map_allowed: false
+    unlock_condition: "Approve City sprite and neutral/faction ownership treatment."
+
+  base:
+    id: "base"
+    display_name: "Base"
+    group: "property"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: "base"
+      capturable: true
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "row 14 hangar/industrial building candidates"
+      preferred_base_tile: null
+      requires_overlay: true
+      ownership_overlay_required: true
+    official_map_allowed: false
+    unlock_condition: "Approve Base sprite and ownership treatment."
+
+  airport:
+    id: "airport"
+    display_name: "Airport"
+    group: "property"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: "airport"
+      capturable: true
+      destructible: false
+      special_behavior: null
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "radar/airfield or industrial structure candidate"
+      preferred_base_tile: null
+      requires_overlay: true
+      ownership_overlay_required: true
+    official_map_allowed: false
+    unlock_condition: "Approve Airport sprite and ownership treatment."
+
+  port:
+    id: "port"
+    display_name: "Port"
+    group: "property"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: 1
+      transport_ship: 1
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: "port"
+      capturable: true
+      destructible: false
+      special_behavior: "Allows naval units and ground units to occupy the same logical terrain type at different times, subject to single-tile occupancy."
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "row 15 harbor/dock candidate"
+      preferred_base_tile: null
+      requires_overlay: true
+      ownership_overlay_required: true
+    official_map_allowed: false
+    unlock_condition: "Approve Port sprite and ownership treatment."
+
+  headquarters:
+    id: "headquarters"
+    display_name: "Headquarters"
+    group: "property"
+    defense_stars: 4
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: "headquarters"
+      capturable: true
+      destructible: false
+      special_behavior: "Capturing an enemy Headquarters immediately defeats that player."
+    rendering:
+      asset_status: "mapping_required"
+      atlas_regions:
+        - "large elevated command/civic structure candidate"
+      preferred_base_tile: null
+      requires_overlay: true
+      ownership_overlay_required: true
+      neutral_variant_allowed: false
+    official_map_allowed: false
+    unlock_condition: "Approve Headquarters sprite and four-faction ownership treatment."
+
+  missile_silo:
+    id: "missile_silo"
+    display_name: "Missile Silo"
+    group: "special"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      state_model: "single_use"
+      launch_eligible_units:
+        - infantry
+        - mech
+      on_use_transform_to: "used_missile_silo"
+      special_behavior: "Enables the Launch action once. Missile effect belongs in rules.yaml."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "industrial bunker/silo candidate not yet approved"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    unlock_condition: "Approve intact and used Missile Silo visuals."
+
+  used_missile_silo:
+    id: "used_missile_silo"
+    display_name: "Used Missile Silo"
+    group: "special"
+    defense_stars: 3
+    movement_costs:
+      foot: 1
+      mech: 1
+      tires: 1
+      treads: 1
+      air: 1
+      ship: null
+      transport_ship: null
+    fog:
+      concealment: "none"
+      adjacency_reveals: false
+      vision_bonus:
+        eligible_unit_types: []
+        amount: 0
+    gameplay:
+      property_id: null
+      capturable: false
+      destructible: false
+      state_model: "transformed"
+      transformed_from: "missile_silo"
+      special_behavior: "No Launch action; otherwise behaves as 3-star traversable ground terrain."
+    rendering:
+      asset_status: "derivative_art_required"
+      atlas_regions:
+        - "used-state visual not yet approved"
+      preferred_base_tile: null
+      requires_overlay: true
+    official_map_allowed: false
+    map_placement_allowed: true
+    unlock_condition: "Approve used Missile Silo visual."
+
+terrain_aliases:
+  plains: "plain"
+  wood: "forest"
+  woods: "forest"
+  mountain_tile: "mountain"
+  road_tile: "road"
+  bridge_tile: "bridge"
+  river_tile: "river"
+  ocean: "sea"
+  beach: "shoal"
+  headquarters_tile: "headquarters"
+  hq: "headquarters"
+  factory: "base"
+
+cross_file_contracts:
+  units_yaml:
+    path: "units.yaml"
+    requirements:
+      - "Every enabled unit movement.type must exist in enums.movement_types."
+      - "Every unit path uses this file's movement cost."
+      - "Air units must ignore defense stars even when standing on property terrain."
+      - "Infantry and Mech are the only units eligible for Mountain vision bonus."
+  properties_yaml:
+    path: "properties.yaml"
+    requirements:
+      - "Every non-null gameplay.property_id must resolve."
+      - "Income, production, repair, capture and ownership are property data, not duplicated here."
+      - "Property defense stars and movement values must match this file."
+  maps_yaml:
+    path: "maps.yaml"
+    requirements:
+      - "Every logical tile ID must resolve here."
+      - "Production maps may use only official_map_allowed terrain."
+      - "broken_pipe_seam may result from gameplay but must not be placed unless a map explicitly requires a pre-broken state."
+  damage_chart_yaml:
+    path: "damage-chart.yaml"
+    requirements:
+      - "pipe_seam must resolve as the special defender ID."
+  rules_yaml:
+    path: "rules.yaml"
+    requirements:
+      - "Missile Silo radius, damage and minimum remaining HP belong there."
+      - "Fog projection and hidden collision timing belong there."
+      - "Pipe Seam destruction timing belongs there."
+
+implementation_constraints:
+  - "Never use render tile IDs as gameplay terrain IDs."
+  - "Never infer movement cost from visuals."
+  - "Never grant terrain defense to air units."
+  - "Do not allow diagonal movement."
+  - "Do not allow ordinary units onto Pipe or intact Pipe Seam."
+  - "Do not place visually blocked terrain in official maps."
+  - "Recalculate visibility after movement, destruction, load/unload, capture, production, power effects and terrain transformation."
+  - "Changing a render tile variant must not modify gameplay."
+  - "Terrain data for active matches is version-locked."
+
+required_validation_tests:
+  - "Every terrain ID is unique."
+  - "Every movement-cost key is a supported movement type."
+  - "Plain costs Foot 1, Mech 1, Tires 2, Treads 1, Air 1."
+  - "Forest costs Foot 1, Mech 1, Tires 3, Treads 2, Air 1."
+  - "Mountain costs Foot 2, Mech 1 and is impassable to Tires and Treads."
+  - "River costs Foot 2, Mech 1 and is impassable to Tires and Treads."
+  - "Road and Bridge cost 1 for all ground movement types."
+  - "Sea costs Ship 1 and Transport Ship 1."
+  - "Reef costs Ship 2 and Transport Ship 2."
+  - "Shoal costs 1 for all ground types and Transport Ship, but is impassable to Ship."
+  - "Pipe and intact Pipe Seam are impassable to every MVP movement type, including Air."
+  - "Broken Pipe Seam has the same gameplay values as Plain."
+  - "Forest hides ground units under fog."
+  - "Reef hides naval units under fog."
+  - "Mountain grants +3 vision only to Infantry and Mech."
+  - "Air receives no concealment from Forest or Reef."
+  - "City, Base, Airport and Port have 3 defense stars."
+  - "Headquarters has 4 defense stars."
+  - "Missile Silo and Used Missile Silo have 3 defense stars."
+  - "Port permits Foot, Mech, Tires, Treads, Air, Ship and Transport Ship at cost 1."
+  - "Every blocked or derivative-art terrain is rejected by official-map validation."
+  - "Logical terrain and render tile references are stored independently."

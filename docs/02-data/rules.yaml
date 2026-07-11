@@ -1,0 +1,1026 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "definitive-baseline"
+document_purpose: >
+  Canonical engine-level rules for Iron Grid. This file defines match flow,
+  turn sequencing, action validation, combat resolution, deterministic RNG,
+  capture, repair, production, transport, fog of war, replay, concurrency,
+  asynchronous deadlines, victory, scoring placeholders, and versioning.
+  Static unit, weapon, damage, terrain, property, commander and map values
+  remain authoritative in their dedicated files.
+
+game_reference:
+  primary_ruleset: "Advance Wars 2: Black Hole Rising"
+  adaptation_model: >
+    Preserve AW2 battlefield mechanics unless an explicit Iron Grid override
+    exists in this file or game-specification.md.
+  mode: "private asynchronous 1v1"
+  authoritative_runtime: "server"
+  deterministic_engine_required: true
+  client_authority: "none"
+
+source_references:
+  - id: "game-specification"
+    path: "docs/01-specification/game-specification.md"
+    authority: "functional behavior"
+  - id: "units"
+    path: "docs/02-data/units.yaml"
+    authority: "unit definitions"
+  - id: "weapons"
+    path: "docs/02-data/weapons.yaml"
+    authority: "weapon behavior"
+  - id: "damage-chart"
+    path: "docs/02-data/damage-chart.yaml"
+    authority: "base damage"
+  - id: "terrain"
+    path: "docs/02-data/terrain.yaml"
+    authority: "movement, defense and terrain visibility"
+  - id: "properties"
+    path: "docs/02-data/properties.yaml"
+    authority: "capture, income, repair and production"
+
+engine_contract:
+  package_name: "game-engine"
+  language: "TypeScript"
+  framework_dependencies_allowed: false
+  forbidden_dependencies:
+    - next
+    - react
+    - phaser
+    - drizzle-orm
+    - pg
+    - "@neondatabase/serverless"
+    - resend
+    - "@auth/core"
+  required_public_functions:
+    - validateAction
+    - applyAction
+    - projectStateForPlayer
+    - calculateLegalActions
+    - calculateMovementRange
+    - calculateVisibility
+    - calculateCombatPreview
+    - resolveStartOfTurn
+    - evaluateVictory
+  purity:
+    state_mutation: "immutable"
+    external_io: false
+    wall_clock_access: false
+    random_access: "injected deterministic source only"
+  determinism:
+    same_input_same_output: true
+    active_match_data_version_locked: true
+    replay_must_not_reroll: true
+
+enums:
+  match_statuses:
+    - draft
+    - waiting_for_opponent
+    - commander_selection
+    - ready_check
+    - active
+    - completed
+    - cancelled
+  action_types:
+    - move_and_wait
+    - attack
+    - capture
+    - supply
+    - load
+    - unload
+    - join
+    - produce
+    - dive
+    - surface
+    - launch_missile
+    - activate_power
+    - end_turn
+    - resign
+    - claim_victory
+  completion_reasons:
+    - headquarters_captured
+    - army_eliminated
+    - resignation
+    - timeout_claimed
+    - day_limit_score
+    - administrative
+  event_types:
+    - match_started
+    - turn_started
+    - income_granted
+    - unit_repaired
+    - unit_resupplied
+    - fuel_consumed
+    - unit_moved
+    - unit_blocked_by_fog
+    - unit_attacked
+    - unit_counterattacked
+    - unit_damaged
+    - unit_destroyed
+    - cargo_destroyed
+    - capture_started
+    - capture_progressed
+    - property_captured
+    - unit_produced
+    - unit_loaded
+    - unit_unloaded
+    - units_joined
+    - unit_supplied
+    - submarine_dived
+    - submarine_surfaced
+    - missile_launched
+    - terrain_damaged
+    - terrain_destroyed
+    - power_activated
+    - turn_ended
+    - player_resigned
+    - victory_claimed
+    - match_completed
+  validation_error_codes:
+    - match_not_active
+    - not_match_player
+    - not_active_player
+    - stale_state_version
+    - invalid_action_type
+    - invalid_unit
+    - unit_not_owned
+    - unit_already_acted
+    - invalid_path
+    - path_blocked
+    - insufficient_movement
+    - insufficient_fuel
+    - destination_occupied
+    - target_not_visible
+    - invalid_target
+    - out_of_range
+    - cannot_move_and_attack
+    - no_valid_weapon
+    - insufficient_ammo
+    - invalid_capture
+    - invalid_supply
+    - invalid_transport
+    - invalid_join
+    - invalid_production
+    - insufficient_funds
+    - invalid_special_state
+    - power_not_ready
+    - deadline_not_expired
+    - victory_claim_unavailable
+    - match_already_completed
+    - invalid_map_state
+    - data_version_mismatch
+
+state_model:
+  match:
+    required_fields:
+      - id
+      - status
+      - data_version
+      - map_id
+      - state_version
+      - current_day
+      - active_player_id
+      - first_player_id
+      - started_at
+      - completed_at
+      - winner_player_id
+      - completion_reason
+      - turn_deadline_at
+      - expired_turn_claim_available_to
+      - deterministic_seed
+      - random_sequence_index
+  player_state:
+    required_fields:
+      - player_id
+      - user_id
+      - faction_id
+      - commander_id
+      - funds
+      - power_meter
+      - ready
+      - resigned
+  unit_state:
+    source: "units.yaml"
+    required_runtime_fields:
+      - id
+      - type_id
+      - owner_player_id
+      - x
+      - y
+      - true_hp
+      - fuel
+      - ammo
+      - has_acted
+      - capture_target_property_id
+      - cargo_unit_ids
+      - special_state
+      - created_turn
+  property_state:
+    source: "properties.yaml"
+    required_runtime_fields:
+      - id
+      - type_id
+      - x
+      - y
+      - owner_player_id
+      - capture_points_remaining
+      - capturing_unit_id
+  terrain_object_state:
+    required_runtime_fields:
+      - id
+      - terrain_type_id
+      - x
+      - y
+      - true_hp
+      - state
+  turn:
+    required_fields:
+      - turn_id
+      - day
+      - player_id
+      - started_at
+      - deadline_at
+      - ended_at
+  action:
+    required_fields:
+      - action_id
+      - idempotency_key
+      - match_id
+      - player_id
+      - type
+      - payload
+      - expected_state_version
+      - submitted_at
+  replay_event:
+    required_fields:
+      - event_id
+      - sequence
+      - action_id
+      - type
+      - authoritative_payload
+      - player_projections
+      - data_version
+
+match_lifecycle:
+  creation:
+    initial_status: "draft"
+    host_is_player_one: true
+    allowed_configuration:
+      - map_id
+      - fog_enabled
+      - turn_deadline_option
+      - day_limit
+      - supported_victory_conditions
+    fixed_configuration:
+      - gameplay_rules
+      - unit_roster
+      - damage_chart
+      - property_income
+      - unit_costs
+  invitation:
+    code_length: 6
+    ambiguous_characters_forbidden:
+      - "0"
+      - "O"
+      - "1"
+      - "I"
+    status_after_publish: "waiting_for_opponent"
+  commander_selection:
+    first_picker_selection: "server_random"
+    duplicate_commander_allowed: false
+    duplicate_faction_allowed: false
+    second_picker_sees_first_choice: true
+  ready_check:
+    both_players_required: true
+    auto_start_when_both_ready: true
+  match_start:
+    first_player_selection: "server_random"
+    map_state_created_atomically: true
+    starting_funds_source: "maps.yaml"
+    starting_units_source: "maps.yaml"
+    first_turn_start_processing: true
+  cancellation:
+    allowed_before_active: true
+    allowed_after_active: false
+
+time_model:
+  players: 2
+  day_definition: >
+    One day consists of one completed turn for each player. The day advances
+    when the second player in the current day ends their turn.
+  supported_deadlines:
+    - id: "24_hours"
+      duration_seconds: 86400
+    - id: "3_days"
+      duration_seconds: 259200
+    - id: "7_days"
+      duration_seconds: 604800
+    - id: "none"
+      duration_seconds: null
+  deadline_starts: "when turn_started commits"
+  expiration:
+    automatically_ends_turn: false
+    automatically_ends_match: false
+    grants_claim_to_opponent: true
+    late_player_may_continue: true
+    first_valid_late_action_revokes_claim: true
+    race_resolution: "single transaction with state version and row lock"
+  resignation:
+    allowed_when_active: true
+    allowed_outside_active: false
+    requires_confirmation_in_ui: true
+    engine_treats_as_immediate: true
+
+turn_sequence:
+  start_of_turn:
+    transaction_required: true
+    ordered_steps:
+      - id: "verify_match_and_active_player"
+      - id: "advance_turn_and_day_counters"
+      - id: "grant_property_income"
+      - id: "repair_units_on_owned_compatible_properties"
+      - id: "resupply_units_on_owned_compatible_properties"
+      - id: "consume_daily_fuel"
+      - id: "destroy_units_unable_to_pay_daily_fuel"
+      - id: "reset_unit_action_flags"
+      - id: "update_commander_power_duration"
+      - id: "recalculate_visibility"
+      - id: "evaluate_victory"
+      - id: "set_turn_deadline"
+      - id: "emit_turn_started"
+    deterministic_property_order: "y asc, x asc, property id asc"
+    deterministic_unit_order: "y asc, x asc, unit id asc"
+  active_phase:
+    unit_activation_order: "player_choice"
+    unit_actions_per_turn: 1
+    production_order: "player_choice"
+    power_activation_order: "player_choice when legal"
+  end_turn:
+    prerequisites:
+      - match_active
+      - requesting_player_is_active
+    ordered_steps:
+      - emit_turn_ended
+      - clear_expired_claim_for_current_turn
+      - select_next_player
+      - resolve_next_turn_start
+    cannot_undo: true
+
+action_processing:
+  transaction_required: true
+  ordered_steps:
+    - authenticate_player
+    - authorize_match_membership
+    - verify_match_status
+    - verify_expected_state_version
+    - validate_action_payload_schema
+    - validate_action_legality
+    - resolve_deterministic_randomness
+    - apply_state_changes
+    - create_authoritative_events
+    - evaluate_visibility_changes
+    - create_player_event_projections
+    - evaluate_victory
+    - increment_state_version
+    - persist_atomically
+  idempotency:
+    required: true
+    duplicate_key_behavior: "return original committed result"
+  failure:
+    partial_commit_allowed: false
+    consumes_random_sequence_on_failure: false
+    consumes_ammo_on_failure: false
+    consumes_funds_on_failure: false
+    changes_state_version_on_failure: false
+
+movement_rules:
+  adjacency: "orthogonal"
+  diagonal_allowed: false
+  path_required: true
+  path_start_must_equal_unit_position: true
+  movement_cost_source: "terrain.yaml"
+  fuel_cost_per_traversed_tile: 1
+  friendly_units:
+    pass_through_allowed: true
+    end_on_allowed: false
+    exceptions:
+      - join
+      - load
+  enemy_units:
+    pass_through_allowed: false
+    end_on_allowed: false
+  destination:
+    must_be_in_bounds: true
+    must_be_traversable: true
+    occupancy_checked_server_side: true
+  hidden_collision:
+    enabled_when_fog: true
+    stops_movement: true
+    reveal_minimum_information_only: true
+    fuel_behavior: >
+      Charge fuel for the committed traversed path through the stopping point.
+      Any stricter AW2 emulation discovered later must update this rule before code.
+  confirmation:
+    committed_immediately: true
+    undo_allowed: false
+
+combat_rules:
+  matrix_source: "damage-chart.yaml"
+  weapon_source: "weapons.yaml"
+  formula:
+    definitions:
+      base_damage: "integer percentage from damage-chart.yaml"
+      attack_value: "100 plus commander modifiers"
+      defense_value: "100 plus commander modifiers"
+      attacker_displayed_hp: "ceil(attacker_true_hp / 10)"
+      defender_displayed_hp: "ceil(defender_true_hp / 10)"
+      terrain_stars: "terrain.yaml value, or zero for air"
+      good_luck: "deterministic integer in configured good-luck range"
+      bad_luck: "deterministic integer in configured bad-luck range"
+    steps:
+      - id: "attack_component"
+        expression: "(base_damage * attack_value / 100) + good_luck - bad_luck"
+      - id: "hp_scaling"
+        expression: "attack_component * attacker_displayed_hp / 10"
+      - id: "defense_factor"
+        expression: "(200 - (defense_value + terrain_stars * defender_displayed_hp)) / 100"
+      - id: "raw_damage"
+        expression: "hp_scaled_attack * defense_factor"
+      - id: "clamp_non_negative"
+        expression: "max(0, raw_damage)"
+      - id: "rounding_stage_one"
+        expression: "ceil(value * 20) / 20"
+        meaning: "round upward to nearest 0.05"
+      - id: "rounding_stage_two"
+        expression: "floor(value)"
+        meaning: "round downward to whole percentage"
+      - id: "true_hp_damage"
+        expression: "min(defender_true_hp, rounded_percentage)"
+    default_values:
+      attack_value: 100
+      defense_value: 100
+      good_luck_range_inclusive: [0, 9]
+      bad_luck_range_inclusive: [0, 0]
+  weapon_selection:
+    policy: "highest_base_damage_among_currently_available_legal_weapons"
+    tie_breaker: "primary"
+    primary_with_zero_ammo_excluded: true
+    legality_inputs:
+      - attacker_state
+      - defender_state
+      - distance
+      - attacker_moved
+      - ammo
+      - visibility
+      - damage_chart_entry
+  direct_combat:
+    range: [1, 1]
+    movement_before_attack_allowed: true
+    counterattack_possible: true
+  indirect_combat:
+    movement_before_attack_allowed: false
+    counterattack_possible: false
+    range_source: "weapons.yaml"
+    line_of_sight_blocking: false
+  counterattack:
+    defender_must_survive: true
+    uses_post_hit_hp: true
+    independently_selects_weapon: true
+    independently_consumes_ammo: true
+    independently_rolls_luck: true
+    no_counter_against_indirect: true
+  ammo:
+    consume_after_action_commit: true
+    amount_source: "weapons.yaml"
+  destruction:
+    zero_true_hp: true
+    destroys_cargo: true
+    cancels_capture: true
+    triggers_visibility_recalculation: true
+    triggers_victory_check: true
+
+randomness:
+  algorithm_requirement: "stable, deterministic, explicitly versioned PRNG"
+  seed:
+    generated_by_server: true
+    stored_on_match: true
+    client_visible: false
+  sequence:
+    index_stored_on_match: true
+    increment_per_random_draw: true
+    failed_actions_do_not_consume: true
+  combat:
+    attacker_luck_draws: 1
+    counterattack_luck_draws: 1
+    persist_resolved_rolls_in_event: true
+  non_combat_randomness:
+    commander_first_picker: true
+    first_player: true
+    use_separate_named_streams: true
+  replay:
+    reroll_allowed: false
+    use_persisted_result: true
+
+capture_rules:
+  source: "properties.yaml"
+  eligible_units:
+    - infantry
+    - mech
+  max_points: 20
+  progress_formula: "capturing_unit.displayed_hp"
+  unit_action_consumed: true
+  capture_persists_when_unit_damaged: true
+  reset_when:
+    - unit_leaves
+    - unit_destroyed
+    - unit_replaced
+    - ownership_changes
+  headquarters:
+    victory_immediate: true
+    wait_until_end_turn: false
+
+income_repair_resupply_rules:
+  source: "properties.yaml"
+  income:
+    amount_per_owned_property: 1000
+    granted_at_start_of_turn: true
+  repair:
+    max_displayed_hp_per_turn: 2
+    cost_percent_of_unit_price_per_displayed_hp: 10
+    whole_displayed_hp_steps_only: true
+    partial_repair_based_on_funds: true
+    funds_cannot_be_negative: true
+  resupply:
+    free: true
+    full_fuel: true
+    full_ammo: true
+    occurs_without_repair: true
+    occurs_with_zero_funds: true
+
+production_rules:
+  source: "properties.yaml"
+  cost_source: "units.yaml"
+  created_state:
+    true_hp: 100
+    fuel: "maximum"
+    ammo: "maximum"
+    has_acted: true
+  property_must_be_owned: true
+  property_must_be_empty: true
+  sufficient_funds_required: true
+  allowed_categories:
+    base: "ground"
+    airport: "air"
+    port: "naval"
+
+supply_rules:
+  supplier_unit: "apc"
+  range: 1
+  adjacency: "orthogonal"
+  targets:
+    owner: "same_owner"
+    unit_categories:
+      - ground
+      - air
+      - naval
+  effects:
+    fuel: "maximum"
+    ammo: "maximum"
+    hp: 0
+  consumes_supplier_action: true
+  target_action_state_unchanged: true
+  note: >
+    APC supply affects adjacent allied units whose unit data permits ordinary
+    fuel/ammo resupply. It does not repair HP.
+
+join_rules:
+  same_owner_required: true
+  same_unit_type_required: true
+  movement_to_destination_required: true
+  destination_is_friendly_unit: true
+  source_unit_removed: true
+  resulting_unit: "destination"
+  true_hp:
+    formula: "min(100, source.true_hp + destination.true_hp)"
+  fuel:
+    formula: "min(unit.max_fuel, source.fuel + destination.fuel)"
+  ammo:
+    formula: "min(unit.max_ammo, source.ammo + destination.ammo)"
+    null_ammo_behavior: "remain null"
+  excess_hp_refund:
+    formula: "floor(unit.cost * max(0, source.true_hp + destination.true_hp - 100) / 100)"
+    added_to_owner_funds: true
+  resulting_unit_has_acted: true
+  cargo_join_forbidden: true
+  event: "units_joined"
+
+transport_rules:
+  source: "units.yaml"
+  nested_transport_forbidden: true
+  load:
+    same_owner_required: true
+    cargo_must_reach_transport_tile: true
+    capacity_required: true
+    type_must_be_allowed: true
+    cargo_removed_from_board_occupancy: true
+    cargo_has_acted: true
+  unload:
+    destination_adjacent: true
+    destination_must_be_legal_for_cargo: true
+    destination_must_be_empty: true
+    unloaded_unit_has_acted: true
+    multiple_unload_allowed_when_capacity_greater_than_one: true
+    all_destinations_must_be_distinct: true
+  destruction:
+    cargo_destroyed_with_transport: true
+    atomic: true
+  visibility:
+    cargo_identity_hidden_from_enemy: true
+    cargo_not_independent_visibility_source: true
+
+submarine_rules:
+  unit_id: "submarine"
+  states:
+    - surfaced
+    - submerged
+  initial_state: "surfaced"
+  dive:
+    consumes_action: true
+    visibility_recalculated: true
+  surface:
+    consumes_action: true
+    visibility_recalculated: true
+  daily_fuel:
+    surfaced: 1
+    submerged: 5
+  detection:
+    primary_detector: "cruiser"
+    detector_range: 1
+    adjacency: "orthogonal"
+  targeting:
+    surfaced_uses_surface_entries: true
+    submerged_requires_submerged_valid_entry: true
+  attack_reveal:
+    temporary_reveal: true
+    exact_duration: "through resolution of the attack event"
+  zero_fuel:
+    destroyed_at_start_of_turn: true
+
+fog_of_war_rules:
+  server_enforced: true
+  full_state_sent_to_client: false
+  enabled_by_match_setting: true
+  visibility_sources:
+    - owned_units
+    - owned_properties
+    - commander_effects
+  property_vision:
+    range: 1
+    source: "properties.yaml"
+  unit_vision:
+    source: "units.yaml"
+  terrain_modifiers:
+    source: "terrain.yaml"
+  concealment:
+    forest_hides: "ground"
+    reef_hides: "naval"
+    air_hidden_by_terrain: false
+    adjacency_reveals: true
+  recalculation_triggers:
+    - movement
+    - destruction
+    - load
+    - unload
+    - production
+    - capture
+    - dive
+    - surface
+    - power_activation
+    - terrain_transformation
+    - start_of_turn
+  projection:
+    state_projected_per_player: true
+    events_projected_per_player: true
+    hidden_entity_ids_must_not_leak: true
+    hidden_cargo_must_not_leak: true
+    hidden_capture_progress_must_not_leak: true
+  replay:
+    viewer_sees_only_historically_visible_events: true
+    visibility_evaluated_at_event_time: true
+
+missile_silo_rules:
+  terrain_id: "missile_silo"
+  asset_gate_required: true
+  eligible_units:
+    - infantry
+    - mech
+  unit_must_occupy_silo: true
+  consumes_unit_action: true
+  target_area:
+    shape: "diamond"
+    radius: 2
+    metric: "manhattan"
+  damage:
+    true_hp_damage: 30
+    affects_allied_units: true
+    affects_enemy_units: true
+    affects_cargo: false
+    cannot_reduce_below_true_hp: 10
+    destroys_units: false
+  terrain_transform:
+    from: "missile_silo"
+    to: "used_missile_silo"
+  visibility_recalculated: true
+  event: "missile_launched"
+
+pipe_seam_rules:
+  terrain_id: "pipe_seam"
+  damage_chart_defender_id: "pipe_seam"
+  max_true_hp: 99
+  owner: null
+  blocks_all_movement_while_intact: true
+  receives_terrain_defense: false
+  can_counterattack: false
+  can_be_repaired: false
+  can_be_targeted_when_visible: true
+  destruction:
+    transform_to: "broken_pipe_seam"
+    immediate: true
+    recalculates_pathfinding: true
+    recalculates_visibility: true
+  asset_gate_required: true
+
+commander_rules:
+  source: "commanders.yaml"
+  commander_count: 4
+  one_per_faction: true
+  passive_ability_count: 1
+  activatable_power_count: 1
+  super_power_enabled: false
+  duplicate_selection_allowed: false
+  hardcoded_commander_names_forbidden: true
+  meter:
+    implementation_blocked_until_commanders_yaml: true
+  power:
+    activation_manual: true
+    server_validated: true
+    persists_in_replay: true
+
+victory_rules:
+  evaluation_timing:
+    - after_start_of_turn_effects
+    - after_each_committed_action
+    - after_capture_completion
+    - after_unit_destruction
+    - after_resignation
+    - after_claim_victory
+    - after_end_turn_when_day_limit_reached
+  conditions:
+    headquarters_capture:
+      enabled: true
+      immediate: true
+    army_elimination:
+      enabled: true
+      timing: "after atomic action or start-of-turn effect"
+      unresolved_edge_case: >
+        Exact AW2 behavior for a player with zero units but available production
+        remains an explicit verification item. Implementation must follow the
+        approved test outcome rather than infer.
+    resignation:
+      enabled: true
+      immediate: true
+    timeout_claim:
+      enabled: true
+      immediate: true
+    day_limit:
+      enabled: true
+      scoring_status: "blocked_pending_exact_weights"
+  day_limit_scoring:
+    inputs:
+      - controlled_properties
+      - surviving_army_value
+      - damage_caused
+    property_weight: null
+    surviving_army_value_weight: null
+    damage_caused_weight: null
+    tie_break_order: []
+    implementation_allowed: false
+  draw:
+    allowed_only_after_all_tiebreakers: true
+
+timeout_claim_rules:
+  deadline_must_be_expired: true
+  claimant_must_be_inactive_opponent: true
+  match_must_be_active: true
+  late_player_must_not_have_committed_valid_action_after_expiration: true
+  transaction:
+    lock_match_row: true
+    compare_state_version: true
+    atomic_with_match_completion: true
+  success:
+    winner: "claimant"
+    reason: "timeout_claimed"
+  failure_codes:
+    - deadline_not_expired
+    - victory_claim_unavailable
+    - stale_state_version
+    - match_already_completed
+
+replay_rules:
+  event_store: "append_only"
+  sequence_scope: "match"
+  sequence_start: 1
+  contiguous_sequence_required: true
+  authoritative_events_private: true
+  player_projections_safe_for_client: true
+  event_payload_must_include_resolved_values: true
+  combat_event_fields:
+    - selected_weapon_id
+    - selected_slot
+    - base_damage
+    - good_luck
+    - bad_luck
+    - terrain_stars
+    - attack_value
+    - defense_value
+    - final_damage
+    - hp_before
+    - hp_after
+    - ammo_before
+    - ammo_after
+  opponent_turn_playback:
+    automatic: true
+    skippable: true
+    textual_summary_available: true
+  completed_match_full_replay_ui:
+    included_in_mvp: false
+    data_preserved_for_future: true
+
+concurrency_rules:
+  expected_state_version_required: true
+  match_row_lock_required: true
+  stale_action_rejected: true
+  multiple_tabs_allowed: true
+  stale_client_must_refresh: true
+  action_commit:
+    state_version_increment: 1
+    exactly_once_semantics: "idempotency key"
+  conflict_response:
+    typed: true
+    includes_current_safe_state_version: true
+    includes_hidden_state: false
+
+data_versioning:
+  active_match_stores_version: true
+  files:
+    - units.yaml
+    - weapons.yaml
+    - damage-chart.yaml
+    - terrain.yaml
+    - properties.yaml
+    - commanders.yaml
+    - maps.yaml
+    - rules.yaml
+  active_match_balance_changes_allowed: false
+  migration_of_active_match: "forbidden unless explicit administrative migration exists"
+  replay_uses_original_version: true
+
+notifications:
+  gameplay_authority: false
+  provider: "Resend"
+  event_triggers:
+    - match_invitation
+    - turn_started
+    - turn_reminder
+    - turn_expired
+    - match_completed
+  default_preferences:
+    match_invitation: true
+    turn_started: true
+    turn_reminder: true
+    turn_expired: false
+    match_completed: true
+  reminder:
+    remaining_time_percent: 20
+    no_deadline_match_has_reminder: false
+
+security_rules:
+  validate_membership_on_every_read: true
+  validate_membership_on_every_write: true
+  client_values_ignored:
+    - damage
+    - selected_weapon
+    - luck
+    - cost
+    - ownership
+    - movement_cost
+    - visibility
+    - capture_power
+    - repair_amount
+    - production_list
+  invitation_rate_limit_required: true
+  action_rate_limit_required: true
+  hidden_state_log_redaction_required: true
+  completed_match_gameplay_immutable: true
+
+cross_file_corrections:
+  weapons_yaml:
+    required_change:
+      field: "conventions.selection_policy"
+      current_problem: "Primary-first selection conflicts with AW2 dual-weapon behavior."
+      canonical_rule: "highest_base_damage_among_currently_available_legal_weapons"
+      tie_breaker: "primary"
+  units_yaml:
+    required_change:
+      field: "combat.target_domains"
+      clarification: "Coarse prefilter only; damage-chart.yaml is definitive legality."
+  game_specification:
+    required_change:
+      section: "Weapon selection"
+      canonical_rule: "Select available legal weapon with highest base damage, primary on tie."
+
+implementation_blockers:
+  - id: "commander-data"
+    blocks:
+      - activate_power
+      - power_meter
+      - commander_modifiers
+    reason: "commanders.yaml not yet approved"
+  - id: "day-limit-score"
+    blocks:
+      - day_limit_match_completion
+    reason: "weights and tie breakers not defined"
+  - id: "special-terrain-assets"
+    blocks:
+      - reef_in_official_maps
+      - pipe_in_official_maps
+      - pipe_seam_in_official_maps
+      - missile_silo_in_official_maps
+    reason: "asset mapping or derivative art not approved"
+  - id: "property-assets"
+    blocks:
+      - official_maps_with_properties
+    reason: "property mapping and ownership visuals not approved"
+  - id: "army-elimination-edge-case"
+    blocks:
+      - final_elimination_rule
+    reason: "exact timing verification pending"
+
+required_validation_tests:
+  match:
+    - "Cannot process gameplay actions before active status."
+    - "Both players ready starts match automatically."
+    - "First picker and first player are selected by server randomness."
+  turns:
+    - "Start-of-turn steps execute in exact specified order."
+    - "Each unit starts owner turn with has_acted false unless destroyed during start processing."
+    - "End Turn starts opponent turn atomically."
+  movement:
+    - "Paths are orthogonal and terrain-cost validated."
+    - "Fuel is consumed per traversed tile."
+    - "Enemy units block movement."
+    - "Friendly units may be passed through but not ended upon without Join or Load."
+  combat:
+    - "Weapon is selected by highest legal base damage, primary on tie."
+    - "Luck uses deterministic persisted values."
+    - "Counterattack uses defender post-hit HP."
+    - "Indirect attacks cannot be counterattacked."
+    - "Ammo decrements exactly once on committed finite-ammo attacks."
+  capture:
+    - "10-HP Infantry captures a neutral property in two actions."
+    - "Capture resets when the unit leaves or is destroyed."
+    - "Headquarters capture completes the match immediately."
+  repair_and_supply:
+    - "Repair costs 10 percent of unit price per displayed HP."
+    - "Repair is capped at 2 displayed HP."
+    - "Resupply occurs without funds and without HP repair."
+    - "APC supply restores adjacent allied fuel and ammo but not HP."
+  production:
+    - "Produced units are full-state and marked acted."
+    - "Occupied properties reject production."
+    - "Client-provided prices are ignored."
+  transport:
+    - "Cargo is removed from board occupancy."
+    - "Unloaded cargo is marked acted."
+    - "Transport destruction destroys all cargo atomically."
+  submarine:
+    - "Surfaced and submerged daily fuel differ."
+    - "Cruiser detects adjacent submerged Submarine."
+    - "Invalid weapons cannot target submerged Submarine."
+  fog:
+    - "Full hidden state is never sent to the client."
+    - "Forest and Reef concealment follows terrain.yaml."
+    - "Replay projections do not leak hidden events or IDs."
+  asynchronous:
+    - "Expired turn does not auto-end."
+    - "Late valid action revokes timeout claim."
+    - "Claim and late action race resolves atomically."
+  concurrency:
+    - "Two actions with the same expected version cannot both commit."
+    - "Duplicate idempotency key returns the original result."
+  replay:
+    - "Replaying events never rerolls luck."
+    - "Event sequences are contiguous."
+    - "Player replay respects historical visibility."
+  versioning:
+    - "Active match remains bound to starting data version."

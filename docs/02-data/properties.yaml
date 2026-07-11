@@ -1,0 +1,717 @@
+schema_version: "1.0.0"
+document_version: "1.0.0"
+document_status: "definitive-baseline"
+document_purpose: >
+  Canonical property definitions for the Iron Grid MVP. This file defines
+  ownership, income, capture, repair, resupply, production, headquarters
+  defeat behavior, property vision contribution, rendering ownership states,
+  and validation contracts. Terrain traversal and defense values remain in
+  terrain.yaml and must not be duplicated here.
+
+game_reference:
+  ruleset: "Advance Wars 2: Black Hole Rising"
+  property_policy: >
+    Reproduce AW2 property behavior while preserving Iron Grid's
+    server-authoritative asynchronous match model.
+  ownership_policy: >
+    Capturable properties may be neutral or owned by exactly one active player.
+    Headquarters must always belong to a player once a match begins.
+  income_policy: "Owned income-producing properties grant 1000 funds at the start of the owner's turn."
+  capture_policy: "Capturable properties have 20 capture points and are captured by Infantry or Mech using displayed HP."
+  repair_policy: >
+    Compatible units on owned properties may repair up to 2 displayed HP at
+    the start of the owner's turn, subject to available funds, and are
+    resupplied according to the approved AW2 behavior.
+  production_policy: >
+    Bases produce ground units, Airports produce air units, and Ports produce
+    naval units. Produced units appear immediately at full state and are marked
+    as already acted.
+
+source_references:
+  - id: "nintendo-aw2-manual"
+    type: "primary-reference"
+    url: "https://www.nintendo.com/eu/media/downloads/games_8/emanuals/game_boy_advance_8/Manual_GameBoyAdvance_AdvanceWars2BlackHoleRising_EN_DE_FR_ES_IT.pdf"
+    covers:
+      - property_income
+      - capture
+      - production
+      - repair
+      - resupply
+      - headquarters_capture
+  - id: "awbw-properties"
+    type: "technical-reference"
+    url: "https://awbw.fandom.com/wiki/Properties"
+    covers:
+      - defense_stars
+      - capture_points
+      - production_categories
+      - income
+      - repair_categories
+  - id: "project-game-specification"
+    type: "project-reference"
+    path: "docs/01-specification/game-specification.md"
+    covers:
+      - match_specific_overrides
+      - asynchronous_timing
+      - replay
+      - concurrency
+  - id: "pangea-assets-inventory"
+    type: "project-reference"
+    path: "docs/01-specification/assets-inventory.md"
+    covers:
+      - building_candidates
+      - ownership_visual_gaps
+      - asset_gating
+
+conventions:
+  capture:
+    default_max_points: 20
+    eligible_unit_ids:
+      - infantry
+      - mech
+    progress_per_action_formula: "capturing_unit.displayed_hp"
+    reset_conditions:
+      - capturing_unit_leaves
+      - capturing_unit_destroyed
+      - property_owner_changes
+      - capturing_unit_replaced
+      - match_ends
+    persists_through_damage: true
+    completion_rule: "capture_points_remaining <= 0"
+  income:
+    amount_per_property: 1000
+    timing: "start_of_owner_turn"
+    server_authoritative: true
+  repair:
+    max_displayed_hp_per_turn: 2
+    cost_percent_per_displayed_hp: 10
+    timing: "start_of_owner_turn"
+    partial_repair_allowed: true
+    funds_may_not_go_negative: true
+    true_hp_per_displayed_hp: 10
+    selection_policy: >
+      Process units in deterministic tile order unless rules.yaml defines a
+      different explicit ordering. Each unit may repair only whole displayed
+      HP increments that can be paid.
+  resupply:
+    timing: "start_of_owner_turn"
+    fuel_to_maximum: true
+    ammo_to_maximum: true
+    occurs_when_repair_is_zero: true
+    occurs_when_funds_are_zero: true
+  production:
+    created_true_hp: 100
+    created_with_full_fuel: true
+    created_with_full_ammo: true
+    created_unit_has_acted: true
+    property_tile_must_be_empty: true
+    sufficient_funds_required: true
+    cost_source: "units.yaml"
+  ownership:
+    neutral_owner: null
+    single_owner_only: true
+    ownership_change_is_immediate: true
+  vision:
+    property_contribution_enabled: true
+    owned_property_vision_range: 1
+    neutral_property_vision_range: 0
+    enemy_property_vision_range: 0
+    note: >
+      The exact property-vision rule must match the final fog implementation.
+      This value is explicit so it can be validated rather than inferred.
+  rendering:
+    ownership_states:
+      - neutral
+      - blue
+      - green
+      - red
+      - yellow
+    ownership_overlay_required: true
+    capture_progress_ui_required: true
+
+enums:
+  property_types:
+    - city
+    - base
+    - airport
+    - port
+    - headquarters
+  ownership_states:
+    - neutral
+    - player_owned
+  production_categories:
+    - none
+    - ground
+    - air
+    - naval
+  repair_categories:
+    - ground
+    - air
+    - naval
+  capture_outcomes:
+    - ownership_changed
+    - headquarters_defeat
+  asset_statuses:
+    - confirmed
+    - mapping_required
+    - derivative_art_required
+    - blocked
+
+defaults:
+  capturable: true
+  max_capture_points: 20
+  income_per_turn: 1000
+  produces: "none"
+  repair_categories: []
+  repairs_hp: true
+  resupplies_fuel: true
+  resupplies_ammo: true
+  grants_vision: true
+  vision_range: 1
+  can_be_neutral: true
+  ownership_required_at_match_start: false
+  triggers_defeat_on_capture: false
+  official_map_allowed: false
+
+properties:
+
+  city:
+    id: "city"
+    display_name: "City"
+    terrain_id: "city"
+    capturable: true
+    max_capture_points: 20
+    ownership:
+      can_be_neutral: true
+      required_at_match_start: false
+      default_owner: null
+    economy:
+      income_per_turn: 1000
+      contributes_to_property_count: true
+    production:
+      category: "none"
+      allowed_unit_ids: []
+      can_produce_when_occupied: false
+    repair:
+      categories:
+        - ground
+      hp_per_turn: 2
+      cost_percent_per_displayed_hp: 10
+      requires_owner: true
+      requires_compatible_unit: true
+      partial_repair_allowed: true
+    resupply:
+      categories:
+        - ground
+      fuel_to_maximum: true
+      ammo_to_maximum: true
+      requires_owner: true
+      occurs_without_repair: true
+    vision:
+      grants_vision_to_owner: true
+      range: 1
+    capture:
+      eligible_unit_ids:
+        - infantry
+        - mech
+      progress_formula: "displayed_hp"
+      on_complete: "ownership_changed"
+      reset_points_after_capture: 20
+    defeat:
+      triggers_defeat_on_capture: false
+    rendering:
+      asset_status: "mapping_required"
+      asset_candidate: "row_13_small_urban_building"
+      ownership_overlay_required: true
+      neutral_state_required: true
+      faction_states_required:
+        - blue
+        - green
+        - red
+        - yellow
+    official_map_allowed: false
+    unlock_condition: "Approve City sprite and ownership treatment."
+
+  base:
+    id: "base"
+    display_name: "Base"
+    terrain_id: "base"
+    capturable: true
+    max_capture_points: 20
+    ownership:
+      can_be_neutral: true
+      required_at_match_start: false
+      default_owner: null
+    economy:
+      income_per_turn: 1000
+      contributes_to_property_count: true
+    production:
+      category: "ground"
+      allowed_unit_ids:
+        - infantry
+        - mech
+        - recon
+        - apc
+        - artillery
+        - tank
+        - anti_air
+        - missiles
+        - rockets
+        - medium_tank
+        - neotank
+      can_produce_when_occupied: false
+      produced_unit_has_acted: true
+      unit_cost_source: "units.yaml"
+    repair:
+      categories:
+        - ground
+      hp_per_turn: 2
+      cost_percent_per_displayed_hp: 10
+      requires_owner: true
+      requires_compatible_unit: true
+      partial_repair_allowed: true
+    resupply:
+      categories:
+        - ground
+      fuel_to_maximum: true
+      ammo_to_maximum: true
+      requires_owner: true
+      occurs_without_repair: true
+    vision:
+      grants_vision_to_owner: true
+      range: 1
+    capture:
+      eligible_unit_ids:
+        - infantry
+        - mech
+      progress_formula: "displayed_hp"
+      on_complete: "ownership_changed"
+      reset_points_after_capture: 20
+    defeat:
+      triggers_defeat_on_capture: false
+    rendering:
+      asset_status: "mapping_required"
+      asset_candidate: "row_14_hangar_or_industrial_building"
+      ownership_overlay_required: true
+      neutral_state_required: true
+      faction_states_required:
+        - blue
+        - green
+        - red
+        - yellow
+    official_map_allowed: false
+    unlock_condition: "Approve Base sprite and ownership treatment."
+
+  airport:
+    id: "airport"
+    display_name: "Airport"
+    terrain_id: "airport"
+    capturable: true
+    max_capture_points: 20
+    ownership:
+      can_be_neutral: true
+      required_at_match_start: false
+      default_owner: null
+    economy:
+      income_per_turn: 1000
+      contributes_to_property_count: true
+    production:
+      category: "air"
+      allowed_unit_ids:
+        - battle_copter
+        - transport_copter
+        - fighter
+        - bomber
+      can_produce_when_occupied: false
+      produced_unit_has_acted: true
+      unit_cost_source: "units.yaml"
+    repair:
+      categories:
+        - air
+      hp_per_turn: 2
+      cost_percent_per_displayed_hp: 10
+      requires_owner: true
+      requires_compatible_unit: true
+      partial_repair_allowed: true
+    resupply:
+      categories:
+        - air
+      fuel_to_maximum: true
+      ammo_to_maximum: true
+      requires_owner: true
+      occurs_without_repair: true
+    vision:
+      grants_vision_to_owner: true
+      range: 1
+    capture:
+      eligible_unit_ids:
+        - infantry
+        - mech
+      progress_formula: "displayed_hp"
+      on_complete: "ownership_changed"
+      reset_points_after_capture: 20
+    defeat:
+      triggers_defeat_on_capture: false
+    rendering:
+      asset_status: "mapping_required"
+      asset_candidate: "radar_or_airfield_structure"
+      ownership_overlay_required: true
+      neutral_state_required: true
+      faction_states_required:
+        - blue
+        - green
+        - red
+        - yellow
+    official_map_allowed: false
+    unlock_condition: "Approve Airport sprite and ownership treatment."
+
+  port:
+    id: "port"
+    display_name: "Port"
+    terrain_id: "port"
+    capturable: true
+    max_capture_points: 20
+    ownership:
+      can_be_neutral: true
+      required_at_match_start: false
+      default_owner: null
+    economy:
+      income_per_turn: 1000
+      contributes_to_property_count: true
+    production:
+      category: "naval"
+      allowed_unit_ids:
+        - lander
+        - cruiser
+        - submarine
+        - battleship
+      can_produce_when_occupied: false
+      produced_unit_has_acted: true
+      unit_cost_source: "units.yaml"
+    repair:
+      categories:
+        - naval
+      hp_per_turn: 2
+      cost_percent_per_displayed_hp: 10
+      requires_owner: true
+      requires_compatible_unit: true
+      partial_repair_allowed: true
+    resupply:
+      categories:
+        - naval
+      fuel_to_maximum: true
+      ammo_to_maximum: true
+      requires_owner: true
+      occurs_without_repair: true
+    vision:
+      grants_vision_to_owner: true
+      range: 1
+    capture:
+      eligible_unit_ids:
+        - infantry
+        - mech
+      progress_formula: "displayed_hp"
+      on_complete: "ownership_changed"
+      reset_points_after_capture: 20
+    defeat:
+      triggers_defeat_on_capture: false
+    rendering:
+      asset_status: "mapping_required"
+      asset_candidate: "row_15_harbor_or_dock"
+      ownership_overlay_required: true
+      neutral_state_required: true
+      faction_states_required:
+        - blue
+        - green
+        - red
+        - yellow
+    official_map_allowed: false
+    unlock_condition: "Approve Port sprite and ownership treatment."
+
+  headquarters:
+    id: "headquarters"
+    display_name: "Headquarters"
+    terrain_id: "headquarters"
+    capturable: true
+    max_capture_points: 20
+    ownership:
+      can_be_neutral: false
+      required_at_match_start: true
+      default_owner: null
+      exactly_one_per_player_required: true
+    economy:
+      income_per_turn: 1000
+      contributes_to_property_count: true
+    production:
+      category: "none"
+      allowed_unit_ids: []
+      can_produce_when_occupied: false
+    repair:
+      categories:
+        - ground
+      hp_per_turn: 2
+      cost_percent_per_displayed_hp: 10
+      requires_owner: true
+      requires_compatible_unit: true
+      partial_repair_allowed: true
+    resupply:
+      categories:
+        - ground
+      fuel_to_maximum: true
+      ammo_to_maximum: true
+      requires_owner: true
+      occurs_without_repair: true
+    vision:
+      grants_vision_to_owner: true
+      range: 1
+    capture:
+      eligible_unit_ids:
+        - infantry
+        - mech
+      progress_formula: "displayed_hp"
+      on_complete: "headquarters_defeat"
+      reset_points_after_capture: 20
+      ownership_transfer_before_match_completion: true
+    defeat:
+      triggers_defeat_on_capture: true
+      defeated_player: "previous_owner"
+      winner: "capturing_unit_owner"
+      completion_reason: "headquarters_captured"
+      timing: "immediate_after_atomic_capture_action"
+    rendering:
+      asset_status: "mapping_required"
+      asset_candidate: "large_elevated_command_structure"
+      ownership_overlay_required: true
+      neutral_state_required: false
+      faction_states_required:
+        - blue
+        - green
+        - red
+        - yellow
+    official_map_allowed: false
+    unlock_condition: "Approve Headquarters sprite and four-faction ownership treatment."
+
+property_state_model:
+  instance_fields:
+    - id
+    - property_type_id
+    - x
+    - y
+    - owner_player_id
+    - capture_points_remaining
+    - capturing_unit_id
+    - map_definition_id
+  initial_values:
+    capture_points_remaining: 20
+    capturing_unit_id: null
+  invariants:
+    - "owner_player_id is null only when the property type allows neutral ownership."
+    - "capture_points_remaining is an integer from 1 to max_capture_points unless completion is being resolved atomically."
+    - "capturing_unit_id references an active Infantry or Mech on the property tile."
+    - "A property cannot be captured by more than one unit simultaneously."
+    - "Property ownership changes and capture reset occur in the same transaction."
+
+capture_resolution:
+  prerequisites:
+    - "match.status is active"
+    - "requesting player is active player"
+    - "unit belongs to requesting player"
+    - "unit type is Infantry or Mech"
+    - "unit occupies property tile"
+    - "property is capturable"
+    - "property is not already owned by unit owner"
+    - "unit has not acted"
+  steps:
+    - "If capturing_unit_id differs from the acting unit, initialize or replace capture attempt according to reset rules."
+    - "Subtract acting unit displayed HP from capture_points_remaining."
+    - "Mark unit as acted."
+    - "Persist capture progress event."
+    - "If capture_points_remaining is greater than zero, retain the same capturing_unit_id."
+    - "If capture_points_remaining is zero or lower, change owner immediately."
+    - "Reset capture_points_remaining to max_capture_points."
+    - "Clear capturing_unit_id."
+    - "Recalculate property income ownership and fog projection."
+    - "If Headquarters, complete match immediately."
+  replay_events:
+    - capture_started
+    - capture_progressed
+    - property_captured
+    - headquarters_captured
+    - match_completed
+
+start_of_turn_property_processing:
+  deterministic_order:
+    - "Sort owned properties by y ascending, then x ascending, then property instance ID."
+    - "Grant total income."
+    - "Process compatible unit repair/resupply in the same deterministic tile order."
+  income:
+    formula: "sum(property.economy.income_per_turn for all owned properties)"
+    event: "income_granted"
+  repair:
+    target_condition: "compatible allied unit begins turn on owned property"
+    max_displayed_hp: 2
+    true_hp_per_step: 10
+    step_cost_formula: "unit.cost * 0.10"
+    algorithm:
+      - "Determine missing true HP."
+      - "Determine maximum whole displayed-HP repair steps, capped at 2."
+      - "Determine affordable steps from current funds."
+      - "Repair min(missing steps, 2, affordable steps)."
+      - "Deduct funds atomically."
+      - "Clamp true HP to 100."
+    event: "unit_repaired"
+  resupply:
+    algorithm:
+      - "Set compatible unit fuel to unit maximum."
+      - "Set compatible unit primary ammo to unit maximum."
+      - "Resupply occurs even when no HP is repaired."
+      - "Resupply does not deduct funds."
+    event: "unit_resupplied"
+
+production_resolution:
+  prerequisites:
+    - "match.status is active"
+    - "requesting player is active player"
+    - "property belongs to requesting player"
+    - "property production category is not none"
+    - "selected unit is listed in allowed_unit_ids"
+    - "selected unit production property matches this property"
+    - "property tile is empty"
+    - "player has sufficient funds"
+    - "unit is enabled for the active data version"
+  steps:
+    - "Read cost from units.yaml."
+    - "Deduct funds."
+    - "Create unit at property coordinates."
+    - "Set true HP to 100."
+    - "Set fuel and ammo to unit maxima."
+    - "Set has_acted true."
+    - "Persist unit and state version."
+    - "Recalculate visibility."
+    - "Emit unit_produced."
+  failure_codes:
+    - property_not_owned
+    - wrong_active_player
+    - property_occupied
+    - unsupported_unit_category
+    - unit_not_allowed
+    - insufficient_funds
+    - disabled_unit
+    - stale_state_version
+
+rendering_contract:
+  source_issue: >
+    The Pangea Wars package does not provide a clearly labeled four-faction
+    property sheet. Property semantics and ownership states therefore require
+    explicit mapping or approved derivative overlays.
+  required_visual_states:
+    city:
+      - neutral
+      - blue
+      - green
+      - red
+      - yellow
+    base:
+      - neutral
+      - blue
+      - green
+      - red
+      - yellow
+    airport:
+      - neutral
+      - blue
+      - green
+      - red
+      - yellow
+    port:
+      - neutral
+      - blue
+      - green
+      - red
+      - yellow
+    headquarters:
+      - blue
+      - green
+      - red
+      - yellow
+  capture_progress:
+    rendered_in_html_or_canvas: true
+    must_show:
+      - remaining_capture_points
+      - capturing_faction
+    must_not_reveal_under_fog:
+      - hidden_enemy_capture_when_property_is_not_visible
+
+cross_file_contracts:
+  terrain_yaml:
+    path: "terrain.yaml"
+    requirements:
+      - "Each property terrain gameplay.property_id resolves here."
+      - "Defense stars and movement costs remain authoritative in terrain.yaml."
+      - "Terrain official_map_allowed must remain false until property art is approved."
+  units_yaml:
+    path: "units.yaml"
+    requirements:
+      - "Production allowed_unit_ids must resolve to enabled units."
+      - "Each produced unit's production.property must match the property type."
+      - "Repair categories must match unit category."
+      - "Infantry and Mech are the only capture-capable units."
+  maps_yaml:
+    path: "maps.yaml"
+    requirements:
+      - "Each property instance references one property type here."
+      - "Each player has exactly one Headquarters."
+      - "Neutral Headquarters are forbidden."
+      - "Property coordinates match the terrain grid."
+  rules_yaml:
+    path: "rules.yaml"
+    requirements:
+      - "Start-of-turn sequencing and victory timing reference this file."
+      - "Funds, capture and production transactions use match state versioning."
+  game_specification:
+    path: "game-specification.md"
+    requirements:
+      - "Any future gameplay difference must be documented before changing this file."
+
+implementation_constraints:
+  - "Do not duplicate property defense stars or terrain movement costs here."
+  - "Do not trust client-provided owner, price, capture value, repair value or allowed unit list."
+  - "Do not allow production on an occupied property."
+  - "Do not allow neutral properties to repair, resupply or produce."
+  - "Do not allow enemy-owned properties to benefit an occupying unit."
+  - "Do not charge funds for fuel or ammo resupply."
+  - "Do not apply fractional displayed-HP repair steps."
+  - "Do not let capture progress survive the capturing unit leaving or being destroyed."
+  - "Do not delay Headquarters victory until End Turn."
+  - "Do not expose hidden capture progress through replay or API responses."
+  - "Active matches remain bound to their initial property-data version."
+
+required_validation_tests:
+  - "Exactly five property types exist."
+  - "Every property ID is unique."
+  - "Every property terrain_id resolves in terrain.yaml."
+  - "City, Base, Airport, Port and Headquarters have 20 capture points."
+  - "Every property grants 1000 income when owned."
+  - "Only Base, Airport and Port produce units."
+  - "Base produces exactly the 11 enabled ground units."
+  - "Airport produces exactly the 4 enabled air units."
+  - "Port produces exactly the 4 enabled naval units."
+  - "City and Headquarters do not produce units."
+  - "City, Base and Headquarters repair and resupply ground units."
+  - "Airport repairs and resupplies air units."
+  - "Port repairs and resupplies naval units."
+  - "Neutral properties do not produce, repair, resupply or grant income."
+  - "Infantry and Mech are the only capture-capable units."
+  - "A 10-HP capturer completes a neutral property in two uninterrupted capture actions."
+  - "A damaged 6-HP capturer removes 6 capture points."
+  - "Capture resets when the capturing unit leaves."
+  - "Capture resets when the capturing unit is destroyed."
+  - "Ownership changes immediately when capture points reach zero."
+  - "Headquarters capture immediately completes the match."
+  - "Produced unit is full HP, fuel and ammo and has acted."
+  - "Production fails when property is occupied."
+  - "Repair restores at most 2 displayed HP."
+  - "Repair cost equals 10 percent of unit cost per displayed HP."
+  - "Repair is partial when funds are insufficient."
+  - "Resupply occurs even if no repair can be afforded."
+  - "All property visual states required by rendering_contract are accounted for."

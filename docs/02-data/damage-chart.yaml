@@ -1,0 +1,2533 @@
+schema_version: 1.0.0
+document_version: 1.0.0
+document_status: definitive-baseline
+document_purpose: 'Canonical AW2 base-damage matrix for Iron Grid. Values are percentages
+
+  before HP scaling, luck, commander attack/defense, terrain defense and final
+
+  rounding. The matrix is attacker-centric and preserves primary/secondary
+
+  weapon values, automatic weapon selection, surfaced-submarine restrictions,
+
+  and Pipe Seam damage.'
+game_reference:
+  ruleset: 'Advance Wars 2: Black Hole Rising'
+  matrix_scope: 19 MVP units as defenders, 16 armed MVP units as attackers, plus Pipe Seam as a destructible defender.
+  source_chart: https://warswiki.org/wiki/Damage/Advance_Wars_2_chart
+  source_chart_revision: oldid=30485
+  source_last_edited: '2024-01-19'
+source_interpretation:
+  row_axis: defending unit
+  column_axis: attacking unit weapon
+  dash: illegal attack / no damage entry
+  parentheses_non_submarine: alternate weapon value shown by the source chart; automatic combat uses the available
+    weapon with the highest base damage
+  parentheses_submarine: attack is available only while the Submarine is surfaced; submerged Submarines require
+    an entry valid in submerged state
+conventions:
+  value_unit: percentage points
+  valid_range:
+  - 1
+  - 125
+  null_means: attack is illegal with that weapon against that defender/state
+  automatic_weapon_selection: Among currently available legal weapon slots, choose the slot with the highest base
+    damage. On an exact tie, choose primary. Exclude finite-ammo weapons when ammo is zero.
+  damage_formula_location: rules.yaml and game-specification.md
+  weapon_metadata_location: weapons.yaml
+  unit_metadata_location: units.yaml
+  submarine_states:
+  - surfaced
+  - submerged
+  pipe_seam_is_unit: false
+defender_order:
+- infantry
+- mech
+- recon
+- tank
+- medium_tank
+- neotank
+- apc
+- artillery
+- rockets
+- anti_air
+- missiles
+- fighter
+- bomber
+- battle_copter
+- transport_copter
+- lander
+- cruiser
+- submarine
+- battleship
+- pipe_seam
+attacker_order:
+- infantry
+- mech
+- recon
+- tank
+- medium_tank
+- neotank
+- artillery
+- rockets
+- anti_air
+- missiles
+- battle_copter
+- fighter
+- bomber
+- cruiser
+- submarine
+- battleship
+attackers:
+  infantry:
+    unit_id: infantry
+    weapons:
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 12
+        automatic_selection: secondary
+      tank:
+        defender_id: tank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 5
+        automatic_selection: secondary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+      apc:
+        defender_id: apc
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 14
+        automatic_selection: secondary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 15
+        automatic_selection: secondary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 25
+        automatic_selection: secondary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 5
+        automatic_selection: secondary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 25
+        automatic_selection: secondary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 7
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 30
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+  mech:
+    unit_id: mech
+    weapons:
+      primary: bazooka
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 65
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 18
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 55
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 6
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 75
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 20
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 70
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 32
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 65
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 6
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 9
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: bazooka
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+  recon:
+    unit_id: recon
+    weapons:
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 70
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 65
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: secondary
+      tank:
+        defender_id: tank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 6
+        automatic_selection: secondary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+      apc:
+        defender_id: apc
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: secondary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: secondary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: secondary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 4
+        automatic_selection: secondary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 28
+        automatic_selection: secondary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 10
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          secondary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: secondary
+  tank:
+    unit_id: tank
+    weapons:
+      primary: light_tank_cannon
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 35
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 75
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 30
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 70
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 40
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 55
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 6
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 75
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 70
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 65
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 5
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 30
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 10
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 40
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 10
+          secondary: null
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 5
+          secondary: null
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 1
+            source_parenthesized: true
+            target_state_requirement: surfaced
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 1
+          secondary: null
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: light_tank_cannon
+            base_damage: 15
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+  medium_tank:
+    unit_id: medium_tank
+    weapons:
+      primary: medium_tank_cannon
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 50
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 105
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 45
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 95
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 85
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 8
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 55
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 45
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 7
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 35
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 12
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 45
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 35
+          secondary: null
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 45
+          secondary: null
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 10
+            source_parenthesized: true
+            target_state_requirement: surfaced
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 10
+          secondary: null
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: medium_tank_cannon
+            base_damage: 55
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+  neotank:
+    unit_id: neotank
+    weapons:
+      primary: neotank_cannon
+      secondary: machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 50
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 125
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 45
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 115
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 125
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 65
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 105
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 10
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 75
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 55
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 125
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 65
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 115
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 65
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 125
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 75
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 115
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 17
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 125
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 22
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 55
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 40
+          secondary: null
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 50
+          secondary: null
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 15
+            source_parenthesized: true
+            target_state_requirement: surfaced
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 10
+          secondary: null
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: neotank_cannon
+            base_damage: 75
+          secondary:
+            weapon_id: machine_gun
+            base_damage: 1
+        automatic_selection: primary
+  artillery:
+    unit_id: artillery
+    weapons:
+      primary: artillery_cannon
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 90
+        automatic_selection: primary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 85
+        automatic_selection: primary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 80
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 70
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 45
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 40
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 70
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 75
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 80
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 75
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 80
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 55
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 65
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 60
+            source_parenthesized: true
+            target_state_requirement: surfaced
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 40
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: artillery_cannon
+            base_damage: 45
+        automatic_selection: primary
+  rockets:
+    unit_id: rockets
+    weapons:
+      primary: rocket_launcher
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 95
+        automatic_selection: primary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 90
+        automatic_selection: primary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 90
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 85
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 55
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 50
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 80
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 80
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 85
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 85
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 90
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 60
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 85
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 85
+            source_parenthesized: true
+            target_state_requirement: surfaced
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 55
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: rocket_launcher
+            base_damage: 55
+        automatic_selection: primary
+  anti_air:
+    unit_id: anti_air
+    weapons:
+      primary: vulcan_cannon
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 105
+        automatic_selection: primary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 105
+        automatic_selection: primary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 60
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 25
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 10
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 5
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 50
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 50
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 45
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 45
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 55
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 120
+        automatic_selection: primary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 120
+        automatic_selection: primary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 65
+        automatic_selection: primary
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 75
+        automatic_selection: primary
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: vulcan_cannon
+            base_damage: 10
+        automatic_selection: primary
+  missiles:
+    unit_id: missiles
+    weapons:
+      primary: surface_to_air_missiles
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary:
+            weapon_id: surface_to_air_missiles
+            base_damage: 120
+        automatic_selection: primary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary:
+            weapon_id: surface_to_air_missiles
+            base_damage: 120
+        automatic_selection: primary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary:
+            weapon_id: surface_to_air_missiles
+            base_damage: 100
+        automatic_selection: primary
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary:
+            weapon_id: surface_to_air_missiles
+            base_damage: 100
+        automatic_selection: primary
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary: null
+        automatic_selection: null
+  battle_copter:
+    unit_id: battle_copter
+    weapons:
+      primary: air_to_surface_missiles
+      secondary: copter_machine_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 45
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 75
+        automatic_selection: secondary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 50
+            source_parenthesized: true
+            selection_note: alternate_weapon_value
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 75
+        automatic_selection: secondary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 55
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 30
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 55
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 6
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 20
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 1
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 60
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 20
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 65
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 25
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 65
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 35
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 6
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 65
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 35
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 65
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 95
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+          secondary: null
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 55
+          secondary: null
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+            source_parenthesized: true
+            target_state_requirement: surfaced
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+          secondary: null
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: air_to_surface_missiles
+            base_damage: 25
+          secondary:
+            weapon_id: copter_machine_gun
+            base_damage: 1
+        automatic_selection: primary
+  fighter:
+    unit_id: fighter
+    weapons:
+      primary: air_to_air_missiles
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary:
+            weapon_id: air_to_air_missiles
+            base_damage: 100
+        automatic_selection: primary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary:
+            weapon_id: air_to_air_missiles
+            base_damage: 100
+        automatic_selection: primary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary:
+            weapon_id: air_to_air_missiles
+            base_damage: 55
+        automatic_selection: primary
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary:
+            weapon_id: air_to_air_missiles
+            base_damage: 100
+        automatic_selection: primary
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary: null
+        automatic_selection_by_state:
+          surfaced: null
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary: null
+        automatic_selection: null
+  bomber:
+    unit_id: bomber
+    weapons:
+      primary: bombs
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 110
+        automatic_selection: primary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 110
+        automatic_selection: primary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 95
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 90
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 95
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 105
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 95
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 85
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 95
+            source_parenthesized: true
+            target_state_requirement: surfaced
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 75
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: bombs
+            base_damage: 95
+        automatic_selection: primary
+  cruiser:
+    unit_id: cruiser
+    weapons:
+      primary: anti_submarine_torpedoes
+      secondary: naval_anti_air_gun
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: naval_anti_air_gun
+            base_damage: 115
+        automatic_selection: secondary
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: naval_anti_air_gun
+            base_damage: 115
+        automatic_selection: secondary
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: naval_anti_air_gun
+            base_damage: 55
+        automatic_selection: secondary
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+          secondary:
+            weapon_id: naval_anti_air_gun
+            base_damage: 65
+        automatic_selection: secondary
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: anti_submarine_torpedoes
+            base_damage: 90
+          secondary: null
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: primary
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary: null
+          secondary: null
+        automatic_selection: null
+  submarine:
+    unit_id: submarine
+    weapons:
+      primary: submarine_torpedoes
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: submarine_torpedoes
+            base_damage: 95
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: submarine_torpedoes
+            base_damage: 25
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: submarine_torpedoes
+            base_damage: 55
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: primary
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: submarine_torpedoes
+            base_damage: 55
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary: null
+        automatic_selection: null
+  battleship:
+    unit_id: battleship
+    weapons:
+      primary: naval_cannon
+    matchups:
+      infantry:
+        defender_id: infantry
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 95
+        automatic_selection: primary
+      mech:
+        defender_id: mech
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 90
+        automatic_selection: primary
+      recon:
+        defender_id: recon
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 90
+        automatic_selection: primary
+      tank:
+        defender_id: tank
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 85
+        automatic_selection: primary
+      medium_tank:
+        defender_id: medium_tank
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 55
+        automatic_selection: primary
+      neotank:
+        defender_id: neotank
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 50
+        automatic_selection: primary
+      apc:
+        defender_id: apc
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 80
+        automatic_selection: primary
+      artillery:
+        defender_id: artillery
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 80
+        automatic_selection: primary
+      rockets:
+        defender_id: rockets
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 85
+        automatic_selection: primary
+      anti_air:
+        defender_id: anti_air
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 85
+        automatic_selection: primary
+      missiles:
+        defender_id: missiles
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 90
+        automatic_selection: primary
+      fighter:
+        defender_id: fighter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      bomber:
+        defender_id: bomber
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      battle_copter:
+        defender_id: battle_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      transport_copter:
+        defender_id: transport_copter
+        weapon_values:
+          primary: null
+        automatic_selection: null
+      lander:
+        defender_id: lander
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 95
+        automatic_selection: primary
+      cruiser:
+        defender_id: cruiser
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 95
+        automatic_selection: primary
+      submarine:
+        defender_id: submarine
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 95
+            source_parenthesized: true
+            target_state_requirement: surfaced
+        automatic_selection_by_state:
+          surfaced: primary
+          submerged: null
+      battleship:
+        defender_id: battleship
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 50
+        automatic_selection: primary
+      pipe_seam:
+        defender_id: pipe_seam
+        weapon_values:
+          primary:
+            weapon_id: naval_cannon
+            base_damage: 55
+        automatic_selection: primary
+matrix_integrity:
+  armed_attacker_count: 16
+  unit_defender_count: 19
+  special_defender_count: 1
+  total_defender_count: 20
+  source_weapon_column_count: 22
+required_engine_behavior:
+- Read base damage only from this file.
+- Never infer damage from weapon name, category, cost, armor or role.
+- Filter weapons by ammo, range, movement, visibility and target state before automatic selection.
+- Choose the legal available weapon with the highest base damage; use primary on an exact tie.
+- Persist selected weapon slot and base damage in the combat replay event.
+- Do not rerun selection during replay.
+- A submerged Submarine can only be targeted by entries valid for submerged state.
+- Pipe Seam damage uses the same combat formula unless rules.yaml defines a terrain-object exception.
+cross_file_corrections:
+- file: weapons.yaml
+  issue: The current primary-first selection policy conflicts with AW2 dual-weapon behavior.
+  required_change: Use highest-base-damage-among-available, with primary as tie-breaker.
+  examples:
+  - Tank vs Infantry selects Machine Gun (75), not Cannon (35).
+  - Medium Tank vs Infantry selects Machine Gun (105), not Cannon (50).
+  - Battle Copter vs Infantry selects Copter Machine Gun (75), not Missiles (45).
+- file: units.yaml
+  issue: Target-domain lists are coarse filters only.
+  required_change: Use this matrix and target state as definitive attack-legality data.
+required_validation_tests:
+- The chart contains exactly 16 armed attackers.
+- The chart contains exactly 19 unit defenders plus Pipe Seam.
+- Every attacker and unit defender resolves in units.yaml.
+- Every weapon ID resolves in weapons.yaml.
+- Every source row contains exactly 22 weapon-column values.
+- Tank vs Infantry selects secondary for 75 base damage.
+- Tank vs Tank selects primary for 55 base damage.
+- Mech vs Tank selects Bazooka for 55 base damage.
+- Battle Copter vs Infantry selects secondary for 75 base damage.
+- Cruiser vs Submarine uses primary for 90 base damage.
+- Submarine vs Submarine uses primary for 55 base damage.
+- Tank cannot attack a submerged Submarine.
+- Bomber attacks a surfaced Submarine for 95 but cannot attack it while submerged.
+- Fighter vs Bomber base damage is 100.
+- Missiles vs Fighter and Bomber base damage is 120.
+- Battleship vs Infantry base damage is 95.
+- No transport-only unit appears as an attacker.
+- Every legal entry is an integer from 1 to 125.
