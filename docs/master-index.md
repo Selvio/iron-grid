@@ -63,6 +63,7 @@ same change.
 | `testing.md` | Testing strategy and acceptance scenarios. |
 | `roadmap.md` | Milestones and execution order. |
 | `definition-of-ready.md` | The gate a task must pass **before** implementation starts (entry gate; the Definition of Done is the exit gate). |
+| `milestones/` | Per-milestone execution-detail: the ticket breakdown for a milestone, produced when it starts (e.g. `milestones/m0-foundations.md`). |
 
 ## 05-design
 

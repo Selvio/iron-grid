@@ -35,7 +35,10 @@
     "IKnowKingRabbit",
     "autotile",
     "autotiles",
-    "recomputable"
+    "recomputable",
+    "typecheck",
+    "typechecks",
+    "lintstagedrc"
   ],
   "ignorePaths": [
     "node_modules/**",
