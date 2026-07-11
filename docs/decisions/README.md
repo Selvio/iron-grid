@@ -107,6 +107,7 @@ As ADRs are added, list them here:
 | ADR | Title | Status | Resolves |
 |---|---|---|---|
 | [0001](0001-frontend-ui-and-tooling-stack.md) | Frontend UI and developer-tooling stack | Accepted | Open test-runner choice (`testing.md` §12); UI/form/tooling library selection |
+| [0002](0002-code-formatter-prettier.md) | Code formatter: Prettier | Accepted | Formatter left unspecified by ADR-0001 |
 
 ---
 

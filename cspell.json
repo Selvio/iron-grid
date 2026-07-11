@@ -38,11 +38,20 @@
     "recomputable",
     "typecheck",
     "typechecks",
-    "lintstagedrc"
+    "lintstagedrc",
+    "activatable",
+    "Aleksandr",
+    "capturable",
+    "Chokepoints",
+    "Ibérica",
+    "lifecycles",
+    "matchups",
+    "neondatabase",
+    "pathfinding",
+    "stdlib",
+    "tileset",
+    "transactionally",
+    "veterancy"
   ],
-  "ignorePaths": [
-    "node_modules/**",
-    ".next/**",
-    "pnpm-lock.yaml"
-  ]
+  "ignorePaths": ["node_modules/**", ".next/**", "pnpm-lock.yaml"]
 }

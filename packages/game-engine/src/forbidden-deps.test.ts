@@ -34,8 +34,12 @@ interface PackageManifest {
 
 describe("game-engine package purity", () => {
   it("declares none of the forbidden dependencies", () => {
-    const manifestPath = fileURLToPath(new URL("../package.json", import.meta.url));
-    const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as PackageManifest;
+    const manifestPath = fileURLToPath(
+      new URL("../package.json", import.meta.url),
+    );
+    const manifest = JSON.parse(
+      readFileSync(manifestPath, "utf8"),
+    ) as PackageManifest;
 
     const declared = new Set([
       ...Object.keys(manifest.dependencies ?? {}),
@@ -44,7 +48,9 @@ describe("game-engine package purity", () => {
       ...Object.keys(manifest.optionalDependencies ?? {}),
     ]);
 
-    const violations = FORBIDDEN_DEPENDENCIES.filter((dep) => declared.has(dep));
+    const violations = FORBIDDEN_DEPENDENCIES.filter((dep) =>
+      declared.has(dep),
+    );
     expect(violations).toEqual([]);
   });
 });

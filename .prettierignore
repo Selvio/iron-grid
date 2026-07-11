@@ -1,0 +1,17 @@
+# Build output and dependencies
+node_modules/
+.next/
+out/
+build/
+coverage/
+
+# Lockfile is managed by pnpm
+pnpm-lock.yaml
+
+# Documentation is prose (manually formatted, spell-checked by cspell) and
+# includes the vendored Claude Design export under docs/05-design.
+docs/
+
+# Binary/vendored assets
+game-assets/
+public/
