@@ -64,6 +64,12 @@ same change.
 | `roadmap.md` | Milestones and execution order. |
 | `definition-of-ready.md` | The gate a task must pass **before** implementation starts (entry gate; the Definition of Done is the exit gate). |
 
+## 05-design
+
+| Document | Purpose |
+|---|---|
+| `design-reference.md` | **Illustrative** UI/UX reference: pointer to the Claude Design mockup of the main flows and the battlefield, its design system and coverage. Non-authoritative — subordinate to `game-specification.md` and `frontend.md`. |
+
 ## decisions
 
 Architecture Decision Records (ADRs). Each ADR captures one functional
@@ -84,6 +90,11 @@ If two documents conflict, the higher entry wins:
 5.  Source code
 
 Source code is never the source of truth.
+
+> The `05-design` reference is **illustrative only** and sits outside this
+> precedence order: it never overrides behavior or architecture. If the design
+> mockup and a higher document disagree, the document wins and the design is
+> updated to match.
 
 > Note: `game-specification.md` already merges the researched Advance
 > Wars 2 behavior with the Iron Grid adaptations. There is no separate
@@ -113,6 +124,7 @@ Load:
 - `project-manifest.md`
 - `frontend.md`
 - `game-specification.md`
+- `design-reference.md` (illustrative UI/UX reference)
 - relevant YAML data files
 
 ## Backend task

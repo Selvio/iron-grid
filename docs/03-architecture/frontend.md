@@ -243,3 +243,5 @@ Canonical in `game-specification.md` §27.1, §27.4.
 - `assets-inventory.md` — sprite sheet and frame inventory.
 - `decisions/0001-frontend-ui-and-tooling-stack.md` — shadcn/ui, lucide-react,
   react-hook-form + Zod, Vitest, husky/lint-staged, JSDoc.
+- `design-reference.md` (`05-design`) — illustrative UI/UX mockup of the main
+  flows and battlefield that realizes this contract (non-authoritative).

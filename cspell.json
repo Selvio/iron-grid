@@ -20,7 +20,16 @@
     "Neotank",
     "roster",
     "AWBW",
-    "camelCase"
+    "camelCase",
+    "Selvio",
+    "shadcn",
+    "lucide",
+    "Vitest",
+    "husky",
+    "Radix",
+    "Manrope",
+    "JetBrains",
+    "kebab"
   ],
   "ignorePaths": [
     "node_modules/**",
