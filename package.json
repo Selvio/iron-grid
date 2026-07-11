@@ -15,7 +15,8 @@
     "spell": "cspell --no-progress \"**/*.md\"",
     "typecheck": "tsc --noEmit && pnpm --filter \"./packages/*\" run typecheck",
     "test": "vitest",
-    "test:run": "vitest run"
+    "test:run": "vitest run",
+    "prepare": "husky"
   },
   "dependencies": {
     "game-data": "workspace:*",
@@ -33,6 +34,8 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.0.8",
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
     "typescript": "^5",
