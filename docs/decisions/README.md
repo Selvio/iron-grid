@@ -102,11 +102,11 @@ Superseded).
 
 # 5. Index
 
-No ADRs have been recorded yet. As ADRs are added, list them here:
+As ADRs are added, list them here:
 
 | ADR | Title | Status | Resolves |
 |---|---|---|---|
-| — | *(none yet)* | — | — |
+| [0001](0001-frontend-ui-and-tooling-stack.md) | Frontend UI and developer-tooling stack | Accepted | Open test-runner choice (`testing.md` §12); UI/form/tooling library selection |
 
 ---
 

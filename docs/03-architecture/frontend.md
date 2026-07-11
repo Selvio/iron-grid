@@ -46,6 +46,12 @@ leak it (`game-specification.md` §18.1, §29).
 - **TypeScript** throughout (`project-manifest.md`).
 - **Phaser** owns the battlefield canvas only — the grid, sprites, camera and
   animation. It is mounted inside a React component, not the whole app.
+- **UI stack** (`decisions/0001-frontend-ui-and-tooling-stack.md`): the React DOM
+  is built with **shadcn/ui** components (Radix + Tailwind v4) and **lucide-react**
+  icons; forms use **react-hook-form + Zod** via `@hookform/resolvers`. This stack
+  is **DOM-only** — it styles the shell, HUD, menus, lobby and forms. The **Phaser
+  canvas is never built from DOM components** (§3); shadcn draws the UI *around*
+  the board, not the board itself.
 - The client calls the backend over HTTP (`backend.md` §3); it never imports
   `game-data` I/O or touches the database.
 
@@ -235,3 +241,5 @@ Canonical in `game-specification.md` §27.1, §27.4.
 - `game-specification.md` — §7 (map/render), §9.5 (sprites), §10.4 (confirmation),
   §12.7 (damage preview), §24.3–§24.4 (replay), §27 (UI), §28 (animation).
 - `assets-inventory.md` — sprite sheet and frame inventory.
+- `decisions/0001-frontend-ui-and-tooling-stack.md` — shadcn/ui, lucide-react,
+  react-hook-form + Zod, Vitest, husky/lint-staged, JSDoc.

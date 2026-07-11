@@ -84,10 +84,10 @@ conventions:
     hit: [21, 22, 23]
     death: [24, 25, 26, 27]
   faction_sprite_sheets:
-    blue: "BlueUnitsSpriteSheet.png"
-    green: "GreenUnitsSpriteSheet.png"
-    red: "RedUnitsSpriteSheet.png"
-    yellow: "YellowUnitsSpriteSheet.png"
+    blue: "blue-units-sprite-sheet.png"
+    green: "green-units-sprite-sheet.png"
+    red: "red-units-sprite-sheet.png"
+    yellow: "yellow-units-sprite-sheet.png"
 
 enums:
   categories:

@@ -299,10 +299,11 @@ This is the gameplay-feature bar; the code-change bar (`tsc`, `pnpm lint`,
 
 # 12. Tooling
 
-The scaffold does not yet include a test runner (`package.json` has no `test`
-script). Selecting and wiring one is a **code-phase task**, like Drizzle, Phaser
-and Auth.js (`architecture.md` §10 "To add"). Whatever runner is chosen must
-satisfy these requirements, which come from the strategy above:
+The test runner is **Vitest**, chosen in
+`decisions/0001-frontend-ui-and-tooling-stack.md`. It is not yet installed —
+wiring it is a **code-phase task**, like Drizzle, Phaser and Auth.js
+(`architecture.md` §10 "To add"). Vitest was selected because it satisfies every
+requirement the strategy above imposes:
 
 - **Fast, hermetic unit tests** for the pure engine — no DB, network or clock.
 - **Deterministic execution** — no reliance on ambient randomness or wall-clock
@@ -312,10 +313,11 @@ satisfy these requirements, which come from the strategy above:
 - **Runs per package** (engine and data testable in isolation) and integrates
   with backend integration tests for the `app/` layer.
 - **CI gate:** the full suite plus `tsc`/`next build`, `pnpm lint` and `cspell`
-  must pass before merge.
+  must pass before merge. The `husky` + `lint-staged` precommit hook runs the
+  fast checks locally but does **not** replace the CI gate
+  (`coding-standards.md` §11).
 
-When the runner is installed, add a `test` script to `package.json` and record
-the choice; this section is updated to name it at that time.
+When Vitest is installed, add a `test` script to `package.json` running it.
 
 ---
 

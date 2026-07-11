@@ -42,7 +42,10 @@ It does **not** cover:
 
 # 2. Toolchain baseline
 
-These are fixed by the scaffold and must not drift per package.
+The scaffold-present settings are fixed and must not drift per package. The
+"decided" rows are chosen in `decisions/0001-frontend-ui-and-tooling-stack.md`
+but not yet installed (a code-phase task, like the runtime deps in
+`architecture.md` §10).
 
 | Setting | Value | Source |
 |---|---|---|
@@ -53,6 +56,11 @@ These are fixed by the scaffold and must not drift per package.
 | Runtime (web) | Next.js 16 App Router, React 19 | `package.json` |
 | Styling | Tailwind CSS v4 (`@tailwindcss/postcss`) | `package.json`, `postcss.config.mjs` |
 | Spell check | `cspell` (`cspell.json`) | root config |
+| UI components | shadcn/ui (Radix + Tailwind) — `app/` DOM only | ADR-0001 (to install) |
+| Icons | lucide-react — `app/` DOM only | ADR-0001 (to install) |
+| Client forms | react-hook-form + Zod (`@hookform/resolvers`) — `app/` | ADR-0001 (to install) |
+| Test runner | Vitest (all packages) | ADR-0001 (to install) |
+| Precommit | husky + lint-staged | ADR-0001 (to install) |
 
 **Rules:**
 
@@ -205,7 +213,13 @@ Detailed rendering/interaction design is in `frontend.md`; the coding rules are:
 - **React components are typed and prop-driven.** Component files are
   `PascalCase.tsx`; props are explicit typed interfaces; server-only concerns
   (secrets, DB, engine invocation) never cross into client components.
-- **Styling** uses Tailwind CSS v4 (the scaffold's configured toolchain).
+- **Styling and UI** use Tailwind CSS v4 with **shadcn/ui** components and
+  **lucide-react** icons (ADR-0001). These are DOM-only: shadcn styles the React
+  UI around the board (HUD, menus, lobby, forms); the **Phaser canvas is not
+  built from DOM components** (`frontend.md` §3).
+- **Forms use react-hook-form + Zod** via `@hookform/resolvers` (ADR-0001),
+  reusing the same Zod schemas as the validation boundary (§5). Client validation
+  is UX only — the server re-validates every submission (`backend.md` §4).
 
 ---
 
@@ -221,8 +235,11 @@ implementation* (`project-manifest.md`):
   timeout_claim_rules`) rather than paraphrasing the rule inline, so there is one
   source of truth (`master-index.md` → Rules).
 - **No dead code, no commented-out blocks.** Delete it; git remembers.
-- **Public engine functions carry a short doc comment** naming their contract and
-  pointing at `rules.yaml` → `engine_contract`.
+- **Public/exported APIs carry JSDoc/TSDoc** (ADR-0001). Every exported function,
+  type and module boundary gets a doc comment stating its contract and intent —
+  not a restatement of its TypeScript types. **Public engine functions**
+  additionally point at `rules.yaml` → `engine_contract`. JSDoc complements the
+  canonical docs; it never becomes a second source of truth for a rule.
 
 ---
 
@@ -238,6 +255,11 @@ implementation* (`project-manifest.md`):
   type errors block a change.
 - **Consistent formatting** across the codebase; a formatter's output is not
   hand-edited. Whitespace-only churn is kept out of substantive diffs.
+- **Precommit gate: husky + lint-staged** (ADR-0001) runs the fast checks
+  (ESLint, cspell, `tsc`, formatting) over **staged files** before a commit. It
+  stays fast: the full Vitest suite runs in CI (`testing.md` §12), not on
+  precommit. The hook is a convenience that mirrors the gate — it never replaces
+  the CI gate.
 
 ---
 

@@ -35,17 +35,22 @@ Pangea Wars visual assets by Aleksandr Makarov (@IKnowKingRabbit)
 Pangea Wars/
 ├── license.txt
 ├── SpecialThanks!.txt
-├── Tileset/
-│   ├── Tileset.png
-│   ├── FogOfWar.png
-│   ├── SmallUnitShadow.png
-│   └── BigUnitShadow.png
-└── Units/
-    ├── BlueUnitsSpriteSheet.png
-    ├── GreenUnitsSpriteSheet.png
-    ├── RedUnitsSpriteSheet.png
-    └── YellowUnitsSpriteSheet.png
+├── tileset/
+│   ├── tileset.png
+│   ├── fog-of-war.png
+│   ├── small-unit-shadow.png
+│   └── big-unit-shadow.png
+└── units/
+    ├── blue-units-sprite-sheet.png
+    ├── green-units-sprite-sheet.png
+    ├── red-units-sprite-sheet.png
+    └── yellow-units-sprite-sheet.png
 ```
+
+> Filenames and folders above use the project's **kebab-case** convention. The
+> original pack shipped them in PascalCase (`Tileset/Tileset.png`,
+> `Units/BlueUnitsSpriteSheet.png`, …); they were renamed on import into
+> `game-assets/`. The mapping is 1:1 — only casing/word separators changed.
 
 No UI kit, fonts, portraits, commander art, icons, sounds, music, project files, metadata, JSON, map examples or animation definitions are included.
 
@@ -57,7 +62,7 @@ No UI kit, fonts, portraits, commander art, icons, sounds, music, project files,
 
 | File | Dimensions | Logical grid | Cell size |
 |---|---:|---:|---:|
-| `Tileset.png` | 240 × 384 px | 10 columns × 16 rows | 24 × 24 px |
+| `tileset.png` | 240 × 384 px | 10 columns × 16 rows | 24 × 24 px |
 
 Coordinate convention:
 
@@ -71,10 +76,10 @@ tile_id = row * 10 + column
 
 | File | Dimensions | Faction |
 |---|---:|---|
-| `BlueUnitsSpriteSheet.png` | 896 × 1328 px | Blue |
-| `GreenUnitsSpriteSheet.png` | 896 × 1328 px | Green |
-| `RedUnitsSpriteSheet.png` | 896 × 1328 px | Red |
-| `YellowUnitsSpriteSheet.png` | 896 × 1328 px | Yellow |
+| `blue-units-sprite-sheet.png` | 896 × 1328 px | Blue |
+| `green-units-sprite-sheet.png` | 896 × 1328 px | Green |
+| `red-units-sprite-sheet.png` | 896 × 1328 px | Red |
+| `yellow-units-sprite-sheet.png` | 896 × 1328 px | Yellow |
 
 Layout:
 
@@ -113,9 +118,9 @@ Not every row uses every frame. Empty transparent cells must be treated as absen
 
 | File | Dimensions | Purpose |
 |---|---:|---|
-| `SmallUnitShadow.png` | 32 × 32 px | Small airborne unit shadow |
-| `BigUnitShadow.png` | 32 × 32 px | Large airborne unit shadow |
-| `FogOfWar.png` | 120 × 72 px | 5 × 3 grid of 24 px fog tiles |
+| `small-unit-shadow.png` | 32 × 32 px | Small airborne unit shadow |
+| `big-unit-shadow.png` | 32 × 32 px | Large airborne unit shadow |
+| `fog-of-war.png` | 120 × 72 px | 5 × 3 grid of 24 px fog tiles |
 
 The fog sheet provides 15 edge/coverage variants. It supports tile-based fog rendering, but discovery, visibility and hidden-unit behavior remain game logic.
 
@@ -271,7 +276,7 @@ Observed structures:
 Critical finding:
 
 - The pack does **not** label buildings.
-- It also does not clearly provide four colorized property sets in `Tileset.png`.
+- It also does not clearly provide four colorized property sets in `tileset.png`.
 - Ownership tinting, flags, overlays or palette variants may need to be added programmatically or created as small derivative assets.
 - Exact assignment of City, Base, Airport, Port, HQ and Missile Silo must be finalized in the visual mapping stage using these structures.
 
@@ -395,8 +400,8 @@ This row should remain unused until manually assigned.
 
 Shadow mapping:
 
-- Rows 29–30: `SmallUnitShadow.png`
-- Rows 25–28 and 31: `BigUnitShadow.png`
+- Rows 29–30: `small-unit-shadow.png`
+- Rows 25–28 and 31: `big-unit-shadow.png`
 
 ### 5.8 Rows 32–40: naval and amphibious units
 

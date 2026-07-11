@@ -170,7 +170,7 @@ factions:
     display_name: null
     display_name_status: "unresolved"
     color_role: "blue"
-    unit_sprite_sheet: "BlueUnitsSpriteSheet.png"
+    unit_sprite_sheet: "blue-units-sprite-sheet.png"
     commander_id: "commander_blue"
     gameplay_modifiers: []
     visual:
@@ -189,7 +189,7 @@ factions:
     display_name: null
     display_name_status: "unresolved"
     color_role: "green"
-    unit_sprite_sheet: "GreenUnitsSpriteSheet.png"
+    unit_sprite_sheet: "green-units-sprite-sheet.png"
     commander_id: "commander_green"
     gameplay_modifiers: []
     visual:
@@ -208,7 +208,7 @@ factions:
     display_name: null
     display_name_status: "unresolved"
     color_role: "red"
-    unit_sprite_sheet: "RedUnitsSpriteSheet.png"
+    unit_sprite_sheet: "red-units-sprite-sheet.png"
     commander_id: "commander_red"
     gameplay_modifiers: []
     visual:
@@ -227,7 +227,7 @@ factions:
     display_name: null
     display_name_status: "unresolved"
     color_role: "yellow"
-    unit_sprite_sheet: "YellowUnitsSpriteSheet.png"
+    unit_sprite_sheet: "yellow-units-sprite-sheet.png"
     commander_id: "commander_yellow"
     gameplay_modifiers: []
     visual:
