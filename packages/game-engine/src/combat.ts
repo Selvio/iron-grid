@@ -30,6 +30,7 @@ import {
   updateMatch,
 } from "./board";
 import { clearCaptureBy } from "./capture";
+import { ownerModifier } from "./commanders";
 import { computeDamage } from "./damage";
 import type {
   CombatPreview,
@@ -126,6 +127,7 @@ function terrainStarsFor(
 
 /** True-HP damage `attacker` deals to `defender` with `weapon` and the given luck. */
 function hitDamage(
+  state: MatchState,
   gameData: GameData,
   mapId: Id,
   attacker: UnitState,
@@ -137,8 +139,25 @@ function hitDamage(
 ): number {
   return computeDamage({
     baseDamage: weapon.baseDamage,
-    attackValue: BASE_VALUE,
-    defenseValue: BASE_VALUE,
+    // Commander passive modifiers (M3-T8); inert (0) with no resolved commander.
+    attackValue:
+      BASE_VALUE +
+      ownerModifier(
+        state,
+        attacker.ownerPlayerId,
+        gameData,
+        "attack",
+        attacker.typeId,
+      ),
+    defenseValue:
+      BASE_VALUE +
+      ownerModifier(
+        state,
+        defender.ownerPlayerId,
+        gameData,
+        "defense",
+        defender.typeId,
+      ),
     goodLuck,
     badLuck,
     attackerDisplayHp: displayHp(attacker.trueHp),
@@ -295,6 +314,7 @@ interface Strike {
 
 /** Resolve a single hit `attacker` → `defender`, drawing luck from `stream`. */
 function resolveStrike(
+  state: MatchState,
   gameData: GameData,
   mapId: Id,
   attacker: UnitState,
@@ -307,6 +327,7 @@ function resolveStrike(
   const goodLuck = random.nextInt(stream, 0, 9);
   const badLuck = 0; // default bad-luck range is [0, 0] — no draw needed (§12.5)
   const damage = hitDamage(
+    state,
     gameData,
     mapId,
     attacker,
@@ -366,6 +387,7 @@ export function applyAttack(
     attacker0.ammo,
   )!;
   const hit = resolveStrike(
+    state,
     gameData,
     mapId,
     { ...attacker0, position: from },
@@ -423,6 +445,7 @@ export function applyAttack(
 
     if (counterWeapon !== null) {
       const counter = resolveStrike(
+        state,
         gameData,
         mapId,
         defenderHit,
@@ -514,6 +537,7 @@ export function calculateCombatPreview(
 
   const atkAt: UnitState = { ...attacker, position: from };
   const minDamage = hitDamage(
+    state,
     gameData,
     mapId,
     atkAt,
@@ -524,6 +548,7 @@ export function calculateCombatPreview(
     0,
   );
   const maxDamage = hitDamage(
+    state,
     gameData,
     mapId,
     atkAt,
@@ -554,6 +579,7 @@ export function calculateCombatPreview(
     trueHp: Math.max(1, defender.trueHp - minDamage),
   };
   const counterMax = hitDamage(
+    state,
     gameData,
     mapId,
     strongest,
@@ -569,7 +595,17 @@ export function calculateCombatPreview(
     trueHp: Math.max(1, defender.trueHp - maxDamage),
   };
   const counterMin = survivesWorst
-    ? hitDamage(gameData, mapId, weakest, atkAt, atkDef, counterWeapon, 0, 0)
+    ? hitDamage(
+        state,
+        gameData,
+        mapId,
+        weakest,
+        atkAt,
+        atkDef,
+        counterWeapon,
+        0,
+        0,
+      )
     : 0;
 
   return {

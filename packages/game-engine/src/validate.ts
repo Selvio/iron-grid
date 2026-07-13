@@ -22,6 +22,7 @@ import { unitById } from "./board";
 import type { Action, MoveAndWaitAction } from "./actions";
 import { validateCapture } from "./capture";
 import { validateAttack } from "./combat";
+import { validateActivatePower } from "./commanders";
 import { validateJoin } from "./join";
 import { validateProduce } from "./production";
 import { validateDive, validateSurface } from "./submarine";
@@ -128,6 +129,8 @@ export function validateAction(
       return validateDive(state, action, gameData);
     case "surface":
       return validateSurface(state, action, gameData);
+    case "activate_power":
+      return validateActivatePower(state, action, gameData);
     case "end_turn":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));

@@ -28,6 +28,7 @@ import {
 } from "./board";
 import type { EngineResult, ValidationError, ValidationResult } from "./engine";
 import type { Event } from "./events";
+import { ownerModifier } from "./commanders";
 import { validateMovementPath } from "./movement";
 import type { Coordinate, Id, MatchState, UnitState } from "./state";
 
@@ -179,7 +180,17 @@ export function applyCapture(
     });
   }
   const startPoints = fresh ? maxPoints : property.capturePointsRemaining;
-  const remaining = startPoints - displayHp(unit0.trueHp);
+  // Commander capture modifier (M3-T8); inert (0) with no resolved commander.
+  const contribution =
+    displayHp(unit0.trueHp) +
+    ownerModifier(
+      state,
+      unit0.ownerPlayerId,
+      gameData,
+      "capture_power",
+      unit0.typeId,
+    );
+  const remaining = startPoints - contribution;
 
   if (remaining > 0) {
     next = replaceProperty(next, {

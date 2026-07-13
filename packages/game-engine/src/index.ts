@@ -38,6 +38,7 @@ export type {
 export type {
   Action,
   ActionEnvelope,
+  ActivatePowerAction,
   AttackAction,
   CaptureAction,
   DiveAction,
@@ -61,6 +62,7 @@ export type {
   FutureEvent,
   IncomeGrantedEvent,
   MatchCompletedEvent,
+  PowerActivatedEvent,
   PropertyCapturedEvent,
   ResolvedLuck,
   SubmarineDivedEvent,
@@ -81,6 +83,9 @@ export type {
   UnitUnloadedEvent,
 } from "./events";
 export type { RandomSource, RandomStream } from "./random";
+
+export { ownerModifier } from "./commanders";
+export type { ModifierTarget } from "./commanders";
 
 export {
   addUnit,

@@ -32,6 +32,7 @@ import {
   updateMatch,
   updatePlayer,
 } from "./board";
+import { ownerModifier } from "./commanders";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { repairUnits, resupplyUnits } from "./repair";
@@ -122,13 +123,20 @@ export function resolveStartOfTurn(
   // 3. grant_property_income (§6.2): 1,000 per owned income-producing property,
   //    read from `properties.yaml` economy so silos/terrain grant nothing unless
   //    configured. Aggregated into one credit so `fundsAfter` is unambiguous.
+  // Commander income modifier (M3-T8), added per producing property; inert (0)
+  // with no resolved commander.
+  const incomeBonus = ownerModifier(
+    next,
+    activeId,
+    gameData,
+    "property_income",
+  );
   const income = next.properties
     .filter((p) => p.ownerPlayerId === activeId)
-    .reduce(
-      (sum, p) =>
-        sum + (gameData.properties[p.typeId]?.economy.income_per_turn ?? 0),
-      0,
-    );
+    .reduce((sum, p) => {
+      const base = gameData.properties[p.typeId]?.economy.income_per_turn ?? 0;
+      return sum + (base > 0 ? base + incomeBonus : 0);
+    }, 0);
   if (income > 0) {
     const fundsAfter = activePlayer.funds + income;
     next = updatePlayer(next, activeId, { funds: fundsAfter });

@@ -22,6 +22,7 @@ import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
 import { replaceUnit, unitAt, unitById, updateMatch } from "./board";
 import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
+import { applyActivatePower } from "./commanders";
 import { applyJoin } from "./join";
 import { applyProduce } from "./production";
 import { applyDive, applySurface } from "./submarine";
@@ -216,6 +217,8 @@ function dispatch(
       return applyDive(state, action);
     case "surface":
       return applySurface(state, action);
+    case "activate_power":
+      return applyActivatePower(state, action, gameData);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
     default:

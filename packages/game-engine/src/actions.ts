@@ -129,6 +129,11 @@ export interface SurfaceAction extends ActionEnvelope {
   readonly unitId: Id;
 }
 
+/** Activate the active player's commander power (§22.5). */
+export interface ActivatePowerAction extends ActionEnvelope {
+  readonly type: "activate_power";
+}
+
 /** Hand the turn to the next player (§ turn_sequence.end_turn). */
 export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
@@ -153,6 +158,7 @@ export interface FutureAction extends ActionEnvelope {
     | "unload"
     | "dive"
     | "surface"
+    | "activate_power"
   >;
   readonly payload?: unknown;
 }
@@ -169,5 +175,6 @@ export type Action =
   | UnloadAction
   | DiveAction
   | SurfaceAction
+  | ActivatePowerAction
   | EndTurnAction
   | FutureAction;

@@ -20,6 +20,7 @@
 import type { GameData } from "game-data";
 
 import { unitAt } from "./board";
+import { ownerModifier } from "./commanders";
 import type { PlayerView, Visibility } from "./engine";
 import type { Coordinate, Id, MatchState, UnitState } from "./state";
 
@@ -88,14 +89,23 @@ function detects(def: UnitDef, kind: "forest" | "reef" | "sub"): boolean {
   return d.submerged_submarine === true;
 }
 
-/** A unit's effective vision range: base plus the Mountain bonus when eligible. */
+/** A unit's effective vision range: base plus Mountain bonus and commander modifier. */
 function visionRange(
+  state: MatchState,
   gameData: GameData,
   mapId: Id,
   unit: UnitState,
   def: UnitDef,
 ): number {
-  const base = def.vision.base_range;
+  // Commander vision modifier (M3-T8); inert (0) with no resolved commander.
+  const commander = ownerModifier(
+    state,
+    unit.ownerPlayerId,
+    gameData,
+    "vision_range",
+    unit.typeId,
+  );
+  const base = def.vision.base_range + commander;
   if (unit.position === null || !mountainEligible(def)) return base;
   return (
     base + terrainFog(terrainAt(gameData, mapId, unit.position)).visionBonus
@@ -144,7 +154,7 @@ export function calculateVisibility(
       gameData,
       mapId,
       unit.position,
-      visionRange(gameData, mapId, unit, def),
+      visionRange(state, gameData, mapId, unit, def),
       tiles,
     );
   }

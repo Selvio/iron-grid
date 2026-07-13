@@ -24,6 +24,7 @@
 import type { GameData } from "game-data";
 
 import { unitAt, unitById } from "./board";
+import { ownerModifier } from "./commanders";
 import type { MovementRange, ValidationError } from "./engine";
 import type { Coordinate, Id, MatchState } from "./state";
 
@@ -141,7 +142,15 @@ export function calculateMovementRange(
   }
 
   const movementType = def.movement.type;
-  const maxCost = def.movement.points;
+  const maxCost =
+    def.movement.points +
+    ownerModifier(
+      state,
+      unit.ownerPlayerId,
+      gameData,
+      "movement_points",
+      unit.typeId,
+    );
   const maxTiles = unit.fuel; // one fuel per traversed tile (§10.3)
   const origin = unit.position;
   const key = (c: Coordinate): string => `${c.x},${c.y}`;

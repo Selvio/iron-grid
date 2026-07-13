@@ -203,6 +203,14 @@ export interface UnitBlockedByFogEvent {
   readonly stoppedAt: Coordinate;
 }
 
+/** A commander power was activated (`power_activated`, §22.5). */
+export interface PowerActivatedEvent {
+  readonly type: "power_activated";
+  readonly playerId: Id;
+  readonly commanderId: Id;
+  readonly powerId: Id;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -249,6 +257,7 @@ export interface FutureEvent {
     | "submarine_surfaced"
     | "match_completed"
     | "unit_blocked_by_fog"
+    | "power_activated"
   >;
   readonly payload?: unknown;
 }
@@ -276,6 +285,7 @@ export type Event =
   | SubmarineSurfacedEvent
   | MatchCompletedEvent
   | UnitBlockedByFogEvent
+  | PowerActivatedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;
