@@ -1,19 +1,94 @@
 /**
  * `game-engine` — the pure, deterministic, framework-free core of Iron Grid.
  *
- * It is a pure function of `(state, action, gameData, randomSource)`: no I/O, no
- * wall-clock access, and randomness only from an injected source. Framework
- * dependencies are forbidden and enforced by a guard (see
- * `forbidden-deps.test.ts`).
+ * Every function is pure over `(state, …, gameData[, randomSource])`: no I/O, no
+ * wall-clock access, and randomness only from an injected source
+ * (`rules.yaml` → engine_contract). Framework dependencies are forbidden and
+ * enforced by a guard (see `forbidden-deps.test.ts`).
  *
- * This is the package skeleton (milestone M0-T3); the nine required public
- * functions (`validateAction`, `applyAction`, `projectStateForPlayer`, …) land in
- * milestones M2–M3.
+ * Public surface: the immutable runtime state model, the action/event unions,
+ * the injected randomness contract, board helpers, and the nine contract
+ * functions. M2 implements start-of-turn, movement, legal actions and the
+ * move/end-turn transitions; projection/visibility/combat/victory land in M3.
  *
  * @see docs/02-data/rules.yaml → engine_contract
- * @see docs/03-architecture/architecture.md §5 (the pure engine)
- * @see docs/04-development/milestones/m0-foundations.md (M0-T3)
+ * @see docs/03-architecture/architecture.md §4 (the pure engine)
+ * @see docs/04-development/milestones/m2-engine-core.md (M2)
  */
 
-/** Package identifier — placeholder export until the M2–M3 engine functions land. */
-export const GAME_ENGINE_PACKAGE = "game-engine" as const;
+export type {
+  ActionType,
+  CompletionReason,
+  EventType,
+  MatchStatus,
+  ValidationErrorCode,
+} from "./enums";
+export type {
+  Coordinate,
+  Id,
+  MatchMeta,
+  MatchState,
+  PlayerState,
+  PropertyState,
+  SpecialState,
+  TerrainObjectState,
+  Timestamp,
+  UnitState,
+} from "./state";
+export type {
+  Action,
+  ActionEnvelope,
+  EndTurnAction,
+  FutureAction,
+  MoveAndWaitAction,
+} from "./actions";
+export type {
+  Event,
+  FuelConsumedEvent,
+  FutureEvent,
+  IncomeGrantedEvent,
+  TurnEndedEvent,
+  TurnStartedEvent,
+  UnitDestroyedEvent,
+  UnitMovedEvent,
+} from "./events";
+export type { RandomSource, RandomStream } from "./random";
+
+export {
+  compareBoardOrder,
+  displayHp,
+  playerById,
+  propertyAt,
+  propertyById,
+  removeUnit,
+  replaceProperty,
+  replaceUnit,
+  sameCoordinate,
+  unitAt,
+  unitById,
+  updateMatch,
+  updatePlayer,
+} from "./board";
+
+export {
+  applyAction,
+  calculateCombatPreview,
+  calculateLegalActions,
+  calculateMovementRange,
+  calculateVisibility,
+  evaluateVictory,
+  projectStateForPlayer,
+  resolveStartOfTurn,
+  validateAction,
+} from "./engine";
+export type {
+  CombatPreview,
+  EngineResult,
+  LegalAction,
+  MovementRange,
+  PlayerView,
+  ValidationError,
+  ValidationResult,
+  Visibility,
+  VictoryResult,
+} from "./engine";

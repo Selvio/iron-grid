@@ -1,0 +1,186 @@
+/**
+ * The nine public engine functions (`rules.yaml` → engine_contract.
+ * required_public_functions) and their result types.
+ *
+ * Each is a pure function of its inputs (`(state, …, gameData[, random])`),
+ * returning a new state and resolved events without mutating its input, reading
+ * the clock, or performing I/O (`engine_contract.purity`). M2 implements
+ * `resolveStartOfTurn`, `calculateMovementRange`, `calculateLegalActions`,
+ * `validateAction` and `applyAction`; the projection/visibility/combat/victory
+ * functions land in M3 and throw until then. `GameData` is imported **type-only**
+ * so no runtime dependency is added and purity is preserved.
+ *
+ * @see docs/02-data/rules.yaml → engine_contract
+ * @see docs/04-development/milestones/m2-engine-core.md (M2-T1)
+ */
+
+import type { GameData } from "game-data";
+
+import type { Action } from "./actions";
+import type { ActionType, ValidationErrorCode } from "./enums";
+import type { Event } from "./events";
+import type { RandomSource } from "./random";
+import type { Coordinate, Id, MatchState } from "./state";
+
+/** The result of a state transition: the next state and the events it produced. */
+export interface EngineResult {
+  readonly nextState: MatchState;
+  readonly events: readonly Event[];
+}
+
+/** A single reason an action was rejected. */
+export interface ValidationError {
+  readonly code: ValidationErrorCode;
+  readonly message?: string;
+}
+
+/** Whether an action is legal, and if not, why (aggregated). */
+export type ValidationResult =
+  | { readonly valid: true }
+  | { readonly valid: false; readonly errors: readonly ValidationError[] };
+
+/** Reachable destinations for a unit (refined in M2-T3). */
+export interface MovementRange {
+  readonly unitId: Id;
+  readonly reachable: readonly Coordinate[];
+}
+
+/** A legal action available to a player (refined in M2-T5). */
+export interface LegalAction {
+  readonly type: ActionType;
+  readonly unitId?: Id;
+  readonly destinations?: readonly Coordinate[];
+}
+
+/** The per-player projected read-model (`domain-model.md` §13). Built in M3. */
+export interface PlayerView {
+  readonly viewerPlayerId: Id;
+}
+
+/** Per-player visibility computation (§18). Built in M3. */
+export interface Visibility {
+  readonly playerId: Id;
+  readonly visible: readonly Coordinate[];
+}
+
+/** A non-authoritative combat forecast (§12, §27.3). Built in M3. */
+export interface CombatPreview {
+  readonly attackerUnitId: Id;
+  readonly defenderUnitId: Id;
+}
+
+/** The outcome of a victory evaluation (§23). Built in M3. */
+export interface VictoryResult {
+  readonly completed: boolean;
+}
+
+/** Marks a function whose implementation lands in a later ticket. */
+function notImplemented(ticket: string): never {
+  throw new Error(`game-engine: not implemented until ${ticket}`);
+}
+
+/** Validate whether `action` is legal against `state` (M2-T4). */
+export function validateAction(
+  state: MatchState,
+  action: Action,
+  gameData: GameData,
+): ValidationResult {
+  void state;
+  void action;
+  void gameData;
+  return notImplemented("M2-T4");
+}
+
+/** Apply a validated `action`, returning the next state and events (M2-T4). */
+export function applyAction(
+  state: MatchState,
+  action: Action,
+  gameData: GameData,
+  random: RandomSource,
+): EngineResult {
+  void state;
+  void action;
+  void gameData;
+  void random;
+  return notImplemented("M2-T4");
+}
+
+/** Run the deterministic start-of-turn transaction for the active player (M2-T2). */
+export function resolveStartOfTurn(
+  state: MatchState,
+  gameData: GameData,
+): EngineResult {
+  void state;
+  void gameData;
+  return notImplemented("M2-T2");
+}
+
+/** Reachable movement destinations for a unit (M2-T3). */
+export function calculateMovementRange(
+  state: MatchState,
+  unitId: Id,
+  gameData: GameData,
+): MovementRange {
+  void state;
+  void unitId;
+  void gameData;
+  return notImplemented("M2-T3");
+}
+
+/** The legal actions available to a player (M2-T5). */
+export function calculateLegalActions(
+  state: MatchState,
+  playerId: Id,
+  gameData: GameData,
+): readonly LegalAction[] {
+  void state;
+  void playerId;
+  void gameData;
+  return notImplemented("M2-T5");
+}
+
+/** Project state to what a player may observe (M3). */
+export function projectStateForPlayer(
+  state: MatchState,
+  playerId: Id,
+  gameData: GameData,
+): PlayerView {
+  void state;
+  void playerId;
+  void gameData;
+  return notImplemented("M3");
+}
+
+/** Compute a player's visibility (M3). */
+export function calculateVisibility(
+  state: MatchState,
+  playerId: Id,
+  gameData: GameData,
+): Visibility {
+  void state;
+  void playerId;
+  void gameData;
+  return notImplemented("M3");
+}
+
+/** Forecast a combat outcome, non-authoritatively (M3). */
+export function calculateCombatPreview(
+  state: MatchState,
+  action: Action,
+  gameData: GameData,
+): CombatPreview {
+  void state;
+  void action;
+  void gameData;
+  return notImplemented("M3");
+}
+
+/** Evaluate victory/defeat conditions (M3). */
+export function evaluateVictory(
+  state: MatchState,
+  gameData: GameData,
+): VictoryResult {
+  void state;
+  void gameData;
+  return notImplemented("M3");
+}
