@@ -19,12 +19,13 @@ import type { GameData } from "game-data";
 import type { Action } from "./actions";
 import type { ActionType, ValidationErrorCode } from "./enums";
 import type { Event } from "./events";
-import type { RandomSource } from "./random";
 import type { Coordinate, Id, MatchState } from "./state";
 
+export { applyAction } from "./apply";
 export { calculateMovementRange, validateMovementPath } from "./movement";
 export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
+export { validateAction } from "./validate";
 
 /** The result of a state transition: the next state and the events it produced. */
 export interface EngineResult {
@@ -81,32 +82,6 @@ export interface VictoryResult {
 /** Marks a function whose implementation lands in a later ticket. */
 function notImplemented(ticket: string): never {
   throw new Error(`game-engine: not implemented until ${ticket}`);
-}
-
-/** Validate whether `action` is legal against `state` (M2-T4). */
-export function validateAction(
-  state: MatchState,
-  action: Action,
-  gameData: GameData,
-): ValidationResult {
-  void state;
-  void action;
-  void gameData;
-  return notImplemented("M2-T4");
-}
-
-/** Apply a validated `action`, returning the next state and events (M2-T4). */
-export function applyAction(
-  state: MatchState,
-  action: Action,
-  gameData: GameData,
-  random: RandomSource,
-): EngineResult {
-  void state;
-  void action;
-  void gameData;
-  void random;
-  return notImplemented("M2-T4");
 }
 
 /** The legal actions available to a player (M2-T5). */
