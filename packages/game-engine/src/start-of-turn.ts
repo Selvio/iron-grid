@@ -156,10 +156,13 @@ export function resolveStartOfTurn(
   next = repairUnitsHook(next);
   next = resupplyUnitsHook(next);
 
-  // The active player's units, in canonical board order, drive the remaining
-  // per-unit steps so fuel/destroy/reset events replay deterministically.
+  // The active player's board-present units, in canonical order, drive the
+  // remaining per-unit steps so fuel/destroy/reset events replay
+  // deterministically. Loaded cargo (no board position) is excluded: its fuel is
+  // frozen inside its transport and it does not act independently (§16.2) — so a
+  // carried air/naval unit is never charged daily fuel or destroyed here.
   const activeUnits = next.units
-    .filter((u) => u.ownerPlayerId === activeId)
+    .filter((u) => u.ownerPlayerId === activeId && u.position !== null)
     .slice()
     .sort(compareBoardOrder);
 

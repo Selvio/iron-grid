@@ -36,12 +36,22 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/.*$/gm, "");
 }
 
-/** Every non-test TypeScript source file in the engine's `src` directory. */
-function engineSourceFiles(): string[] {
-  const dir = fileURLToPath(new URL(".", import.meta.url));
-  return readdirSync(dir)
-    .filter((name) => name.endsWith(".ts") && !name.endsWith(".test.ts"))
-    .map((name) => `${dir}${name}`);
+/**
+ * Every non-test TypeScript source file under the engine's `src` tree, recursing
+ * into subdirectories so a future `src/actions/*.ts` cannot slip past the guard.
+ */
+function engineSourceFiles(
+  dir = fileURLToPath(new URL(".", import.meta.url)),
+): string[] {
+  const files: string[] = [];
+  for (const entry of readdirSync(dir, { withFileTypes: true })) {
+    const path = `${dir}${entry.name}`;
+    if (entry.isDirectory()) files.push(...engineSourceFiles(`${path}/`));
+    else if (entry.name.endsWith(".ts") && !entry.name.endsWith(".test.ts")) {
+      files.push(path);
+    }
+  }
+  return files;
 }
 
 describe("game-engine source purity", () => {

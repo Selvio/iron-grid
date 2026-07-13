@@ -140,7 +140,7 @@ board state.
 | `gameDataVersion` | The `GameData` version pinned at activation (§31.2). Immutable for the life of the match. |
 | `randomSeed` | Server-owned seed for deterministic randomness (§12.6). |
 | `stateVersion` | Monotonic integer incremented on every applied action (§25). |
-| `dayCounter` | Current day (§4.2). |
+| `dayCounter` | Current day (§4.2). Advanced by `resolveStartOfTurn` when the turn reaches the **first** player (`turn_sequence.start_of_turn.advance_turn_and_day_counters`). **Activation convention:** the backend initializes it to `0`, so the first player's opening start-of-turn lands the match on Day 1 (and grants that day's income) — initializing it to `1` would double-count the day or skip the opening income. |
 | `activePlayerId` | The MatchPlayer whose turn it is while `active`. |
 | `turnDeadlineAt` | When the current turn expires, if a deadline is set (§4.3). |
 | `outcome` | Set on completion: winner (or draw) and completion reason (§23, `rules.yaml` `completion_reasons`). |

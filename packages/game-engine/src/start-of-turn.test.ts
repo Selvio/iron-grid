@@ -218,6 +218,19 @@ describe("daily fuel and destruction (§17.2–§17.3, §35 #20)", () => {
     expect(nextState.units[0]?.hasActed).toBe(true);
     expect(events.some((e) => e.type === "unit_destroyed")).toBe(false);
   });
+
+  it("does not charge daily fuel to loaded cargo (frozen inside its transport)", () => {
+    const s = state({
+      // A carried air unit with no board position and too little fuel to pay: it
+      // must survive because its fuel is frozen while loaded (§16.2), not burned.
+      units: [unit("cargoAir", "fighter", "p1", { fuel: 1, position: null })],
+    });
+    const { nextState, events } = resolveStartOfTurn(s, gameData());
+    expect(nextState.units.map((u) => u.id)).toEqual(["cargoAir"]);
+    expect(nextState.units[0]?.fuel).toBe(1); // untouched
+    expect(events.some((e) => e.type === "unit_destroyed")).toBe(false);
+    expect(events.some((e) => e.type === "fuel_consumed")).toBe(false);
+  });
 });
 
 describe("action-flag reset and deadline signal", () => {

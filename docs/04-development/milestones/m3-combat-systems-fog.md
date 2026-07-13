@@ -241,7 +241,10 @@ per-terrain vision/defense values M3 consumes.
     `units.yaml`; loaded cargo is removed from board occupancy and marked acted
     (§35 #18); unload places cargo on an adjacent legal, empty, terrain-compatible
     tile (multiple distinct destinations when capacity permits); no nested
-    transport.
+    transport. Loaded cargo (no board position) has its **fuel frozen** —
+    `resolveStartOfTurn` already excludes position-null units from daily-fuel
+    consumption and destruction (a Cruiser's air cargo is never starved), so load
+    only needs to preserve that null-position invariant.
   - **Cargo destruction** (§16.4): destroying a transport destroys all cargo
     atomically — the combat/destruction path (T1) already cascades `cargo_
     destroyed`; T5 guarantees the atomicity and the occupancy invariant (§35 #17).
