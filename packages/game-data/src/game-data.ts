@@ -2,14 +2,17 @@
  * The `GameData` shape and the canonical file manifest.
  *
  * `GameData` is the typed, versioned object the engine receives on every call
- * (`architecture.md` §6). This is the M1-T1 scaffold: the per-file payloads are
- * typed `unknown` here and narrowed to real schemas as each file's schema ticket
- * lands (units/weapons/damage in M1-T2, terrain/properties in M1-T3, commanders/
- * maps in M1-T4). Only `version` is final at this stage.
+ * (`architecture.md` §6). Per-file payloads are narrowed as each file's schema
+ * ticket lands: units/weapons/damage-chart are typed (M1-T2); terrain/properties
+ * (M1-T3) and commanders/maps (M1-T4) remain `unknown` until then.
  *
- * @see docs/04-development/milestones/m1-game-data.md (M1-T1)
+ * @see docs/04-development/milestones/m1-game-data.md (M1)
  * @see docs/01-specification/game-specification.md §31 (structured data files)
  */
+
+import type { Units } from "./schemas/units";
+import type { Weapons } from "./schemas/weapons";
+import type { DamageChart } from "./schemas/damage-chart";
 
 /**
  * The eight canonical data files (`game-specification.md` §31), in a stable
@@ -40,12 +43,12 @@ export type DataFileName = (typeof DATA_FILES)[number];
 export interface GameData {
   /** Shared data-set `schema_version`, pinned per match (`game-spec` §31.2). */
   readonly version: string;
-  /** Parsed `units.yaml` (typed in M1-T2). */
-  readonly units: unknown;
-  /** Parsed `weapons.yaml` (typed in M1-T2). */
-  readonly weapons: unknown;
-  /** Parsed `damage-chart.yaml` (typed in M1-T2). */
-  readonly damageChart: unknown;
+  /** Validated `units.yaml`, keyed by unit ID. */
+  readonly units: Units;
+  /** Validated `weapons.yaml`, keyed by weapon ID. */
+  readonly weapons: Weapons;
+  /** Validated `damage-chart.yaml` matrix. */
+  readonly damageChart: DamageChart;
   /** Parsed `terrain.yaml` (typed in M1-T3). */
   readonly terrain: unknown;
   /** Parsed `properties.yaml` (typed in M1-T3). */

@@ -19,6 +19,9 @@ import { load as parseYaml } from "js-yaml";
 import { DATA_FILES, type DataFileName, type GameData } from "./game-data";
 import { GameDataError, type GameDataIssue } from "./errors";
 import { resolveDataDir } from "./paths";
+import { parseUnits } from "./schemas/units";
+import { parseWeapons } from "./schemas/weapons";
+import { parseDamageChart } from "./schemas/damage-chart";
 
 /** A parsed data file: the loader only assumes a top-level mapping at this stage. */
 type RawDocument = Record<string, unknown>;
@@ -126,14 +129,14 @@ export function loadGameData(): GameData {
 
   const version = resolveVersion(raw);
 
-  // --- M1-T2..T5 seam: schema validation and cross-file integrity attach here,
-  // narrowing each `unknown` payload below to its real type before returning. ---
-
+  // Per-file schema + intra-file validation (M1-T2). Schemas for terrain/
+  // properties (M1-T3) and commanders/maps (M1-T4), plus cross-file integrity
+  // (M1-T5), attach here, narrowing the remaining `unknown` payloads.
   return {
     version,
-    units: raw.units,
-    weapons: raw.weapons,
-    damageChart: raw["damage-chart"],
+    units: parseUnits(raw.units),
+    weapons: parseWeapons(raw.weapons),
+    damageChart: parseDamageChart(raw["damage-chart"]),
     terrain: raw.terrain,
     properties: raw.properties,
     commanders: raw.commanders,
