@@ -43,6 +43,47 @@ export interface UnitDestroyedEvent {
   readonly reason: "daily_fuel" | "combat" | "cargo" | "silo";
 }
 
+/** Resolved combat luck, persisted so replay never rerolls (§12.6). */
+export interface ResolvedLuck {
+  readonly goodLuck: number;
+  readonly badLuck: number;
+}
+
+/** An attacker struck a defender (`unit_attacked`, §12). */
+export interface UnitAttackedEvent {
+  readonly type: "unit_attacked";
+  readonly attackerUnitId: Id;
+  readonly defenderUnitId: Id;
+  /** The `weapons.yaml` id of the weapon combat auto-selected (§12.2). */
+  readonly weaponId: Id;
+  /** The luck drawn from `combat_luck`, persisted for replay (§12.6). */
+  readonly luck: ResolvedLuck;
+  readonly damage: number;
+  /** Defender true HP after the hit (0 when destroyed). */
+  readonly defenderHpAfter: number;
+}
+
+/** A surviving direct defender struck back (`unit_counterattacked`, §12.8). */
+export interface UnitCounterattackedEvent {
+  readonly type: "unit_counterattacked";
+  /** The original defender, now counterattacking. */
+  readonly attackerUnitId: Id;
+  /** The original attacker, now defending. */
+  readonly defenderUnitId: Id;
+  readonly weaponId: Id;
+  /** The luck drawn from `combat_counter_luck`, persisted for replay (§12.6). */
+  readonly luck: ResolvedLuck;
+  readonly damage: number;
+  readonly defenderHpAfter: number;
+}
+
+/** Cargo destroyed together with its transport (`cargo_destroyed`, §16.4). */
+export interface CargoDestroyedEvent {
+  readonly type: "cargo_destroyed";
+  readonly unitId: Id;
+  readonly transportUnitId: Id;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -72,6 +113,9 @@ export interface FutureEvent {
     | "unit_destroyed"
     | "unit_moved"
     | "turn_ended"
+    | "unit_attacked"
+    | "unit_counterattacked"
+    | "cargo_destroyed"
   >;
   readonly payload?: unknown;
 }
@@ -82,6 +126,9 @@ export type Event =
   | IncomeGrantedEvent
   | FuelConsumedEvent
   | UnitDestroyedEvent
+  | UnitAttackedEvent
+  | UnitCounterattackedEvent
+  | CargoDestroyedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

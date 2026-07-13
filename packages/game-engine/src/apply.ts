@@ -20,6 +20,7 @@ import type { GameData } from "game-data";
 
 import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
 import { replaceUnit, unitById, updateMatch } from "./board";
+import { applyAttack } from "./combat";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { validateMovementPath } from "./movement";
@@ -113,8 +114,6 @@ export function applyAction(
   gameData: GameData,
   random: RandomSource,
 ): EngineResult {
-  void random; // M2 actions draw no randomness
-
   const validation = validateAction(state, action, gameData);
   if (!validation.valid) {
     const codes = validation.errors.map((e) => e.code).join(", ");
@@ -125,11 +124,14 @@ export function applyAction(
 
   switch (action.type) {
     case "move_and_wait":
+      // move_and_wait and end_turn draw no randomness; only combat does.
       return applyMoveAndWait(state, action, gameData);
+    case "attack":
+      return applyAttack(state, action, gameData, random);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
     default:
-      // Unreachable: validateAction rejects every other type in M2.
+      // Unreachable: validateAction rejects every other type not yet supported.
       throw new Error(`applyAction: "${action.type}" is not resolvable in M2`);
   }
 }

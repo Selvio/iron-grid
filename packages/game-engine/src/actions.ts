@@ -30,20 +30,36 @@ export interface MoveAndWaitAction extends ActionEnvelope {
   readonly path: readonly Coordinate[];
 }
 
+/** Attack a target unit, optionally moving first for a direct attack (§12). */
+export interface AttackAction extends ActionEnvelope {
+  readonly type: "attack";
+  /** The attacking unit. */
+  readonly unitId: Id;
+  /** The defending unit. */
+  readonly targetUnitId: Id;
+  /**
+   * Ordered move path ending on the attack tile (§10.2), including the start
+   * tile. Omitted or a single-tile `[origin]` means attack in place; any real
+   * move is legal only for direct attackers that may move and fire (§12.1).
+   */
+  readonly path?: readonly Coordinate[];
+}
+
 /** Hand the turn to the next player (§ turn_sequence.end_turn). */
 export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
 }
 
 /**
- * Placeholder for the action types resolved in M3 (attack, capture, produce, …).
+ * Placeholder for the action types not yet resolved (capture, produce, …).
  * Refined into precise variants as each system lands; kept in the union now so
  * exhaustive handling is enforced from the start.
  */
 export interface FutureAction extends ActionEnvelope {
-  readonly type: Exclude<ActionType, "move_and_wait" | "end_turn">;
+  readonly type: Exclude<ActionType, "move_and_wait" | "end_turn" | "attack">;
   readonly payload?: unknown;
 }
 
 /** Any action a player may submit. */
-export type Action = MoveAndWaitAction | EndTurnAction | FutureAction;
+export type Action =
+  MoveAndWaitAction | AttackAction | EndTurnAction | FutureAction;

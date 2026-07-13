@@ -38,17 +38,22 @@ export type {
 export type {
   Action,
   ActionEnvelope,
+  AttackAction,
   EndTurnAction,
   FutureAction,
   MoveAndWaitAction,
 } from "./actions";
 export type {
+  CargoDestroyedEvent,
   Event,
   FuelConsumedEvent,
   FutureEvent,
   IncomeGrantedEvent,
+  ResolvedLuck,
   TurnEndedEvent,
   TurnStartedEvent,
+  UnitAttackedEvent,
+  UnitCounterattackedEvent,
   UnitDestroyedEvent,
   UnitMovedEvent,
 } from "./events";
@@ -76,6 +81,7 @@ export {
   calculateLegalActions,
   calculateMovementRange,
   calculateVisibility,
+  destroyUnit,
   evaluateVictory,
   projectStateForPlayer,
   resolveStartOfTurn,
@@ -84,6 +90,7 @@ export {
 } from "./engine";
 export type {
   CombatPreview,
+  DamageForecast,
   EngineResult,
   LegalAction,
   MovementPathResult,

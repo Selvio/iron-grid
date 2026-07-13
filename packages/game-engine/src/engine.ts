@@ -16,12 +16,12 @@
 
 import type { GameData } from "game-data";
 
-import type { Action } from "./actions";
 import type { ActionType, ValidationErrorCode } from "./enums";
 import type { Event } from "./events";
 import type { Coordinate, Id, MatchState } from "./state";
 
 export { applyAction } from "./apply";
+export { calculateCombatPreview, destroyUnit } from "./combat";
 export { calculateLegalActions } from "./legal-actions";
 export { calculateMovementRange, validateMovementPath } from "./movement";
 export type { MovementPathResult } from "./movement";
@@ -69,10 +69,20 @@ export interface Visibility {
   readonly visible: readonly Coordinate[];
 }
 
-/** A non-authoritative combat forecast (§12, §27.3). Built in M3. */
+/** A min/max damage forecast for one hit (`game-specification.md` §12.7). */
+export interface DamageForecast {
+  readonly minDamage: number;
+  readonly maxDamage: number;
+}
+
+/** A non-authoritative combat forecast (§12.7): attacker damage and any counter. */
 export interface CombatPreview {
   readonly attackerUnitId: Id;
   readonly defenderUnitId: Id;
+  readonly minDamage: number;
+  readonly maxDamage: number;
+  /** Present only when a counterattack is structurally possible (§12.8). */
+  readonly counter?: DamageForecast;
 }
 
 /** The outcome of a victory evaluation (§23). Built in M3. */
@@ -105,18 +115,6 @@ export function calculateVisibility(
 ): Visibility {
   void state;
   void playerId;
-  void gameData;
-  return notImplemented("M3");
-}
-
-/** Forecast a combat outcome, non-authoritatively (M3). */
-export function calculateCombatPreview(
-  state: MatchState,
-  action: Action,
-  gameData: GameData,
-): CombatPreview {
-  void state;
-  void action;
   void gameData;
   return notImplemented("M3");
 }
