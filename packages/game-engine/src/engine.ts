@@ -22,6 +22,8 @@ import type { Event } from "./events";
 import type { RandomSource } from "./random";
 import type { Coordinate, Id, MatchState } from "./state";
 
+export { calculateMovementRange, validateMovementPath } from "./movement";
+export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
 
 /** The result of a state transition: the next state and the events it produced. */
@@ -105,18 +107,6 @@ export function applyAction(
   void gameData;
   void random;
   return notImplemented("M2-T4");
-}
-
-/** Reachable movement destinations for a unit (M2-T3). */
-export function calculateMovementRange(
-  state: MatchState,
-  unitId: Id,
-  gameData: GameData,
-): MovementRange {
-  void state;
-  void unitId;
-  void gameData;
-  return notImplemented("M2-T3");
 }
 
 /** The legal actions available to a player (M2-T5). */

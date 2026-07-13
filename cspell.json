@@ -52,6 +52,8 @@
     "stdlib",
     "tileset",
     "transactionally",
+    "traversability",
+    "unpayable",
     "veterancy"
   ],
   "ignorePaths": ["node_modules/**", ".next/**", "pnpm-lock.yaml"]

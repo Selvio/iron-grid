@@ -80,11 +80,13 @@ export {
   projectStateForPlayer,
   resolveStartOfTurn,
   validateAction,
+  validateMovementPath,
 } from "./engine";
 export type {
   CombatPreview,
   EngineResult,
   LegalAction,
+  MovementPathResult,
   MovementRange,
   PlayerView,
   ValidationError,
