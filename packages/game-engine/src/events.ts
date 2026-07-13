@@ -108,6 +108,17 @@ export interface PropertyCapturedEvent {
   readonly newOwnerPlayerId: Id;
 }
 
+/** A unit was produced at a property (`unit_produced`, §6.4). */
+export interface UnitProducedEvent {
+  readonly type: "unit_produced";
+  readonly unitId: Id;
+  readonly unitTypeId: Id;
+  readonly propertyId: Id;
+  readonly ownerPlayerId: Id;
+  /** Owner funds after the cost was deducted. */
+  readonly fundsAfter: number;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -143,6 +154,7 @@ export interface FutureEvent {
     | "capture_started"
     | "capture_progressed"
     | "property_captured"
+    | "unit_produced"
   >;
   readonly payload?: unknown;
 }
@@ -159,6 +171,7 @@ export type Event =
   | CaptureStartedEvent
   | CaptureProgressedEvent
   | PropertyCapturedEvent
+  | UnitProducedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

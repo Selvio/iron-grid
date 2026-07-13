@@ -93,6 +93,11 @@ export function replaceUnit(state: MatchState, unit: UnitState): MatchState {
   };
 }
 
+/** Return a new state with `unit` appended (production, unload). */
+export function addUnit(state: MatchState, unit: UnitState): MatchState {
+  return { ...state, units: [...state.units, unit] };
+}
+
 /** Return a new state with the unit `unitId` removed. */
 export function removeUnit(state: MatchState, unitId: Id): MatchState {
   return { ...state, units: state.units.filter((u) => u.id !== unitId) };

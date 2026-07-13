@@ -43,6 +43,7 @@ export type {
   EndTurnAction,
   FutureAction,
   MoveAndWaitAction,
+  ProduceAction,
 } from "./actions";
 export type {
   CaptureProgressedEvent,
@@ -60,10 +61,12 @@ export type {
   UnitCounterattackedEvent,
   UnitDestroyedEvent,
   UnitMovedEvent,
+  UnitProducedEvent,
 } from "./events";
 export type { RandomSource, RandomStream } from "./random";
 
 export {
+  addUnit,
   compareBoardOrder,
   displayHp,
   playerById,

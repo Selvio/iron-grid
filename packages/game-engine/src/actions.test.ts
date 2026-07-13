@@ -392,14 +392,14 @@ describe("unsupported actions", () => {
   it("rejects an action type not yet resolvable in the engine", () => {
     const gd = makeGameData(CORRIDOR);
     const s = state();
-    const produce = {
-      type: "produce",
+    const supply = {
+      type: "supply",
       matchId: "m1",
       playerId: "p1",
       expectedStateVersion: 1,
       idempotencyKey: "k",
     } as const;
-    const result = validateAction(s, produce, gd);
+    const result = validateAction(s, supply, gd);
     expect(result.valid).toBe(false);
     if (!result.valid) {
       expect(result.errors.map((e) => e.code)).toContain("invalid_action_type");

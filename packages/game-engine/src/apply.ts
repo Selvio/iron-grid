@@ -22,6 +22,7 @@ import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
 import { replaceUnit, unitById, updateMatch } from "./board";
 import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
+import { applyProduce } from "./production";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { validateMovementPath } from "./movement";
@@ -136,6 +137,8 @@ export function applyAction(
       return applyAttack(state, action, gameData, random);
     case "capture":
       return applyCapture(state, action, gameData);
+    case "produce":
+      return applyProduce(state, action, gameData);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
     default:
