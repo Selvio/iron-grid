@@ -195,6 +195,14 @@ export interface MatchCompletedEvent {
   readonly reason: CompletionReason | null;
 }
 
+/** Movement stopped early on an unseen enemy under fog (`unit_blocked_by_fog`, §18.5). */
+export interface UnitBlockedByFogEvent {
+  readonly type: "unit_blocked_by_fog";
+  readonly unitId: Id;
+  /** The tile the unit actually stopped on (before the hidden enemy). */
+  readonly stoppedAt: Coordinate;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -240,6 +248,7 @@ export interface FutureEvent {
     | "submarine_dived"
     | "submarine_surfaced"
     | "match_completed"
+    | "unit_blocked_by_fog"
   >;
   readonly payload?: unknown;
 }
@@ -266,6 +275,7 @@ export type Event =
   | SubmarineDivedEvent
   | SubmarineSurfacedEvent
   | MatchCompletedEvent
+  | UnitBlockedByFogEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

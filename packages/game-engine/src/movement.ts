@@ -210,13 +210,20 @@ export function calculateMovementRange(
  * (M2-T4) can commit them without recomputing. Structural faults (bad start,
  * non-orthogonal step, off-map/impassable tile, enemy pass-through) stop the
  * walk; the budget and destination checks then run on the resolved prefix.
+ *
+ * Under fog the caller passes the mover's `visibleTiles`: an enemy the mover
+ * cannot see no longer blocks the path (the collision is resolved at apply time,
+ * §18.5). Omit it for normal visibility, where every enemy blocks.
  */
 export function validateMovementPath(
   state: MatchState,
   unitId: Id,
   path: readonly Coordinate[],
   gameData: GameData,
+  visibleTiles?: ReadonlySet<string>,
 ): MovementPathResult {
+  const seesTile = (tile: Coordinate): boolean =>
+    visibleTiles === undefined || visibleTiles.has(`${tile.x},${tile.y}`);
   const errors: ValidationError[] = [];
   const fail = (code: ValidationError["code"], message?: string): void => {
     errors.push(message === undefined ? { code } : { code, message });
@@ -268,7 +275,8 @@ export function validateMovementPath(
     const occupant = unitAt(state, tile);
     if (
       occupant !== undefined &&
-      occupant.ownerPlayerId !== unit.ownerPlayerId
+      occupant.ownerPlayerId !== unit.ownerPlayerId &&
+      seesTile(tile) // an unseen enemy is a fog collision, resolved at apply time
     ) {
       fail("path_blocked", "cannot pass through an enemy unit");
       structural = false;
@@ -292,7 +300,11 @@ export function validateMovementPath(
   // own tile, which is allowed — that is a stationary Wait).
   const destination = path[path.length - 1]!;
   const occupant = unitAt(state, destination);
-  if (occupant !== undefined && occupant.id !== unit.id) {
+  const hiddenEnemyDest =
+    occupant !== undefined &&
+    occupant.ownerPlayerId !== unit.ownerPlayerId &&
+    !seesTile(destination);
+  if (occupant !== undefined && occupant.id !== unit.id && !hiddenEnemyDest) {
     fail("destination_occupied", "another unit occupies the destination");
   }
 

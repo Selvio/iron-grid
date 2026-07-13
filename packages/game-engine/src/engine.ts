@@ -5,16 +5,14 @@
  * Each is a pure function of its inputs (`(state, …, gameData[, random])`),
  * returning a new state and resolved events without mutating its input, reading
  * the clock, or performing I/O (`engine_contract.purity`). M2 implements
- * `resolveStartOfTurn`, `calculateMovementRange`, `calculateLegalActions`,
- * `validateAction` and `applyAction`; the projection/visibility/combat/victory
- * functions land in M3 and throw until then. `GameData` is imported **type-only**
- * so no runtime dependency is added and purity is preserved.
+ * All nine are now implemented across the engine's modules and re-exported here
+ * as the package's public contract surface. `GameData` is consumed as a
+ * **type-only** import in those modules so no runtime dependency is added and
+ * purity is preserved.
  *
  * @see docs/02-data/rules.yaml → engine_contract
  * @see docs/04-development/milestones/m2-engine-core.md (M2-T1)
  */
-
-import type { GameData } from "game-data";
 
 import type {
   ActionType,
@@ -22,7 +20,13 @@ import type {
   ValidationErrorCode,
 } from "./enums";
 import type { Event } from "./events";
-import type { Coordinate, Id, MatchState } from "./state";
+import type {
+  Coordinate,
+  Id,
+  MatchState,
+  PropertyState,
+  UnitState,
+} from "./state";
 
 export { applyAction } from "./apply";
 export { calculateCombatPreview, destroyUnit } from "./combat";
@@ -32,6 +36,7 @@ export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
 export { validateAction } from "./validate";
 export { evaluateVictory } from "./victory";
+export { calculateVisibility, projectStateForPlayer } from "./visibility";
 
 /** The result of a state transition: the next state and the events it produced. */
 export interface EngineResult {
@@ -63,12 +68,18 @@ export interface LegalAction {
   readonly destinations?: readonly Coordinate[];
 }
 
-/** The per-player projected read-model (`domain-model.md` §13). Built in M3. */
+/** The per-player projected read-model (`domain-model.md` §13, §18.7). */
 export interface PlayerView {
   readonly viewerPlayerId: Id;
+  /** The tiles the viewer can currently see (fog map). */
+  readonly visibleTiles: readonly Coordinate[];
+  /** Own units plus visible enemy units (cargo/capture stripped, §16.5). */
+  readonly units: readonly UnitState[];
+  /** Properties (ownership is public). */
+  readonly properties: readonly PropertyState[];
 }
 
-/** Per-player visibility computation (§18). Built in M3. */
+/** Per-player visibility computation (§18): the tiles a player can see. */
 export interface Visibility {
   readonly playerId: Id;
   readonly visible: readonly Coordinate[];
@@ -96,33 +107,4 @@ export interface VictoryResult {
   /** The winner when decisive; `null` on a draw; absent when not completed. */
   readonly winnerPlayerId?: Id | null;
   readonly reason?: CompletionReason;
-}
-
-/** Marks a function whose implementation lands in a later ticket. */
-function notImplemented(ticket: string): never {
-  throw new Error(`game-engine: not implemented until ${ticket}`);
-}
-
-/** Project state to what a player may observe (M3). */
-export function projectStateForPlayer(
-  state: MatchState,
-  playerId: Id,
-  gameData: GameData,
-): PlayerView {
-  void state;
-  void playerId;
-  void gameData;
-  return notImplemented("M3");
-}
-
-/** Compute a player's visibility (M3). */
-export function calculateVisibility(
-  state: MatchState,
-  playerId: Id,
-  gameData: GameData,
-): Visibility {
-  void state;
-  void playerId;
-  void gameData;
-  return notImplemented("M3");
 }

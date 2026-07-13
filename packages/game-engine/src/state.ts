@@ -56,6 +56,11 @@ export interface MatchMeta {
   readonly deterministicSeed: string;
   /** How many random draws have been taken; advanced only on committed draws. */
   readonly randomSequenceIndex: number;
+  /**
+   * Whether fog of war is enabled for this match (§18, host setting). Optional
+   * and defaulting to off, so pre-fog callers and fixtures need not set it.
+   */
+  readonly fogEnabled?: boolean;
 }
 
 /** One participant's runtime state (`rules.yaml` → state_model.player_state). */

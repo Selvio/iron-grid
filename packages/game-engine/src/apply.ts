@@ -19,7 +19,7 @@
 import type { GameData } from "game-data";
 
 import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
-import { replaceUnit, unitById, updateMatch } from "./board";
+import { replaceUnit, unitAt, unitById, updateMatch } from "./board";
 import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
 import { applyJoin } from "./join";
@@ -28,12 +28,12 @@ import { applyDive, applySurface } from "./submarine";
 import { applySupply } from "./supply";
 import { applyLoad, applyUnload } from "./transport";
 import { finalizeVictory } from "./victory";
+import { calculateVisibility } from "./visibility";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
-import { validateMovementPath } from "./movement";
 import type { RandomSource } from "./random";
 import { resolveStartOfTurn } from "./start-of-turn";
-import type { Id, MatchState, UnitState } from "./state";
+import type { Coordinate, Id, MatchState, UnitState } from "./state";
 import { validateAction } from "./validate";
 
 /** Apply `move_and_wait`: move the unit, spend one fuel per tile, mark it acted (§10). */
@@ -44,15 +44,18 @@ function applyMoveAndWait(
 ): EngineResult {
   // Present and legal by the preceding validation.
   const unit = unitById(state, action.unitId) as UnitState;
-  const path = validateMovementPath(
+
+  // Under fog, movement stops at the first tile before an unseen enemy; the
+  // committed path is charged fuel through the stopping point (§18.5).
+  const { path, blocked } = resolveFogCollision(
     state,
-    action.unitId,
+    unit,
     action.path,
     gameData,
   );
 
-  const destination = action.path[action.path.length - 1] ?? unit.position;
-  const fuelSpent = path.fuelCost; // one per traversed tile (§10.3)
+  const destination = path[path.length - 1] ?? unit.position;
+  const fuelSpent = path.length - 1; // one per traversed tile (§10.3)
   const fuelAfter = unit.fuel - fuelSpent;
 
   const moved: UnitState = {
@@ -71,12 +74,51 @@ function applyMoveAndWait(
     {
       type: "unit_moved",
       unitId: unit.id,
-      path: action.path,
+      path,
       fuelSpent,
       fuelAfter,
     },
   ];
+  if (blocked && destination !== null) {
+    events.push({
+      type: "unit_blocked_by_fog",
+      unitId: unit.id,
+      stoppedAt: destination,
+    });
+  }
   return { nextState, events };
+}
+
+/**
+ * Truncate a fog move at the first tile occupied by an enemy the mover cannot
+ * see (§18.5). Returns the committed path (unchanged when no fog or no collision)
+ * and whether a collision stopped the move early.
+ */
+function resolveFogCollision(
+  state: MatchState,
+  unit: UnitState,
+  path: readonly Coordinate[],
+  gameData: GameData,
+): { readonly path: readonly Coordinate[]; readonly blocked: boolean } {
+  if (state.match.fogEnabled !== true) return { path, blocked: false };
+
+  const visible = new Set(
+    calculateVisibility(state, unit.ownerPlayerId, gameData).visible.map(
+      (c) => `${c.x},${c.y}`,
+    ),
+  );
+  for (let i = 1; i < path.length; i++) {
+    const tile = path[i]!;
+    const occupant = unitAt(state, tile);
+    if (
+      occupant !== undefined &&
+      occupant.ownerPlayerId !== unit.ownerPlayerId &&
+      !visible.has(`${tile.x},${tile.y}`)
+    ) {
+      return { path: path.slice(0, i), blocked: true }; // stop before the enemy
+    }
+  }
+  return { path, blocked: false };
 }
 
 /** The next player in match order, wrapping around (`select_next_player`). */

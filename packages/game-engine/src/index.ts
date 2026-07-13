@@ -68,6 +68,7 @@ export type {
   TurnEndedEvent,
   TurnStartedEvent,
   UnitAttackedEvent,
+  UnitBlockedByFogEvent,
   UnitCounterattackedEvent,
   UnitDestroyedEvent,
   UnitLoadedEvent,

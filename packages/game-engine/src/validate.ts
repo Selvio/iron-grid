@@ -27,6 +27,7 @@ import { validateProduce } from "./production";
 import { validateDive, validateSurface } from "./submarine";
 import { validateSupply } from "./supply";
 import { validateLoad, validateUnload } from "./transport";
+import { calculateVisibility } from "./visibility";
 import type { ValidationError, ValidationResult } from "./engine";
 import { validateMovementPath } from "./movement";
 import type { MatchState } from "./state";
@@ -76,11 +77,21 @@ function validateMoveAndWait(
     errors.push({ code: "unit_already_acted" });
   }
 
+  // Under fog the mover cannot see hidden enemies, so they do not block the
+  // submitted path — the collision is resolved when the move is applied (§18.5).
+  const visibleTiles = state.match.fogEnabled
+    ? new Set(
+        calculateVisibility(state, action.playerId, gameData).visible.map(
+          (c) => `${c.x},${c.y}`,
+        ),
+      )
+    : undefined;
   const path = validateMovementPath(
     state,
     action.unitId,
     action.path,
     gameData,
+    visibleTiles,
   );
   if (!path.valid) errors.push(...path.errors);
 
