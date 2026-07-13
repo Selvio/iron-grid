@@ -13,6 +13,8 @@
 import type { Units } from "./schemas/units";
 import type { Weapons } from "./schemas/weapons";
 import type { DamageChart } from "./schemas/damage-chart";
+import type { Terrains } from "./schemas/terrain";
+import type { Properties } from "./schemas/properties";
 
 /**
  * The eight canonical data files (`game-specification.md` §31), in a stable
@@ -49,10 +51,10 @@ export interface GameData {
   readonly weapons: Weapons;
   /** Validated `damage-chart.yaml` matrix. */
   readonly damageChart: DamageChart;
-  /** Parsed `terrain.yaml` (typed in M1-T3). */
-  readonly terrain: unknown;
-  /** Parsed `properties.yaml` (typed in M1-T3). */
-  readonly properties: unknown;
+  /** Validated `terrain.yaml`, keyed by terrain ID. */
+  readonly terrain: Terrains;
+  /** Validated `properties.yaml`, keyed by property ID. */
+  readonly properties: Properties;
   /** Parsed `commanders.yaml` (typed in M1-T4). */
   readonly commanders: unknown;
   /** Parsed `maps.yaml` (typed in M1-T4). */

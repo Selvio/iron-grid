@@ -62,7 +62,44 @@ export const fireMode = z.enum(["direct", "indirect"]);
 /** Weapon ammo models (`weapons.yaml` enums.ammo_models). */
 export const ammoModel = z.enum(["finite_primary_pool", "infinite"]);
 
+/** Terrain groups (`terrain.yaml` enums.terrain_groups). */
+export const terrainGroup = z.enum([
+  "land",
+  "water",
+  "structure",
+  "property",
+  "special",
+]);
+
+/** Fog concealment domains (`terrain.yaml` enums.fog_concealment). Air is never concealable. */
+export const fogConcealment = z.enum(["none", "ground", "naval"]);
+
+/** Art-pipeline status gating official-map use (`terrain.yaml` / `properties.yaml`). */
+export const assetStatus = z.enum([
+  "confirmed",
+  "mapping_required",
+  "derivative_art_required",
+  "blocked",
+]);
+
+/** Property types (`properties.yaml` enums.property_types). */
+export const propertyType = z.enum([
+  "city",
+  "base",
+  "airport",
+  "port",
+  "headquarters",
+]);
+
+/** Production categories (`properties.yaml` enums.production_categories). */
+export const productionCategory = z.enum(["none", "ground", "air", "naval"]);
+
+/** Repair categories (`properties.yaml` enums.repair_categories). */
+export const repairCategory = z.enum(["ground", "air", "naval"]);
+
 export type UnitCategory = z.infer<typeof unitCategory>;
+export type PropertyType = z.infer<typeof propertyType>;
+export type RepairCategory = z.infer<typeof repairCategory>;
 export type MovementType = z.infer<typeof movementType>;
 export type CombatType = z.infer<typeof combatType>;
 export type TargetDomain = z.infer<typeof targetDomain>;
