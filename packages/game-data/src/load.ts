@@ -80,7 +80,7 @@ function readDocument(dataDir: string, name: DataFileName): RawDocument {
  * missing/non-string version and a disagreement are aggregated so a data author
  * sees the full picture.
  */
-function resolveVersion(
+export function resolveVersion(
   raw: Readonly<Record<DataFileName, RawDocument>>,
 ): string {
   const issues: GameDataIssue[] = [];
