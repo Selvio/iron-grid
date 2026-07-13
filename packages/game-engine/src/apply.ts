@@ -27,6 +27,7 @@ import { applyProduce } from "./production";
 import { applyDive, applySurface } from "./submarine";
 import { applySupply } from "./supply";
 import { applyLoad, applyUnload } from "./transport";
+import { finalizeVictory } from "./victory";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { validateMovementPath } from "./movement";
@@ -133,6 +134,24 @@ export function applyAction(
     );
   }
 
+  const result = dispatch(state, action, gameData, random);
+
+  // Evaluate victory on the resolved end-of-action state (§23.2 timing). end_turn
+  // already evaluated it inside resolveStartOfTurn, so this is then a no-op.
+  const victory = finalizeVictory(result.nextState, gameData);
+  return {
+    nextState: victory.state,
+    events: [...result.events, ...victory.events],
+  };
+}
+
+/** Route a validated action to its handler (victory is evaluated by the caller). */
+function dispatch(
+  state: MatchState,
+  action: Action,
+  gameData: GameData,
+  random: RandomSource,
+): EngineResult {
   switch (action.type) {
     case "move_and_wait":
       // move_and_wait and end_turn draw no randomness; only combat does.

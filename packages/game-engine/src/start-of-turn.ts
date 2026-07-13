@@ -36,6 +36,7 @@ import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { repairUnits, resupplyUnits } from "./repair";
 import type { Id, MatchState, SpecialState, UnitState } from "./state";
+import { finalizeVictory } from "./victory";
 
 /** A validated unit definition, resolved from `GameData` by `typeId`. */
 type UnitDef = GameData["units"][string];
@@ -67,7 +68,8 @@ function destroyedOnUnpaidFuel(def: UnitDef): boolean {
 
 // --- M3 ordered hooks -------------------------------------------------------
 // Present and ordered so M3 fills each step in place without reordering the
-// transaction. Repair/resupply are real (M3-T4); the rest remain identity.
+// transaction. Repair/resupply (M3-T4) and victory (M3-T7) are real; the rest
+// remain identity.
 
 /** M3 step: reset/update temporary commander-power state (§5.8, §22). No-op in M2. */
 function commanderPowerHook(state: MatchState): MatchState {
@@ -76,11 +78,6 @@ function commanderPowerHook(state: MatchState): MatchState {
 
 /** M3 step: recalculate per-player visibility (§5.9, §18). No-op in M2. */
 function recalculateVisibilityHook(state: MatchState): MatchState {
-  return state;
-}
-
-/** M3 step: evaluate defeat/victory conditions (§5.10, §23). No-op in M2. */
-function evaluateVictoryHook(state: MatchState): MatchState {
   return state;
 }
 
@@ -214,10 +211,15 @@ export function resolveStartOfTurn(
     }
   }
 
-  // 9–11. commander power / visibility / victory (M3 no-op hooks).
+  // 9–10. commander power / visibility (M3-T8 / M3-T6 hooks).
   next = commanderPowerHook(next);
   next = recalculateVisibilityHook(next);
-  next = evaluateVictoryHook(next);
+
+  // 11. evaluate_victory (§5.10, §23) — a start-of-turn effect (e.g. daily-fuel
+  //     destruction) can eliminate a player's last unit.
+  const victory = finalizeVictory(next, gameData);
+  next = victory.state;
+  events.push(...victory.events);
 
   // 12. set_turn_deadline — clear the previous turn's deadline; the backend
   //     stamps the new instant on seeing `turn_started` (§3, clock is injected).

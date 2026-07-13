@@ -60,6 +60,7 @@ export type {
   FuelConsumedEvent,
   FutureEvent,
   IncomeGrantedEvent,
+  MatchCompletedEvent,
   PropertyCapturedEvent,
   ResolvedLuck,
   SubmarineDivedEvent,

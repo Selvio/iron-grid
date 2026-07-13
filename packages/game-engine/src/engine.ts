@@ -16,7 +16,11 @@
 
 import type { GameData } from "game-data";
 
-import type { ActionType, ValidationErrorCode } from "./enums";
+import type {
+  ActionType,
+  CompletionReason,
+  ValidationErrorCode,
+} from "./enums";
 import type { Event } from "./events";
 import type { Coordinate, Id, MatchState } from "./state";
 
@@ -27,6 +31,7 @@ export { calculateMovementRange, validateMovementPath } from "./movement";
 export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
 export { validateAction } from "./validate";
+export { evaluateVictory } from "./victory";
 
 /** The result of a state transition: the next state and the events it produced. */
 export interface EngineResult {
@@ -85,9 +90,12 @@ export interface CombatPreview {
   readonly counter?: DamageForecast;
 }
 
-/** The outcome of a victory evaluation (§23). Built in M3. */
+/** The outcome of a victory evaluation (§23). */
 export interface VictoryResult {
   readonly completed: boolean;
+  /** The winner when decisive; `null` on a draw; absent when not completed. */
+  readonly winnerPlayerId?: Id | null;
+  readonly reason?: CompletionReason;
 }
 
 /** Marks a function whose implementation lands in a later ticket. */
@@ -115,16 +123,6 @@ export function calculateVisibility(
 ): Visibility {
   void state;
   void playerId;
-  void gameData;
-  return notImplemented("M3");
-}
-
-/** Evaluate victory/defeat conditions (M3). */
-export function evaluateVictory(
-  state: MatchState,
-  gameData: GameData,
-): VictoryResult {
-  void state;
   void gameData;
   return notImplemented("M3");
 }

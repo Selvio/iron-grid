@@ -10,7 +10,7 @@
  * @see docs/04-development/milestones/m2-engine-core.md (M2-T1)
  */
 
-import type { EventType } from "./enums";
+import type { CompletionReason, EventType } from "./enums";
 import type { Coordinate, Id } from "./state";
 
 /** A new turn began for the active player (`turn_started`). */
@@ -188,6 +188,13 @@ export interface SubmarineSurfacedEvent {
   readonly unitId: Id;
 }
 
+/** The match ended (`match_completed`, §23). `winnerPlayerId` null on a draw. */
+export interface MatchCompletedEvent {
+  readonly type: "match_completed";
+  readonly winnerPlayerId: Id | null;
+  readonly reason: CompletionReason | null;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -232,6 +239,7 @@ export interface FutureEvent {
     | "unit_unloaded"
     | "submarine_dived"
     | "submarine_surfaced"
+    | "match_completed"
   >;
   readonly payload?: unknown;
 }
@@ -257,6 +265,7 @@ export type Event =
   | UnitUnloadedEvent
   | SubmarineDivedEvent
   | SubmarineSurfacedEvent
+  | MatchCompletedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;
