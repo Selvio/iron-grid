@@ -22,6 +22,7 @@ import type { Event } from "./events";
 import type { Coordinate, Id, MatchState } from "./state";
 
 export { applyAction } from "./apply";
+export { calculateLegalActions } from "./legal-actions";
 export { calculateMovementRange, validateMovementPath } from "./movement";
 export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
@@ -82,18 +83,6 @@ export interface VictoryResult {
 /** Marks a function whose implementation lands in a later ticket. */
 function notImplemented(ticket: string): never {
   throw new Error(`game-engine: not implemented until ${ticket}`);
-}
-
-/** The legal actions available to a player (M2-T5). */
-export function calculateLegalActions(
-  state: MatchState,
-  playerId: Id,
-  gameData: GameData,
-): readonly LegalAction[] {
-  void state;
-  void playerId;
-  void gameData;
-  return notImplemented("M2-T5");
 }
 
 /** Project state to what a player may observe (M3). */
