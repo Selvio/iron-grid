@@ -161,6 +161,33 @@ export interface UnitsJoinedEvent {
   readonly refund: number;
 }
 
+/** A unit was loaded into a transport (`unit_loaded`, §16.2). */
+export interface UnitLoadedEvent {
+  readonly type: "unit_loaded";
+  readonly transportUnitId: Id;
+  readonly cargoUnitId: Id;
+}
+
+/** A cargo unit was unloaded onto a tile (`unit_unloaded`, §16.3). */
+export interface UnitUnloadedEvent {
+  readonly type: "unit_unloaded";
+  readonly transportUnitId: Id;
+  readonly cargoUnitId: Id;
+  readonly position: Coordinate;
+}
+
+/** A submarine submerged (`submarine_dived`, §19.2). */
+export interface SubmarineDivedEvent {
+  readonly type: "submarine_dived";
+  readonly unitId: Id;
+}
+
+/** A submarine surfaced (`submarine_surfaced`, §19.2). */
+export interface SubmarineSurfacedEvent {
+  readonly type: "submarine_surfaced";
+  readonly unitId: Id;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -201,6 +228,10 @@ export interface FutureEvent {
     | "unit_resupplied"
     | "unit_supplied"
     | "units_joined"
+    | "unit_loaded"
+    | "unit_unloaded"
+    | "submarine_dived"
+    | "submarine_surfaced"
   >;
   readonly payload?: unknown;
 }
@@ -222,6 +253,10 @@ export type Event =
   | UnitResuppliedEvent
   | UnitSuppliedEvent
   | UnitsJoinedEvent
+  | UnitLoadedEvent
+  | UnitUnloadedEvent
+  | SubmarineDivedEvent
+  | SubmarineSurfacedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

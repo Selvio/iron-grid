@@ -24,7 +24,9 @@ import { validateCapture } from "./capture";
 import { validateAttack } from "./combat";
 import { validateJoin } from "./join";
 import { validateProduce } from "./production";
+import { validateDive, validateSurface } from "./submarine";
 import { validateSupply } from "./supply";
+import { validateLoad, validateUnload } from "./transport";
 import type { ValidationError, ValidationResult } from "./engine";
 import { validateMovementPath } from "./movement";
 import type { MatchState } from "./state";
@@ -107,6 +109,14 @@ export function validateAction(
       return validateSupply(state, action, gameData);
     case "join":
       return validateJoin(state, action, gameData);
+    case "load":
+      return validateLoad(state, action, gameData);
+    case "unload":
+      return validateUnload(state, action, gameData);
+    case "dive":
+      return validateDive(state, action, gameData);
+    case "surface":
+      return validateSurface(state, action, gameData);
     case "end_turn":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));

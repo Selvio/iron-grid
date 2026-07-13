@@ -91,15 +91,53 @@ export interface JoinAction extends ActionEnvelope {
   readonly path: readonly Coordinate[];
 }
 
+/** Load a unit into a friendly transport it moves onto (§16.2). */
+export interface LoadAction extends ActionEnvelope {
+  readonly type: "load";
+  /** The cargo unit being loaded. */
+  readonly unitId: Id;
+  /** Ordered path ending on the transport's tile (§16.2), including the start. */
+  readonly path: readonly Coordinate[];
+}
+
+/** One cargo unit unloaded to an adjacent tile (§16.3). */
+export interface UnloadTarget {
+  readonly cargoUnitId: Id;
+  readonly to: Coordinate;
+}
+
+/** Unload cargo from a transport onto adjacent legal tiles (§16.3). */
+export interface UnloadAction extends ActionEnvelope {
+  readonly type: "unload";
+  /** The transport unit. */
+  readonly unitId: Id;
+  /** Optional move path for the transport before unloading (§16.3). */
+  readonly path?: readonly Coordinate[];
+  /** The cargo units to unload and where; destinations must be distinct. */
+  readonly unloads: readonly UnloadTarget[];
+}
+
+/** Submerge a submarine (§19.2). */
+export interface DiveAction extends ActionEnvelope {
+  readonly type: "dive";
+  readonly unitId: Id;
+}
+
+/** Surface a submarine (§19.2). */
+export interface SurfaceAction extends ActionEnvelope {
+  readonly type: "surface";
+  readonly unitId: Id;
+}
+
 /** Hand the turn to the next player (§ turn_sequence.end_turn). */
 export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
 }
 
 /**
- * Placeholder for the action types not yet resolved (load, unload, …). Refined
- * into precise variants as each system lands; kept in the union now so
- * exhaustive handling is enforced from the start.
+ * Placeholder for the action types not yet resolved (launch_missile,
+ * activate_power, resign, claim_victory). Refined into precise variants as each
+ * system lands; kept in the union now so exhaustive handling is enforced.
  */
 export interface FutureAction extends ActionEnvelope {
   readonly type: Exclude<
@@ -111,6 +149,10 @@ export interface FutureAction extends ActionEnvelope {
     | "produce"
     | "supply"
     | "join"
+    | "load"
+    | "unload"
+    | "dive"
+    | "surface"
   >;
   readonly payload?: unknown;
 }
@@ -123,5 +165,9 @@ export type Action =
   | ProduceAction
   | SupplyAction
   | JoinAction
+  | LoadAction
+  | UnloadAction
+  | DiveAction
+  | SurfaceAction
   | EndTurnAction
   | FutureAction;

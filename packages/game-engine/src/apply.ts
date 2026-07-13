@@ -24,7 +24,9 @@ import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
 import { applyJoin } from "./join";
 import { applyProduce } from "./production";
+import { applyDive, applySurface } from "./submarine";
 import { applySupply } from "./supply";
+import { applyLoad, applyUnload } from "./transport";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
 import { validateMovementPath } from "./movement";
@@ -145,6 +147,14 @@ export function applyAction(
       return applySupply(state, action, gameData);
     case "join":
       return applyJoin(state, action, gameData);
+    case "load":
+      return applyLoad(state, action);
+    case "unload":
+      return applyUnload(state, action);
+    case "dive":
+      return applyDive(state, action);
+    case "surface":
+      return applySurface(state, action);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
     default:

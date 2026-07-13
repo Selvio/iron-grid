@@ -80,6 +80,22 @@ function stepCostAt(
   return terrain.movement_costs[movementType];
 }
 
+/**
+ * The terrain movement cost for `movementType` at `coord` on the match map, or
+ * `null` when off-map/unknown/impassable. Shared with transport unload (§16.3),
+ * which needs the same traversability test for the drop tile.
+ */
+export function terrainMovementCost(
+  gameData: GameData,
+  mapId: Id,
+  coord: Coordinate,
+  movementType: MovementType,
+): number | null {
+  const map = gameData.maps[mapId];
+  if (map === undefined) return null;
+  return stepCostAt(gameData, map, coord, movementType);
+}
+
 /** Resolve the unit, its definition and the match map, or throw on any gap. */
 function resolveContext(
   state: MatchState,
