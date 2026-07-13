@@ -22,6 +22,8 @@ import type { Event } from "./events";
 import type { RandomSource } from "./random";
 import type { Coordinate, Id, MatchState } from "./state";
 
+export { resolveStartOfTurn } from "./start-of-turn";
+
 /** The result of a state transition: the next state and the events it produced. */
 export interface EngineResult {
   readonly nextState: MatchState;
@@ -103,16 +105,6 @@ export function applyAction(
   void gameData;
   void random;
   return notImplemented("M2-T4");
-}
-
-/** Run the deterministic start-of-turn transaction for the active player (M2-T2). */
-export function resolveStartOfTurn(
-  state: MatchState,
-  gameData: GameData,
-): EngineResult {
-  void state;
-  void gameData;
-  return notImplemented("M2-T2");
 }
 
 /** Reachable movement destinations for a unit (M2-T3). */
