@@ -26,6 +26,7 @@ import { parseTerrain } from "./schemas/terrain";
 import { parseProperties } from "./schemas/properties";
 import { parseCommanders } from "./schemas/commanders";
 import { parseMaps } from "./schemas/maps";
+import { validateIntegrity } from "./validate/integrity";
 
 /** A parsed data file: the loader only assumes a top-level mapping at this stage. */
 type RawDocument = Record<string, unknown>;
@@ -133,9 +134,8 @@ export function loadGameData(): GameData {
 
   const version = resolveVersion(raw);
 
-  // Per-file schema + intra-file validation (M1-T2..T4). Cross-file integrity
-  // (M1-T5) attaches here, narrowing the remaining `unknown` payload (rules).
-  return {
+  // Per-file schema + intra-file validation (M1-T2..T4).
+  const data: GameData = {
     version,
     units: parseUnits(raw.units),
     weapons: parseWeapons(raw.weapons),
@@ -146,4 +146,8 @@ export function loadGameData(): GameData {
     maps: parseMaps(raw.maps),
     rules: raw.rules,
   };
+
+  // Cross-file integrity, once every file is individually valid (M1-T5).
+  validateIntegrity(data);
+  return data;
 }
