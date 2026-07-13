@@ -84,6 +84,30 @@ export interface CargoDestroyedEvent {
   readonly transportUnitId: Id;
 }
 
+/** A fresh capture began on a property (`capture_started`, §13.3). */
+export interface CaptureStartedEvent {
+  readonly type: "capture_started";
+  readonly unitId: Id;
+  readonly propertyId: Id;
+}
+
+/** A capture advanced but did not complete (`capture_progressed`, §13.3). */
+export interface CaptureProgressedEvent {
+  readonly type: "capture_progressed";
+  readonly unitId: Id;
+  readonly propertyId: Id;
+  /** Capture points still remaining after this action (1–19). */
+  readonly pointsRemaining: number;
+}
+
+/** A property changed ownership on capture completion (`property_captured`, §13.5). */
+export interface PropertyCapturedEvent {
+  readonly type: "property_captured";
+  readonly unitId: Id;
+  readonly propertyId: Id;
+  readonly newOwnerPlayerId: Id;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -116,6 +140,9 @@ export interface FutureEvent {
     | "unit_attacked"
     | "unit_counterattacked"
     | "cargo_destroyed"
+    | "capture_started"
+    | "capture_progressed"
+    | "property_captured"
   >;
   readonly payload?: unknown;
 }
@@ -129,6 +156,9 @@ export type Event =
   | UnitAttackedEvent
   | UnitCounterattackedEvent
   | CargoDestroyedEvent
+  | CaptureStartedEvent
+  | CaptureProgressedEvent
+  | PropertyCapturedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

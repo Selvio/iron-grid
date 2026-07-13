@@ -29,6 +29,7 @@ import {
   unitById,
   updateMatch,
 } from "./board";
+import { clearCaptureBy } from "./capture";
 import { computeDamage } from "./damage";
 import type {
   CombatPreview,
@@ -463,6 +464,9 @@ export function applyAttack(
       next = replaceUnit(next, defenderHit);
     }
   }
+
+  // Attacking interrupts any capture the (surviving) attacker was performing.
+  next = clearCaptureBy(next, attacker0.id, gameData);
 
   next = updateMatch(next, {
     randomSequenceIndex: state.match.randomSequenceIndex + draws,

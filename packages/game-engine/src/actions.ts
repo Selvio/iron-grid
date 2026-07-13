@@ -45,21 +45,41 @@ export interface AttackAction extends ActionEnvelope {
   readonly path?: readonly Coordinate[];
 }
 
+/** Capture the property under a unit, optionally moving onto it first (§13). */
+export interface CaptureAction extends ActionEnvelope {
+  readonly type: "capture";
+  /** The capturing unit (Infantry or Mech). */
+  readonly unitId: Id;
+  /**
+   * Ordered move path ending on the property tile (§10.2), including the start
+   * tile. Omitted or a single-tile `[origin]` captures in place; a real move is
+   * legal only for units that may move and capture (§13.1).
+   */
+  readonly path?: readonly Coordinate[];
+}
+
 /** Hand the turn to the next player (§ turn_sequence.end_turn). */
 export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
 }
 
 /**
- * Placeholder for the action types not yet resolved (capture, produce, …).
- * Refined into precise variants as each system lands; kept in the union now so
+ * Placeholder for the action types not yet resolved (produce, load, …). Refined
+ * into precise variants as each system lands; kept in the union now so
  * exhaustive handling is enforced from the start.
  */
 export interface FutureAction extends ActionEnvelope {
-  readonly type: Exclude<ActionType, "move_and_wait" | "end_turn" | "attack">;
+  readonly type: Exclude<
+    ActionType,
+    "move_and_wait" | "end_turn" | "attack" | "capture"
+  >;
   readonly payload?: unknown;
 }
 
 /** Any action a player may submit. */
 export type Action =
-  MoveAndWaitAction | AttackAction | EndTurnAction | FutureAction;
+  | MoveAndWaitAction
+  | AttackAction
+  | CaptureAction
+  | EndTurnAction
+  | FutureAction;

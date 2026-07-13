@@ -20,6 +20,7 @@ import type { GameData } from "game-data";
 
 import { unitById } from "./board";
 import type { Action, MoveAndWaitAction } from "./actions";
+import { validateCapture } from "./capture";
 import { validateAttack } from "./combat";
 import type { ValidationError, ValidationResult } from "./engine";
 import { validateMovementPath } from "./movement";
@@ -95,6 +96,8 @@ export function validateAction(
       return validateMoveAndWait(state, action, gameData);
     case "attack":
       return validateAttack(state, action, gameData);
+    case "capture":
+      return validateCapture(state, action, gameData);
     case "end_turn":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));

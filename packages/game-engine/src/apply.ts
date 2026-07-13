@@ -20,6 +20,7 @@ import type { GameData } from "game-data";
 
 import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
 import { replaceUnit, unitById, updateMatch } from "./board";
+import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
@@ -54,7 +55,12 @@ function applyMoveAndWait(
     fuel: fuelAfter,
     hasActed: true,
   };
-  const nextState = replaceUnit(state, moved);
+  // A non-capture action interrupts any capture this unit was performing (§13.4).
+  const nextState = clearCaptureBy(
+    replaceUnit(state, moved),
+    unit.id,
+    gameData,
+  );
   const events: Event[] = [
     {
       type: "unit_moved",
@@ -128,6 +134,8 @@ export function applyAction(
       return applyMoveAndWait(state, action, gameData);
     case "attack":
       return applyAttack(state, action, gameData, random);
+    case "capture":
+      return applyCapture(state, action, gameData);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
     default:
