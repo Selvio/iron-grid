@@ -15,6 +15,8 @@ import type { Weapons } from "./schemas/weapons";
 import type { DamageChart } from "./schemas/damage-chart";
 import type { Terrains } from "./schemas/terrain";
 import type { Properties } from "./schemas/properties";
+import type { Commanders } from "./schemas/commanders";
+import type { GameMaps } from "./schemas/maps";
 
 /**
  * The eight canonical data files (`game-specification.md` §31), in a stable
@@ -55,10 +57,10 @@ export interface GameData {
   readonly terrain: Terrains;
   /** Validated `properties.yaml`, keyed by property ID. */
   readonly properties: Properties;
-  /** Parsed `commanders.yaml` (typed in M1-T4). */
-  readonly commanders: unknown;
-  /** Parsed `maps.yaml` (typed in M1-T4). */
-  readonly maps: unknown;
+  /** Validated `commanders.yaml` factions and commander slots (design-blocked). */
+  readonly commanders: Commanders;
+  /** Validated `maps.yaml` official maps, keyed by map ID (empty until M10). */
+  readonly maps: GameMaps;
   /** Parsed `rules.yaml` (typed in a later ticket). */
   readonly rules: unknown;
 }

@@ -97,9 +97,37 @@ export const productionCategory = z.enum(["none", "ground", "air", "naval"]);
 /** Repair categories (`properties.yaml` enums.repair_categories). */
 export const repairCategory = z.enum(["ground", "air", "naval"]);
 
+/** Faction IDs (`commanders.yaml` enums.faction_ids). */
+export const factionId = z.enum(["blue", "green", "red", "yellow"]);
+
+/** Commander lifecycle statuses (`commanders.yaml` enums.commander_statuses). */
+export const commanderStatus = z.enum([
+  "draft",
+  "approved",
+  "disabled",
+  "blocked",
+]);
+
+/** Map lifecycle statuses (`maps.yaml` enums.map_statuses). */
+export const mapStatus = z.enum([
+  "draft",
+  "review",
+  "approved",
+  "published",
+  "retired",
+  "blocked",
+]);
+
+/** Property ownership at match start (`maps.yaml` property_instance_schema). */
+export const initialOwner = z.enum(["neutral", "player_1", "player_2"]);
+
+/** A player slot ID (`maps.yaml` player_slot_schema). */
+export const playerSlotId = z.enum(["player_1", "player_2"]);
+
 export type UnitCategory = z.infer<typeof unitCategory>;
 export type PropertyType = z.infer<typeof propertyType>;
 export type RepairCategory = z.infer<typeof repairCategory>;
+export type PlayerSlotId = z.infer<typeof playerSlotId>;
 export type MovementType = z.infer<typeof movementType>;
 export type CombatType = z.infer<typeof combatType>;
 export type TargetDomain = z.infer<typeof targetDomain>;

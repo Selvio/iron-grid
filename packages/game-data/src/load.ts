@@ -24,6 +24,8 @@ import { parseWeapons } from "./schemas/weapons";
 import { parseDamageChart } from "./schemas/damage-chart";
 import { parseTerrain } from "./schemas/terrain";
 import { parseProperties } from "./schemas/properties";
+import { parseCommanders } from "./schemas/commanders";
+import { parseMaps } from "./schemas/maps";
 
 /** A parsed data file: the loader only assumes a top-level mapping at this stage. */
 type RawDocument = Record<string, unknown>;
@@ -131,9 +133,8 @@ export function loadGameData(): GameData {
 
   const version = resolveVersion(raw);
 
-  // Per-file schema + intra-file validation (M1-T2, M1-T3). Schemas for
-  // commanders/maps (M1-T4) and cross-file integrity (M1-T5) attach here,
-  // narrowing the remaining `unknown` payloads.
+  // Per-file schema + intra-file validation (M1-T2..T4). Cross-file integrity
+  // (M1-T5) attaches here, narrowing the remaining `unknown` payload (rules).
   return {
     version,
     units: parseUnits(raw.units),
@@ -141,8 +142,8 @@ export function loadGameData(): GameData {
     damageChart: parseDamageChart(raw["damage-chart"]),
     terrain: parseTerrain(raw.terrain),
     properties: parseProperties(raw.properties),
-    commanders: raw.commanders,
-    maps: raw.maps,
+    commanders: parseCommanders(raw.commanders),
+    maps: parseMaps(raw.maps),
     rules: raw.rules,
   };
 }
