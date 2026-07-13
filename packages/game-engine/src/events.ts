@@ -119,6 +119,48 @@ export interface UnitProducedEvent {
   readonly fundsAfter: number;
 }
 
+/** A unit was repaired at start of turn on an owned property (`unit_repaired`, §14). */
+export interface UnitRepairedEvent {
+  readonly type: "unit_repaired";
+  readonly unitId: Id;
+  /** Displayed HP restored (1 or 2). */
+  readonly displayedHpRepaired: number;
+  readonly trueHpAfter: number;
+  /** Funds spent on the repair. */
+  readonly cost: number;
+}
+
+/** A unit's fuel/ammo were refilled (`unit_resupplied`, §14.1) — free. */
+export interface UnitResuppliedEvent {
+  readonly type: "unit_resupplied";
+  readonly unitId: Id;
+  readonly fuelAfter: number;
+  readonly ammoAfter: number;
+}
+
+/** An APC resupplied an adjacent ally (`unit_supplied`, §14.5). */
+export interface UnitSuppliedEvent {
+  readonly type: "unit_supplied";
+  readonly supplierUnitId: Id;
+  readonly unitId: Id;
+  readonly fuelAfter: number;
+  readonly ammoAfter: number;
+}
+
+/** Two same-type units merged (`units_joined`, §15). */
+export interface UnitsJoinedEvent {
+  readonly type: "units_joined";
+  /** The destination unit that survives the merge. */
+  readonly survivingUnitId: Id;
+  /** The moving unit that was absorbed and removed. */
+  readonly absorbedUnitId: Id;
+  readonly trueHpAfter: number;
+  readonly fuelAfter: number;
+  readonly ammoAfter: number;
+  /** Excess-HP refund credited to the owner (§15.3). */
+  readonly refund: number;
+}
+
 /** A unit moved along a resolved path (`unit_moved`, §10). */
 export interface UnitMovedEvent {
   readonly type: "unit_moved";
@@ -155,6 +197,10 @@ export interface FutureEvent {
     | "capture_progressed"
     | "property_captured"
     | "unit_produced"
+    | "unit_repaired"
+    | "unit_resupplied"
+    | "unit_supplied"
+    | "units_joined"
   >;
   readonly payload?: unknown;
 }
@@ -172,6 +218,10 @@ export type Event =
   | CaptureProgressedEvent
   | PropertyCapturedEvent
   | UnitProducedEvent
+  | UnitRepairedEvent
+  | UnitResuppliedEvent
+  | UnitSuppliedEvent
+  | UnitsJoinedEvent
   | UnitMovedEvent
   | TurnEndedEvent
   | FutureEvent;

@@ -42,8 +42,10 @@ export type {
   CaptureAction,
   EndTurnAction,
   FutureAction,
+  JoinAction,
   MoveAndWaitAction,
   ProduceAction,
+  SupplyAction,
 } from "./actions";
 export type {
   CaptureProgressedEvent,
@@ -62,6 +64,10 @@ export type {
   UnitDestroyedEvent,
   UnitMovedEvent,
   UnitProducedEvent,
+  UnitRepairedEvent,
+  UnitResuppliedEvent,
+  UnitsJoinedEvent,
+  UnitSuppliedEvent,
 } from "./events";
 export type { RandomSource, RandomStream } from "./random";
 

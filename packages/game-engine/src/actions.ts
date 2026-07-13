@@ -73,6 +73,24 @@ export interface ProduceAction extends ActionEnvelope {
   readonly newUnitId: Id;
 }
 
+/** Resupply adjacent allied units, optionally moving first (APC; §14.5). */
+export interface SupplyAction extends ActionEnvelope {
+  readonly type: "supply";
+  /** The supplying unit (APC). */
+  readonly unitId: Id;
+  /** Optional move path ending on the supply tile (§10.2), including the start. */
+  readonly path?: readonly Coordinate[];
+}
+
+/** Merge a unit into a friendly same-type unit it moves onto (§15). */
+export interface JoinAction extends ActionEnvelope {
+  readonly type: "join";
+  /** The moving unit that is absorbed into the destination. */
+  readonly unitId: Id;
+  /** Ordered path ending on the friendly same-type unit's tile (§15.1). */
+  readonly path: readonly Coordinate[];
+}
+
 /** Hand the turn to the next player (§ turn_sequence.end_turn). */
 export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
@@ -86,7 +104,13 @@ export interface EndTurnAction extends ActionEnvelope {
 export interface FutureAction extends ActionEnvelope {
   readonly type: Exclude<
     ActionType,
-    "move_and_wait" | "end_turn" | "attack" | "capture" | "produce"
+    | "move_and_wait"
+    | "end_turn"
+    | "attack"
+    | "capture"
+    | "produce"
+    | "supply"
+    | "join"
   >;
   readonly payload?: unknown;
 }
@@ -97,5 +121,7 @@ export type Action =
   | AttackAction
   | CaptureAction
   | ProduceAction
+  | SupplyAction
+  | JoinAction
   | EndTurnAction
   | FutureAction;

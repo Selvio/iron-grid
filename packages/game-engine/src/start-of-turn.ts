@@ -34,6 +34,7 @@ import {
 } from "./board";
 import type { EngineResult } from "./engine";
 import type { Event } from "./events";
+import { repairUnits, resupplyUnits } from "./repair";
 import type { Id, MatchState, SpecialState, UnitState } from "./state";
 
 /** A validated unit definition, resolved from `GameData` by `typeId`. */
@@ -66,17 +67,7 @@ function destroyedOnUnpaidFuel(def: UnitDef): boolean {
 
 // --- M3 ordered hooks -------------------------------------------------------
 // Present and ordered so M3 fills each step in place without reordering the
-// transaction. Each is currently the identity on state and emits no events.
-
-/** M3 step: repair units on owned compatible properties (§5.4, §6). No-op in M2. */
-function repairUnitsHook(state: MatchState): MatchState {
-  return state;
-}
-
-/** M3 step: resupply units on owned compatible properties (§5.4). No-op in M2. */
-function resupplyUnitsHook(state: MatchState): MatchState {
-  return state;
-}
+// transaction. Repair/resupply are real (M3-T4); the rest remain identity.
 
 /** M3 step: reset/update temporary commander-power state (§5.8, §22). No-op in M2. */
 function commanderPowerHook(state: MatchState): MatchState {
@@ -152,9 +143,15 @@ export function resolveStartOfTurn(
     });
   }
 
-  // 4–5. repair / resupply (M3 no-op hooks, ordered before fuel consumption).
-  next = repairUnitsHook(next);
-  next = resupplyUnitsHook(next);
+  // 4. repair_units_on_owned_compatible_properties (§14.1–§14.4).
+  const repaired = repairUnits(next, gameData, activeId);
+  next = repaired.state;
+  events.push(...repaired.events);
+
+  // 5. resupply_units_on_owned_compatible_properties (§14.1) — free, after repair.
+  const resupplied = resupplyUnits(next, gameData, activeId);
+  next = resupplied.state;
+  events.push(...resupplied.events);
 
   // The active player's board-present units, in canonical order, drive the
   // remaining per-unit steps so fuel/destroy/reset events replay

@@ -22,7 +22,9 @@ import { unitById } from "./board";
 import type { Action, MoveAndWaitAction } from "./actions";
 import { validateCapture } from "./capture";
 import { validateAttack } from "./combat";
+import { validateJoin } from "./join";
 import { validateProduce } from "./production";
+import { validateSupply } from "./supply";
 import type { ValidationError, ValidationResult } from "./engine";
 import { validateMovementPath } from "./movement";
 import type { MatchState } from "./state";
@@ -101,6 +103,10 @@ export function validateAction(
       return validateCapture(state, action, gameData);
     case "produce":
       return validateProduce(state, action, gameData);
+    case "supply":
+      return validateSupply(state, action, gameData);
+    case "join":
+      return validateJoin(state, action, gameData);
     case "end_turn":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));
