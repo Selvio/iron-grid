@@ -110,14 +110,16 @@ exists in code yet.
   exactly-one increment — as reusable functions with their own tests. M7 composes
   them into `action_processing.ordered_steps`; M4 does not.
 - **Test hermeticity has a documented boundary** (`testing.md` §6): schema shape,
-  constraints, migration apply/rollback-forward and the version-compare logic are
-  tested against an **in-process Postgres** (PGlite) for speed. The **true row-lock
-  concurrency** assertion — two simultaneous transactions where the second must
-  block/observe the stale version under `FOR UPDATE` — needs **two real
-  connections** and runs against an ephemeral multi-connection Postgres
-  (Testcontainers or a disposable Neon branch). This split is a stated M4 decision,
-  not discovered mid-ticket; the single lock-serialization test is the only one
-  that requires the heavier harness.
+  constraints, migration apply-forward and the version-compare/increment and
+  version-pinning logic are tested against an **in-process Postgres** (PGlite) for
+  speed, and `lockMatchForUpdate` is asserted functionally there (it reads the
+  locked version). The **true row-lock contention** assertion — two simultaneous
+  transactions where the second must block/observe the stale version under `FOR
+  UPDATE` — needs **two real connections**, which PGlite (single-connection)
+  cannot provide. **Decision:** that one two-connection serialization test is
+  **deferred to M7**, where the transactional pipeline and the CI database
+  infrastructure land; M4 ships the lock primitive and its functional test, not
+  the contention test.
 
 ---
 
@@ -129,9 +131,9 @@ exists in code yet.
   step 5).
 - **Scope:**
   - Add root-app runtime deps: `drizzle-orm`, `@neondatabase/serverless`; dev
-    deps: `drizzle-kit`, and the test-Postgres harness (`@electric-sql/pglite` for
-    hermetic schema tests; Testcontainers **or** a Neon-branch helper for the
-    single multi-connection lock test, §3).
+    deps: `drizzle-kit`, and the hermetic test-Postgres harness
+    (`@electric-sql/pglite`). *(The real multi-connection harness for the deferred
+    contention test is an M7 concern, §3.)*
   - `drizzle.config.ts` (schema path, `out` migrations dir, dialect `postgresql`,
     `DATABASE_URL` from env); the Drizzle **client** module (`app/server/db/client.ts`)
     over the Neon serverless driver on the **Node.js runtime**; typed env access
@@ -281,8 +283,9 @@ exists in code yet.
   will compose (`database.md` §6, §8–§10; `roadmap.md` §5; `rules.yaml` →
   `concurrency_rules`, `data_versioning`).
 - **Scope:**
-  - **Migrations**: generate the initial migration covering T2–T6 via Drizzle Kit,
-    check it in, and apply it forward-only in a clean DB. Encode the **integrity
+  - **Migrations**: the per-slice migrations generated alongside T2–T6 (Drizzle
+    Kit, checked in) apply **forward-only** in a clean DB; T7 verifies that from
+    an empty database and adds the integrity note. Encode the **integrity
     rule** (`database.md` §9, `data_versioning.migration_of_active_match`):
     migrations may add columns/tables but must not rewrite an active match's
     `state` semantics or its pinned `game_data_version`; add a lint/README note and
@@ -299,15 +302,15 @@ exists in code yet.
     that the value is immutable for an active match.
 - **Files:** `drizzle/` (generated migration SQL), `app/server/db/queries/concurrency.ts`,
   `app/server/db/queries/versioning.ts`, migration-integrity note in
-  `app/server/db/README.md`, tests (PGlite for schema/version; the single
-  multi-connection lock test on the real-Postgres harness, §3).
-- **Acceptance:** the migration applies forward-only against an empty database and
-  produces the full T2–T6 schema; `assertStateVersion` rejects a stale
+  `app/server/db/README.md`, tests (PGlite for schema/version/lock-primitive;
+  the two-connection contention test deferred to M7, §3).
+- **Acceptance:** the migrations apply forward-only against an empty database and
+  produce the full schema; `assertStateVersion` rejects a stale
   `expectedStateVersion` with the typed conflict and leaks no hidden state;
-  `incrementStateVersion` advances by exactly one; **two concurrent transactions
-  under `lockMatchForUpdate` serialize** — the second observes the incremented
-  version and cannot commit against the stale one; `game_data_version` cannot be
-  changed once set for an active match.
+  `incrementStateVersion` advances by exactly one; `lockMatchForUpdate` reads the
+  locked version (functional test); `game_data_version` cannot be changed once set
+  for an active match. *(The two-connection row-lock contention test is deferred
+  to M7, §3.)*
 - **Dependencies:** M4-T2 … M4-T6 (all tables must exist to migrate and lock).
 
 **Ordering:** M4-T1 → { M4-T2 ∥ M4-T3 ∥ M4-T4 ∥ M4-T5 ∥ M4-T6 } → M4-T7.
@@ -342,8 +345,9 @@ M4 is complete when, from a clean checkout:
 5. Integration tests (`testing.md` §6) cover: schema round-trips, the composite
    uniqueness constraints (faction/commander per match, `match_id`+`sequence`,
    `match_id`+`key`), append-only enforcement (no UPDATE/DELETE path), the
-   stale-version typed conflict, and the **single** two-connection row-lock
-   serialization test — green under CI.
+   stale-version typed conflict and version-pin immutability, and the
+   `lockMatchForUpdate` functional read — green under CI. *(The two-connection
+   row-lock contention test is deferred to M7, §3.)*
 6. Scope stays inside persistence: **no** auth flow (M5), **no** lifecycle or
    action endpoints (M6/M7), **no** notification scheduling/delivery (M8); those
    layers find a validated schema and the primitives, and add their behavior on

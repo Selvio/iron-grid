@@ -19,4 +19,15 @@ export {
   recordIdempotentResult,
   type IdempotentOutcome,
 } from "./queries/idempotency";
+export {
+  assertStateVersion,
+  incrementStateVersion,
+  lockMatchForUpdate,
+  StateVersionConflictError,
+  type LockedMatch,
+} from "./queries/concurrency";
+export {
+  getPinnedGameDataVersion,
+  pinGameDataVersion,
+} from "./queries/versioning";
 export * as schema from "./schema";
