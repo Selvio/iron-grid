@@ -38,3 +38,11 @@ export const COMPLETION_REASONS = [
 ] as const satisfies readonly CompletionReason[];
 
 export const completionReason = pgEnum("completion_reason", COMPLETION_REASONS);
+
+/**
+ * Match-player role (`domain-model.md` §7). Not a `rules.yaml` runtime enum —
+ * the host creates the match, the guest joins by invitation (§3.3).
+ */
+export const MATCH_PLAYER_ROLES = ["host", "guest"] as const;
+
+export const matchPlayerRole = pgEnum("match_player_role", MATCH_PLAYER_ROLES);
