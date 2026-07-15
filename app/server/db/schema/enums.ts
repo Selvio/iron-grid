@@ -83,3 +83,26 @@ export const EVENT_TYPES = [
 ] as const satisfies readonly EventType[];
 
 export const eventType = pgEnum("event_type", EVENT_TYPES);
+
+/** `rules.yaml` → notifications.event_triggers (durable notification jobs). */
+export const NOTIFICATION_TYPES = [
+  "match_invitation",
+  "turn_started",
+  "turn_reminder",
+  "turn_expired",
+  "match_completed",
+] as const;
+
+export const notificationType = pgEnum("notification_type", NOTIFICATION_TYPES);
+
+/** Notification-job delivery status (`database.md` §5.7). */
+export const NOTIFICATION_JOB_STATUSES = [
+  "pending",
+  "sent",
+  "cancelled",
+] as const;
+
+export const notificationJobStatus = pgEnum(
+  "notification_job_status",
+  NOTIFICATION_JOB_STATUSES,
+);

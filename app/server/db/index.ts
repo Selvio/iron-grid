@@ -15,4 +15,8 @@ export {
   insertPlayerEvents,
   type AppendEventInput,
 } from "./queries/events";
+export {
+  recordIdempotentResult,
+  type IdempotentOutcome,
+} from "./queries/idempotency";
 export * as schema from "./schema";
