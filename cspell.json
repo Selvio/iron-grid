@@ -48,6 +48,8 @@
     "lifecycles",
     "matchups",
     "neondatabase",
+    "hermeticity",
+    "PGlite",
     "pathfinding",
     "PRNG",
     "stdlib",
