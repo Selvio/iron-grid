@@ -28,6 +28,14 @@ export default defineConfig({
           environment: "node",
         },
       },
+      {
+        test: {
+          name: "backend-db",
+          root: "./app/server/db",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });
