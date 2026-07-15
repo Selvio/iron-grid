@@ -1,0 +1,226 @@
+{
+  "id": "8eb0ee38-dbf7-4c27-bd17-870036833dcb",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.matches": {
+      "name": "matches",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "status": {
+          "name": "status",
+          "type": "match_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "map_id": {
+          "name": "map_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "settings": {
+          "name": "settings",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "invitation_code": {
+          "name": "invitation_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "game_data_version": {
+          "name": "game_data_version",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "random_seed": {
+          "name": "random_seed",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state_version": {
+          "name": "state_version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "active_player_id": {
+          "name": "active_player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "day_counter": {
+          "name": "day_counter",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "turn_deadline_at": {
+          "name": "turn_deadline_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "state": {
+          "name": "state",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "winner_player_id": {
+          "name": "winner_player_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completion_reason": {
+          "name": "completion_reason",
+          "type": "completion_reason",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "activated_at": {
+          "name": "activated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "completed_at": {
+          "name": "completed_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "matches_invitation_code_key": {
+          "name": "matches_invitation_code_key",
+          "columns": [
+            {
+              "expression": "invitation_code",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "matches_status_idx": {
+          "name": "matches_status_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "matches_turn_deadline_at_idx": {
+          "name": "matches_turn_deadline_at_idx",
+          "columns": [
+            {
+              "expression": "turn_deadline_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "matches_active_player_id_idx": {
+          "name": "matches_active_player_id_idx",
+          "columns": [
+            {
+              "expression": "active_player_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.completion_reason": {
+      "name": "completion_reason",
+      "schema": "public",
+      "values": [
+        "headquarters_captured",
+        "army_eliminated",
+        "resignation",
+        "timeout_claimed",
+        "day_limit_score",
+        "administrative"
+      ]
+    },
+    "public.match_status": {
+      "name": "match_status",
+      "schema": "public",
+      "values": [
+        "draft",
+        "waiting_for_opponent",
+        "commander_selection",
+        "ready_check",
+        "active",
+        "completed",
+        "cancelled"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
