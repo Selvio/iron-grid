@@ -57,6 +57,9 @@ export const matches = pgTable(
     /** Optimistic-concurrency counter; T7 owns the compare-and-increment. */
     stateVersion: integer().notNull().default(0),
     // Mirrors of the snapshot's match meta, for indexing/locking/scheduling.
+    // The player references are plain-text mirrors (no FK) so the aggregate root
+    // avoids a circular matches <-> match_players constraint; match_players holds
+    // the authoritative FK direction.
     activePlayerId: text(),
     dayCounter: integer().notNull().default(0),
     turnDeadlineAt: timestamp({ withTimezone: true }),

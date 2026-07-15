@@ -30,7 +30,8 @@ export async function pinGameDataVersion<
     .returning({ gameDataVersion: matches.gameDataVersion });
   if (row === undefined) {
     throw new Error(
-      `game_data_version is already pinned for match ${matchId}; it is immutable for an active match.`,
+      `Cannot pin game_data_version for match ${matchId}: it is already pinned ` +
+        `(immutable for an active match) or the match does not exist.`,
     );
   }
 }

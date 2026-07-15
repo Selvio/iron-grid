@@ -16,8 +16,12 @@ import { matches } from "../schema/matches";
  * authoritative writer of a match's engine state; M7's pipeline calls it inside
  * the action transaction after the engine returns `nextState`.
  *
- * The version compare/increment and the row lock are separate primitives (M4-T7);
- * this helper writes whatever `stateVersion` the snapshot already carries.
+ * The snapshot's `meta.stateVersion` is authoritative: this helper mirrors it to
+ * the `state_version` column in the same UPDATE (`database.md` §10), so the two
+ * never drift. M7 therefore bumps `meta.stateVersion` in `nextState` and persists
+ * here in one write; `incrementStateVersion` (M4-T7) is for a column-only bump
+ * without a snapshot rewrite — do not use both on the same commit. The row lock
+ * and version compare are the separate M4-T7 primitives.
  *
  * Generic over the query-result HKT so it accepts any driver's handle (the Neon
  * client in production, PGlite in tests) or a transaction.

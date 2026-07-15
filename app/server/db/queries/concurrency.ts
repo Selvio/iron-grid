@@ -69,6 +69,11 @@ export function assertStateVersion(current: number, expected: number): void {
 /**
  * Increments `state_version` by exactly one and returns the new value. Called on
  * the commit path after {@link assertStateVersion} has passed under the lock.
+ *
+ * This bumps the **column only**. When the commit also rewrites the snapshot, let
+ * `persistMatchSnapshot` mirror the already-bumped `meta.stateVersion` instead
+ * (`database.md` §10) — do not use both on one commit, or the column and snapshot
+ * versions will drift.
  */
 export async function incrementStateVersion<
   TQuery extends PgQueryResultHKT,
