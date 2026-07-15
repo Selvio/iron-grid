@@ -2,6 +2,7 @@ import { boolean, index, pgTable, text, unique } from "drizzle-orm/pg-core";
 
 import { matchPlayerRole } from "./enums";
 import { matches } from "./matches";
+import { users } from "./users";
 
 /**
  * `match_players` — per-match identity and setup (M4-T4).
@@ -28,8 +29,8 @@ export const matchPlayers = pgTable(
     matchId: text()
       .notNull()
       .references(() => matches.id),
-    /** Null until the invitation is accepted; FK to `users` lands in M4-T2. */
-    userId: text(),
+    /** Null until the invitation is accepted (§3.3). */
+    userId: text().references(() => users.id),
     role: matchPlayerRole().notNull(),
     /** Blue/Green/Red/Yellow — determined by commander choice (§22.1). */
     factionId: text(),

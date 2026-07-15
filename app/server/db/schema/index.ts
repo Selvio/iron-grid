@@ -10,6 +10,8 @@
  * @see docs/04-development/milestones/m4-persistence.md
  */
 export * from "./enums";
+export * from "./users";
+export * from "./auth";
 export * from "./matches";
 export * from "./match-players";
 export * from "./events";

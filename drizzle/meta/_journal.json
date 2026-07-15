@@ -29,6 +29,13 @@
       "when": 1784082083229,
       "tag": "0003_nervous_jubilee",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1784082309243,
+      "tag": "0004_robust_frightful_four",
+      "breakpoints": true
     }
   ]
 }
