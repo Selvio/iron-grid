@@ -10,4 +10,9 @@
 export { createDatabase, type Database, type Schema } from "./client";
 export { requireDatabaseUrl } from "./env";
 export { persistMatchSnapshot } from "./queries/matches";
+export {
+  appendEvents,
+  insertPlayerEvents,
+  type AppendEventInput,
+} from "./queries/events";
 export * as schema from "./schema";

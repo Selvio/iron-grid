@@ -1,5 +1,5 @@
 import { pgEnum } from "drizzle-orm/pg-core";
-import type { CompletionReason, MatchStatus } from "game-engine";
+import type { CompletionReason, EventType, MatchStatus } from "game-engine";
 
 /**
  * Shared Postgres enum types, mirrored from `rules.yaml` → `enums` (M4-T3+).
@@ -46,3 +46,40 @@ export const completionReason = pgEnum("completion_reason", COMPLETION_REASONS);
 export const MATCH_PLAYER_ROLES = ["host", "guest"] as const;
 
 export const matchPlayerRole = pgEnum("match_player_role", MATCH_PLAYER_ROLES);
+
+/** `rules.yaml` → enums.event_types (the resolved authoritative event log). */
+export const EVENT_TYPES = [
+  "match_started",
+  "turn_started",
+  "income_granted",
+  "unit_repaired",
+  "unit_resupplied",
+  "fuel_consumed",
+  "unit_moved",
+  "unit_blocked_by_fog",
+  "unit_attacked",
+  "unit_counterattacked",
+  "unit_damaged",
+  "unit_destroyed",
+  "cargo_destroyed",
+  "capture_started",
+  "capture_progressed",
+  "property_captured",
+  "unit_produced",
+  "unit_loaded",
+  "unit_unloaded",
+  "units_joined",
+  "unit_supplied",
+  "submarine_dived",
+  "submarine_surfaced",
+  "missile_launched",
+  "terrain_damaged",
+  "terrain_destroyed",
+  "power_activated",
+  "turn_ended",
+  "player_resigned",
+  "victory_claimed",
+  "match_completed",
+] as const satisfies readonly EventType[];
+
+export const eventType = pgEnum("event_type", EVENT_TYPES);

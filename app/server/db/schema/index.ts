@@ -12,3 +12,5 @@
 export * from "./enums";
 export * from "./matches";
 export * from "./match-players";
+export * from "./events";
+export * from "./player-events";

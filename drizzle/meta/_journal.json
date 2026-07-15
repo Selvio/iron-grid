@@ -15,6 +15,13 @@
       "when": 1784081680195,
       "tag": "0001_slimy_centennial",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784081899693,
+      "tag": "0002_volatile_rawhide_kid",
+      "breakpoints": true
     }
   ]
 }
