@@ -4,6 +4,7 @@ import type { NextAuthConfig } from "next-auth";
 import { createDatabase, type Database, schema } from "../db";
 
 import { requireAuthSecret } from "./env";
+import { magicLinkProvider } from "./providers/magic-link";
 
 /**
  * Auth.js configuration, bound to the M4 identity tables (M5-T1).
@@ -18,10 +19,12 @@ import { requireAuthSecret } from "./env";
  * `buildAuthConfig` is passed to `NextAuth` in its **lazy** form so the database
  * handle and `AUTH_SECRET` are resolved per request, never at module load —
  * importing this file performs no I/O and reads no env (`db/env.ts` discipline).
+ * The magic-link provider (M5-T2) is registered here; the `session` callback
+ * exposes the stable `user.id` the current-user helper reads (M5-T3).
  *
  * @see docs/03-architecture/backend.md §7
  * @see docs/03-architecture/database.md §5.1
- * @see docs/04-development/milestones/m5-auth.md (M5-T1)
+ * @see docs/04-development/milestones/m5-auth.md (M5-T1, T2, T3)
  */
 
 // Memoized per process: the pooled Neon client is reused across requests within
@@ -45,7 +48,15 @@ export function buildAuthConfig(): NextAuthConfig {
     }),
     session: { strategy: "database" },
     secret: requireAuthSecret(),
-    // Magic-link email provider registered in M5-T2.
-    providers: [],
+    providers: [magicLinkProvider()],
+    callbacks: {
+      // Database sessions carry the adapter user, but the default `Session.user`
+      // omits `id`. Surface the stable id so the current-user helper (M5-T3) and
+      // the membership guard (M5-T4) key off it rather than re-reading the row.
+      session({ session, user }) {
+        session.user.id = user.id;
+        return session;
+      },
+    },
   };
 }

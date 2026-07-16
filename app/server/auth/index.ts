@@ -13,12 +13,30 @@ import { buildAuthConfig } from "./config";
  * invoked per request, so constructing this module reads no env and opens no
  * connection. `handlers` mount the `/api/auth/*` routes; `auth` resolves the
  * session (used by the M5-T3 current-user helper); `signIn` / `signOut` drive
- * the magic-link flow wired in M5-T2.
+ * the magic-link flow wired in M5-T2 (sign-out needs no bespoke endpoint).
  *
  * @see docs/03-architecture/backend.md §7
- * @see docs/04-development/milestones/m5-auth.md (M5-T1)
+ * @see docs/04-development/milestones/m5-auth.md (M5-T1, T2, T3)
  */
 export const { handlers, auth, signIn, signOut } = NextAuth(buildAuthConfig);
 
 export { buildAuthConfig } from "./config";
-export { requireAuthSecret } from "./env";
+export {
+  requireAuthSecret,
+  requireResendApiKey,
+  requireEmailFrom,
+} from "./env";
+export {
+  magicLinkProvider,
+  resendMailer,
+  MAGIC_LINK_PROVIDER_ID,
+  type MagicLinkMailer,
+  type MagicLinkEmail,
+} from "./providers/magic-link";
+export {
+  getCurrentUser,
+  requireUser,
+  type AuthenticatedUser,
+  type SessionResolver,
+} from "./session";
+export { UnauthenticatedError } from "./errors";

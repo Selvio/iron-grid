@@ -36,6 +36,14 @@ export default defineConfig({
           environment: "node",
         },
       },
+      {
+        test: {
+          name: "backend-auth",
+          root: "./app/server/auth",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });
