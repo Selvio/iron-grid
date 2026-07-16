@@ -52,6 +52,7 @@
     "passwordless",
     "docstrings",
     "unprojected",
+    "underspecified",
     "hermeticity",
     "PGlite",
     "pathfinding",

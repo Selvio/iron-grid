@@ -30,6 +30,7 @@ export function fixtureGameData(): GameData {
         max_true_hp: 100,
         movement: { type: "foot", points: 3 },
         logistics: { max_fuel: 99, daily_fuel: { default: 0 }, max_ammo: null },
+        vision: { base_range: 2 },
         special_states: [],
       },
       tank: {
@@ -37,6 +38,7 @@ export function fixtureGameData(): GameData {
         max_true_hp: 100,
         movement: { type: "treads", points: 6 },
         logistics: { max_fuel: 70, daily_fuel: { default: 0 }, max_ammo: 9 },
+        vision: { base_range: 3 },
         special_states: [],
       },
     },

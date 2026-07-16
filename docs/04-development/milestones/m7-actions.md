@@ -290,13 +290,16 @@ table exists (M4-T6) but has no enqueue helper — untouched here.
   projection the pipeline writes (`backend.md` §6; `domain-model.md` §13;
   `replay_rules`).
 - **Scope:**
-  - A projection helper deriving per-player event payloads from `calculateVisibility`
-    (a hidden action is redacted per viewer), used by the pipeline's
-    `create_player_event_projections` step (replacing the interim unprojected write).
   - `GET /api/matches/:id` — `requireUser` + `requireMatchMembership`;
-    `projectStateForPlayer(state, viewerPlayerId, gameData)` → `PlayerView`.
+    `projectStateForPlayer(state, viewerPlayerId, gameData)` → the viewer's
+    **fog-filtered** board + public meta + the viewer's **own** private economy
+    (opponent funds/powerMeter never exposed). This is the primary anti-cheat read
+    surface and does real fog projection today.
   - `GET /api/matches/:id/events?since=` — membership-checked; returns the viewer's
     `player_events` with `sequence > since`, ordered.
+  - Per-event fog redaction of the event stream: identity for a fog-off match (the
+    fixture), so the pipeline's per-player rows are already the correct projection;
+    fog-**on** per-event redaction is deferred (see §6).
 - **Files:** `app/server/actions/projection.ts`, `app/api/matches/[id]/route.ts`,
   `app/api/matches/[id]/events/route.ts`, tests (PGlite: read returns the viewer's
   projected state; a non-member is 403; events filtered by `since` and by viewer).
@@ -392,6 +395,13 @@ M7 is complete when, from a clean checkout:
   `TEST_DATABASE_URL`) not present in the current dev environment; lands with the CI
   Postgres infra and is skipped otherwise. The version-conflict **guard** is proven by
   the always-run sequential PGlite test (outcome-equivalent under `FOR UPDATE`).
+- **Fog-on per-event redaction of the event stream** — the **state** read
+  (`GET /:id`) is fog-projected today (`projectStateForPlayer`), the real anti-cheat
+  surface. Redacting the per-event `player_events` **stream** for a fog-**on** match
+  needs a per-event visibility primitive the engine does not expose (no
+  `projectEventForViewer`) and per-event rules that are underspecified; with the
+  fog-off fixture the pipeline's per-player rows are already correct. Deferred until a
+  fog-on scenario/fixture exists.
 
 ---
 
