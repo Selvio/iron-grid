@@ -16,6 +16,7 @@ export {
   type AppendEventInput,
 } from "./queries/events";
 export {
+  getIdempotentResult,
   recordIdempotentResult,
   type IdempotentOutcome,
 } from "./queries/idempotency";

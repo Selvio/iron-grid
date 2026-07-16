@@ -20,6 +20,29 @@ export interface IdempotentOutcome {
   readonly result: unknown;
 }
 
+/**
+ * Returns the stored committed result for `(matchId, key)`, or `null` if the key
+ * has not been recorded — the head-of-pipeline short-circuit that lets a retried
+ * action return its original result without re-applying
+ * (`action_processing.idempotency`). Under the match row lock this is race-free.
+ */
+export async function getIdempotentResult<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+>(
+  db: PgDatabase<TQuery, TSchema>,
+  matchId: string,
+  key: string,
+): Promise<{ result: unknown } | null> {
+  const [row] = await db
+    .select({ committedResult: idempotencyKeys.committedResult })
+    .from(idempotencyKeys)
+    .where(
+      and(eq(idempotencyKeys.matchId, matchId), eq(idempotencyKeys.key, key)),
+    );
+  return row === undefined ? null : { result: row.committedResult };
+}
+
 export async function recordIdempotentResult<
   TQuery extends PgQueryResultHKT,
   TSchema extends Record<string, unknown>,

@@ -44,6 +44,19 @@ export function fixtureGameData(): GameData {
       headquarters: { economy: { income_per_turn: 1000 } },
       city: { economy: { income_per_turn: 1000 } },
     },
+    terrain: {
+      plain: {
+        movement_costs: {
+          foot: 1,
+          mech: 1,
+          tires: 1,
+          treads: 1,
+          air: 1,
+          ship: null,
+          transport_ship: null,
+        },
+      },
+    },
     commanders: {
       factions: {
         blue: { id: "blue", commander_id: "cmdr-blue" },
