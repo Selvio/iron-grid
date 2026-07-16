@@ -83,6 +83,8 @@ export type {
   UnitUnloadedEvent,
 } from "./events";
 export type { RandomSource, RandomStream } from "./random";
+export { createRandomSource } from "./random-source";
+export type { SeededRandomSource } from "./random-source";
 
 export { ownerModifier } from "./commanders";
 export type { ModifierTarget } from "./commanders";
