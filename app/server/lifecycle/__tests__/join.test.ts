@@ -131,6 +131,13 @@ describe("join match endpoint", () => {
       deps(guestId),
     );
     expect(response.status).toBe(409);
+
+    // No guest row was written — only the host remains.
+    const players = await handle.db
+      .select()
+      .from(matchPlayers)
+      .where(eq(matchPlayers.matchId, matchId));
+    expect(players).toHaveLength(1);
   });
 
   it("rejects the host joining their own match with 409", async () => {

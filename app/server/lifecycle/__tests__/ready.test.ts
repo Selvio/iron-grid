@@ -93,7 +93,8 @@ describe("ready + activation endpoint", () => {
       gameData: fixtureGameData(),
       resolveSession: sessionFor(userId),
       now: () => NOW,
-      chooseFirstPlayer: (ids: readonly string[]) => ids[0]!,
+      // Force the host player row as the server-random first player.
+      chooseFirstPlayer: () => hostPlayerId,
       generateSeed: () => "fixed-seed",
     };
   }
@@ -132,8 +133,19 @@ describe("ready + activation endpoint", () => {
     expect(match.randomSeed).toBe("fixed-seed");
     expect(match.activatedAt).toBeInstanceOf(Date);
     expect(match.dayCounter).toBe(1);
+    // The injected server-random first player is the active player, and the
+    // column mirrors the snapshot's stateVersion.
+    expect(match.activePlayerId).toBe(hostPlayerId);
+    expect(match.stateVersion).toBe(0);
+
+    // The persisted snapshot actually laid out the map: both players, the two
+    // starting units, and the three properties are present.
     expect(match.state).not.toBeNull();
-    expect(match.activePlayerId).not.toBeNull();
+    const state = match.state!;
+    expect(state.players).toHaveLength(2);
+    expect(state.units).toHaveLength(2);
+    expect(state.properties).toHaveLength(3);
+    expect(state.match.activePlayerId).toBe(hostPlayerId);
 
     const log = await handle.db
       .select()

@@ -63,7 +63,17 @@ describe("cancel match endpoint", () => {
     return { db: handle.db, resolveSession: sessionFor(userId) };
   }
 
-  it("cancels a pre-active match", async () => {
+  it.each([
+    "draft",
+    "waiting_for_opponent",
+    "commander_selection",
+    "ready_check",
+  ] as const)("cancels a match in %s", async (status) => {
+    await handle.db
+      .update(matches)
+      .set({ status })
+      .where(eq(matches.id, matchId));
+
     const response = await handleCancelMatch(matchId, deps(hostId));
     expect(response.status).toBe(200);
     expect((await response.json()).status).toBe("cancelled");
@@ -75,13 +85,19 @@ describe("cancel match endpoint", () => {
     expect(match.status).toBe("cancelled");
   });
 
-  it("rejects cancelling an active match with 409", async () => {
+  it("rejects cancelling an active match with 409 and leaves it active", async () => {
     await handle.db
       .update(matches)
       .set({ status: "active" })
       .where(eq(matches.id, matchId));
     const response = await handleCancelMatch(matchId, deps(hostId));
     expect(response.status).toBe(409);
+
+    const [match] = await handle.db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, matchId));
+    expect(match.status).toBe("active");
   });
 
   it("rejects cancelling a completed match with 409", async () => {

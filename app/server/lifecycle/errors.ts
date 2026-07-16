@@ -67,17 +67,6 @@ export class InvalidLifecycleTransitionError extends Error {
   }
 }
 
-/** Activation requested before both players are ready — a typed 409. */
-export class PlayersNotReadyError extends Error {
-  readonly status = 409 as const;
-  readonly code = "players_not_ready" as const;
-
-  constructor(message = "Both players must be ready.") {
-    super(message);
-    this.name = "PlayersNotReadyError";
-  }
-}
-
 /** The caller exceeded the invitation rate limit — a typed 429. */
 export class RateLimitedError extends Error {
   readonly status = 429 as const;

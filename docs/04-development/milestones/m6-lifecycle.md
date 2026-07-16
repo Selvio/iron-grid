@@ -357,6 +357,13 @@ mechanism around them and they are resolved separately before real play:
   activation (T5) runs on the T1 test map fixture.
 - **`day_limit` scoring** (§33.2), **special-terrain / property art** (§33.3–§33.4):
   stored and rendered later; not a lifecycle-mechanism gate.
+- **Server-random commander pick ordering** (`commander_selection.first_picker_selection`,
+  `second_picker_sees_first_choice`): T4 ships the selection mechanism (validation,
+  uniqueness, the ready gate) but **not** the enforced pick order — designating a
+  random first picker and blocking the second until the first has chosen needs a
+  pick-order column the M4 schema does not carry, and the choice is only
+  observable through the M9 selection UX. Deferred with real commander data; any
+  member may select in any order until then. (Known unmet part of §5 item 4.)
 
 ---
 

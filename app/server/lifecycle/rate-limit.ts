@@ -27,16 +27,18 @@ const DEFAULT_WINDOW_MS = 60 * 60 * 1000;
 
 /**
  * Builds an in-memory sliding-window limiter allowing `limit` hits per
- * `windowMs` per key.
+ * `windowMs` per key. `clock` is injectable so tests can advance time and
+ * exercise the window reset without waiting.
  */
 export function createInvitationRateLimiter(
   limit: number = DEFAULT_LIMIT,
   windowMs: number = DEFAULT_WINDOW_MS,
+  clock: () => number = Date.now,
 ): InvitationRateLimiter {
   const hits = new Map<string, number[]>();
   return {
     check(key: string): void {
-      const now = Date.now();
+      const now = clock();
       const cutoff = now - windowMs;
       const recent = (hits.get(key) ?? []).filter((t) => t > cutoff);
       if (recent.length >= limit) {

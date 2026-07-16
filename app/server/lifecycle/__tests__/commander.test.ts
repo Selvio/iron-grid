@@ -124,6 +124,18 @@ describe("commander selection endpoint", () => {
       deps(guestId),
     );
     expect(response.status).toBe(409);
+
+    // The rejected guest kept no commander.
+    const [guest] = await handle.db
+      .select()
+      .from(matchPlayers)
+      .where(
+        and(
+          eq(matchPlayers.matchId, matchId),
+          eq(matchPlayers.userId, guestId),
+        ),
+      );
+    expect(guest.commanderId).toBeNull();
   });
 
   it("rejects an unknown commander id with 409", async () => {
