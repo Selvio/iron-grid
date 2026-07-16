@@ -48,6 +48,12 @@ export function buildAuthConfig(): NextAuthConfig {
     }),
     session: { strategy: "database" },
     secret: requireAuthSecret(),
+    // Self-hosted (non-Vercel) Next: trust the deployment's own host so the
+    // magic-link sign-in/callback works in production. Without this, Auth.js only
+    // trusts the host when `AUTH_URL`/`AUTH_TRUST_HOST` is set and would reject
+    // the callback with `UntrustedHost` under a bare `NODE_ENV=production`. The
+    // canonical origin is still pinned by `AUTH_URL` when present (`backend.md` §2).
+    trustHost: true,
     providers: [magicLinkProvider()],
     callbacks: {
       // Database sessions carry the adapter user, but the default `Session.user`
