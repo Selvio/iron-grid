@@ -52,17 +52,31 @@ export function fixtureGameData(): GameData {
         yellow: { id: "yellow", commander_id: "cmdr-yellow" },
       },
       commanders: {
-        "cmdr-blue": { id: "cmdr-blue", faction_id: "blue", status: "blocked" },
+        // Inert placeholders: empty modifier lists, matching the design-blocked
+        // commanders.yaml shape the engine's ownerModifier reads.
+        "cmdr-blue": {
+          id: "cmdr-blue",
+          faction_id: "blue",
+          status: "blocked",
+          passive: { modifiers: [] },
+        },
         "cmdr-green": {
           id: "cmdr-green",
           faction_id: "green",
           status: "blocked",
+          passive: { modifiers: [] },
         },
-        "cmdr-red": { id: "cmdr-red", faction_id: "red", status: "blocked" },
+        "cmdr-red": {
+          id: "cmdr-red",
+          faction_id: "red",
+          status: "blocked",
+          passive: { modifiers: [] },
+        },
         "cmdr-yellow": {
           id: "cmdr-yellow",
           faction_id: "yellow",
           status: "blocked",
+          passive: { modifiers: [] },
         },
       },
     },
