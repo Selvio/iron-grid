@@ -39,4 +39,5 @@ export {
   type AuthenticatedUser,
   type SessionResolver,
 } from "./session";
-export { UnauthenticatedError } from "./errors";
+export { requireMatchMembership, type MatchMembership } from "./membership";
+export { UnauthenticatedError, MembershipForbiddenError } from "./errors";
