@@ -8,17 +8,18 @@ import { describe, expect, it } from "vitest";
  * the dependency arrow points backend → engine/data, never the reverse
  * (`architecture.md` §4). Mirrors the engine's forbidden-dependency guard
  * (`packages/game-engine/src/forbidden-deps.test.ts`), enforcing the same
- * boundary from the server side. Covers both the database layer (`server/db`,
- * M4-T1) and the auth layer (`server/auth`, M5-T1).
+ * boundary from the server side. Covers the database layer (`server/db`, M4-T1),
+ * the auth layer (`server/auth`, M5-T1) and the account layer (`server/account`,
+ * M5-T5).
  *
  * @see docs/03-architecture/architecture.md §4
  * @see docs/04-development/milestones/m4-persistence.md (M4-T1)
- * @see docs/04-development/milestones/m5-auth.md (M5-T1)
+ * @see docs/04-development/milestones/m5-auth.md (M5-T1, T5)
  */
 const PURE_PACKAGES = ["game-engine", "game-data"] as const;
 
 /** Any import specifier reaching into a server-only module is forbidden. */
-const FORBIDDEN_SPECIFIER = /server\/(db|auth)/;
+const FORBIDDEN_SPECIFIER = /server\/(db|auth|account)/;
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 

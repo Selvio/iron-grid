@@ -44,6 +44,14 @@ export default defineConfig({
           environment: "node",
         },
       },
+      {
+        test: {
+          name: "backend-account",
+          root: "./app/server/account",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });
