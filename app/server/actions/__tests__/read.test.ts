@@ -1,6 +1,13 @@
+import { randomUUID } from "node:crypto";
+
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { fixtureGameData } from "../../lifecycle/__tests__/fixtures";
+import { matchPlayers } from "../../db/schema/match-players";
+import { matches } from "../../db/schema/matches";
+import {
+  fixtureGameData,
+  TEST_MAP_ID,
+} from "../../lifecycle/__tests__/fixtures";
 import { handleGetEvents, handleGetMatch } from "../read";
 import {
   activateFixtureMatch,
@@ -85,6 +92,30 @@ describe("read endpoints", () => {
       (await handleGetEvents(active.matchId, 0, deps(active.outsiderId)))
         .status,
     ).toBe(403);
+  });
+
+  it("returns a board-less view for a pre-active match", async () => {
+    // A commander_selection match has no engine state yet.
+    const pendingId = randomUUID();
+    await active.handle.db.insert(matches).values({
+      id: pendingId,
+      status: "commander_selection",
+      mapId: TEST_MAP_ID,
+      settings: { fogEnabled: false, turnDeadline: "24h", dayLimit: null },
+      invitationCode: "PEND22",
+    });
+    await active.handle.db.insert(matchPlayers).values({
+      id: randomUUID(),
+      matchId: pendingId,
+      userId: active.hostId,
+      role: "host",
+    });
+
+    const response = await handleGetMatch(pendingId, deps(active.hostId));
+    expect(response.status).toBe(200);
+    const body = (await response.json()) as { status: string; board: null };
+    expect(body.status).toBe("commander_selection");
+    expect(body.board).toBeNull();
   });
 
   it("returns 401 when unauthenticated", async () => {

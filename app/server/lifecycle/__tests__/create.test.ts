@@ -99,6 +99,17 @@ describe("create match endpoint", () => {
     expect(response.status).toBe(400);
   });
 
+  it("rejects a fog-on match with 400 (fog not yet available)", async () => {
+    const response = await handleCreateMatch(
+      createRequest({
+        mapId: TEST_MAP_ID,
+        settings: { fogEnabled: true, turnDeadline: "24h", dayLimit: null },
+      }),
+      deps(handle, hostId),
+    );
+    expect(response.status).toBe(400);
+  });
+
   it("rejects malformed settings with 400", async () => {
     const response = await handleCreateMatch(
       createRequest({

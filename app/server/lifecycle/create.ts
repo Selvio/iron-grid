@@ -91,6 +91,16 @@ export function parseCreateMatchBody(
       "settings.fogEnabled must be a boolean.",
     );
   }
+  // Fog-on matches are blocked until per-player fog projection of the event
+  // stream and capture progress lands — otherwise a fog match would leak the
+  // opponent's hidden state through the reads (`m7-actions.md` §6,
+  // `fog_of_war_rules.projection`). The engine's fog logic exists; the
+  // server-side projection boundary does not yet.
+  if (s.fogEnabled === true) {
+    throw new InvalidMatchSettingsError(
+      "Fog of war is not available yet — create the match with fogEnabled: false.",
+    );
+  }
   if (
     typeof s.turnDeadline !== "string" ||
     !TURN_DEADLINES.includes(s.turnDeadline as MatchSettings["turnDeadline"])

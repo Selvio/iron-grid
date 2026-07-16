@@ -395,13 +395,16 @@ M7 is complete when, from a clean checkout:
   `TEST_DATABASE_URL`) not present in the current dev environment; lands with the CI
   Postgres infra and is skipped otherwise. The version-conflict **guard** is proven by
   the always-run sequential PGlite test (outcome-equivalent under `FOR UPDATE`).
-- **Fog-on per-event redaction of the event stream** — the **state** read
-  (`GET /:id`) is fog-projected today (`projectStateForPlayer`), the real anti-cheat
-  surface. Redacting the per-event `player_events` **stream** for a fog-**on** match
-  needs a per-event visibility primitive the engine does not expose (no
-  `projectEventForViewer`) and per-event rules that are underspecified; with the
-  fog-off fixture the pipeline's per-player rows are already correct. Deferred until a
-  fog-on scenario/fixture exists.
+- **Fog of war is blocked at match creation** (`create.ts` rejects
+  `fogEnabled: true` with a typed 400). The engine's fog logic exists and the
+  **state** read (`GET /:id`) fog-filters units via `projectStateForPlayer`, but two
+  server-side projection gaps remain unimplemented: the per-event `player_events` **stream**
+  is written **unprojected** (no engine `projectEventForViewer`, rules
+  underspecified), and `projectStateForPlayer` returns `properties` unfiltered
+  (capture progress). Rather than ship a fog match that leaks the opponent's hidden
+  state through those reads, fog-on matches are refused until the projection boundary
+  lands. Until then every match is fog-off, where all state/events are public and the
+  per-player rows are already correct.
 
 ---
 

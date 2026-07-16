@@ -53,8 +53,10 @@ import { errorResponse } from "./http";
  * @see docs/04-development/milestones/m7-actions.md (M7-T3)
  */
 
-/** Process-wide action rate limiter (`security_rules.action_rate_limit_required`). */
-const defaultActionRateLimiter = createInvitationRateLimiter();
+// Process-wide action rate limiter (`security_rules.action_rate_limit_required`).
+// A gameplay-throughput budget (a late-game turn is many action envelopes), not
+// the invitation budget — 240 actions per user per minute.
+const defaultActionRateLimiter = createInvitationRateLimiter(240, 60 * 1000);
 
 /** The committed-result envelope returned (and stored for idempotent replays). */
 export interface ActionResult {
@@ -97,14 +99,6 @@ export async function handleSubmitAction<
     const now = deps.now ?? (() => new Date());
 
     const result = await deps.db.transaction(async (tx) => {
-      // Idempotency short-circuit: a retried key returns its original result.
-      const prior = await getIdempotentResult(
-        tx,
-        matchId,
-        envelope.idempotencyKey,
-      );
-      if (prior !== null) return prior.result;
-
       // Lock the match row, then authorize membership within the lock.
       const [row] = await tx
         .select({
@@ -117,6 +111,16 @@ export async function handleSubmitAction<
         .for("update");
       const membership = await requireMatchMembership(tx, user.id, matchId);
 
+      // Idempotency short-circuit — AFTER membership (a non-member never learns a
+      // stored result) and under the lock (a concurrent retry re-reads the now-
+      // committed key and replays instead of racing to a stale-version 409).
+      const prior = await getIdempotentResult(
+        tx,
+        matchId,
+        envelope.idempotencyKey,
+      );
+      if (prior !== null) return prior.result;
+
       if (row === undefined || row.state === null) {
         throw new MatchNotActiveError();
       }
@@ -127,6 +131,13 @@ export async function handleSubmitAction<
       }
       const state = row.state;
 
+      // Optimistic concurrency check before the payload parse (ordered_steps:
+      // verify_expected_state_version precedes validate_action_payload_schema).
+      assertStateVersion(
+        state.match.stateVersion,
+        envelope.expectedStateVersion,
+      );
+
       // Parse the payload now that the server-owned playerId is known.
       const action = parseAction(rawBody, {
         matchId,
@@ -134,8 +145,7 @@ export async function handleSubmitAction<
         generateUnitId: deps.generateUnitId,
       });
 
-      // Optimistic concurrency, then active-player, then legality.
-      assertStateVersion(state.match.stateVersion, action.expectedStateVersion);
+      // Active player, then legality.
       if (state.match.activePlayerId !== membership.playerId) {
         throw new NotActivePlayerError();
       }

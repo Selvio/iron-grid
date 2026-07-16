@@ -53,6 +53,8 @@
     "docstrings",
     "unprojected",
     "underspecified",
+    "decorrelated",
+    "cyrb",
     "hermeticity",
     "PGlite",
     "pathfinding",

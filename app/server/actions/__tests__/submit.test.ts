@@ -156,6 +156,108 @@ describe("action pipeline (submit)", () => {
     expect(match.stateVersion).toBe(0);
   });
 
+  it("commits a legal move and persists the mutated board", async () => {
+    const response = await handleSubmitAction(
+      actionRequest({
+        type: "move_and_wait",
+        expectedStateVersion: 0,
+        idempotencyKey: "mv",
+        unitId: "u1",
+        path: [
+          { x: 0, y: 1 },
+          { x: 1, y: 1 },
+        ],
+      }),
+      active.matchId,
+      deps(active.hostId),
+    );
+    expect(response.status).toBe(200);
+
+    const [match] = await active.handle.db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, active.matchId));
+    expect(match.stateVersion).toBe(1);
+    const unit = match.state!.units.find((u) => u.id === "u1");
+    expect(unit?.position).toEqual({ x: 1, y: 1 });
+    expect(unit?.hasActed).toBe(true);
+  });
+
+  it("advances randomSequenceIndex by the committed draw count", async () => {
+    const response = await handleSubmitAction(
+      actionRequest(endTurn(0, "rng")),
+      active.matchId,
+      {
+        ...deps(active.hostId),
+        // A source that reports 3 draws proves the pipeline persists the advance.
+        randomSourceFactory: () => ({ nextInt: () => 0, drawCount: 3 }),
+      },
+    );
+    expect(response.status).toBe(200);
+
+    const [match] = await active.handle.db
+      .select()
+      .from(matches)
+      .where(eq(matches.id, active.matchId));
+    expect(match.state!.match.randomSequenceIndex).toBe(3);
+  });
+
+  it("emits turn_ended and turn_started on end_turn", async () => {
+    await handleSubmitAction(
+      actionRequest(endTurn()),
+      active.matchId,
+      deps(active.hostId),
+    );
+    const log = await active.handle.db
+      .select()
+      .from(events)
+      .where(eq(events.matchId, active.matchId));
+    const types = log.map((e) => e.type);
+    expect(types).toContain("turn_ended");
+    expect(types).toContain("turn_started");
+  });
+
+  it("enforces the action rate limit with 429", async () => {
+    const limited = {
+      ...deps(active.hostId),
+      rateLimiter: createInvitationRateLimiter(1),
+    };
+    expect(
+      (
+        await handleSubmitAction(
+          actionRequest(endTurn(0, "a")),
+          active.matchId,
+          limited,
+        )
+      ).status,
+    ).toBe(200);
+    expect(
+      (
+        await handleSubmitAction(
+          actionRequest(endTurn(1, "b")),
+          active.matchId,
+          limited,
+        )
+      ).status,
+    ).toBe(429);
+  });
+
+  it("does not disclose a stored result to a non-member replaying the key", async () => {
+    // Host commits under key K.
+    await handleSubmitAction(
+      actionRequest(endTurn(0, "shared")),
+      active.matchId,
+      deps(active.hostId),
+    );
+    // An outsider replaying K is rejected by membership before any replay.
+    const response = await handleSubmitAction(
+      actionRequest(endTurn(0, "shared")),
+      active.matchId,
+      deps(active.outsiderId),
+    );
+    expect(response.status).toBe(403);
+  });
+
   it("returns 400 on a malformed body and 401 when unauthenticated", async () => {
     const malformed = await handleSubmitAction(
       actionRequest("not json"),
