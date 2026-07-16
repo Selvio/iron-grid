@@ -19,6 +19,8 @@
 export class UnauthenticatedError extends Error {
   /** HTTP status the endpoint layer maps this to. */
   readonly status = 401 as const;
+  /** Stable machine code for the response body. */
+  readonly code = "unauthenticated" as const;
 
   constructor(message = "Authentication required.") {
     super(message);

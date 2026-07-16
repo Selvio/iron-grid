@@ -52,6 +52,14 @@ export default defineConfig({
           environment: "node",
         },
       },
+      {
+        test: {
+          name: "backend-lifecycle",
+          root: "./app/server/lifecycle",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });
