@@ -1,0 +1,117 @@
+import { randomUUID } from "node:crypto";
+
+import { eq } from "drizzle-orm";
+import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
+
+import { requireUser } from "../auth/session";
+import { matchPlayers } from "../db/schema/match-players";
+import { matches } from "../db/schema/matches";
+
+import type { LifecycleDeps } from "./deps";
+import { InvalidInvitationCodeError, MatchNotJoinableError } from "./errors";
+import { errorResponse } from "./http";
+import {
+  defaultInvitationRateLimiter,
+  type InvitationRateLimiter,
+} from "./rate-limit";
+
+/**
+ * `POST /api/matches/:id/join` — a guest accepts an invitation (M6-T3).
+ *
+ * Authorized by **invitation code, not membership**: the guest is not yet a
+ * member (`requireMatchMembership` would reject a null-`user_id` slot, §3). The
+ * code in the body must match the match's stored code, the match must still be
+ * `waiting_for_opponent` with its guest slot open, and the caller must not
+ * already be in it. On success the guest `match_players` row is inserted and the
+ * match moves to `commander_selection` — all under the match row lock so two
+ * guests cannot both accept. A missing match and a wrong code are the same typed
+ * 404, so match existence never leaks.
+ *
+ * @see docs/03-architecture/backend.md §3
+ * @see docs/02-data/rules.yaml → match_lifecycle.invitation
+ * @see docs/04-development/milestones/m6-lifecycle.md (M6-T3)
+ */
+
+export interface JoinMatchDeps<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+> extends LifecycleDeps<TQuery, TSchema> {
+  readonly rateLimiter?: InvitationRateLimiter;
+}
+
+/** Extracts the invitation code from a join body, or rejects it. */
+function parseJoinCode(input: unknown): string {
+  if (
+    typeof input !== "object" ||
+    input === null ||
+    typeof (input as Record<string, unknown>).code !== "string"
+  ) {
+    throw new InvalidInvitationCodeError();
+  }
+  return (input as { code: string }).code;
+}
+
+/** Handles a join request end-to-end, returning the typed response. */
+export async function handleJoinMatch<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+>(
+  request: Request,
+  matchId: string,
+  deps: JoinMatchDeps<TQuery, TSchema>,
+): Promise<Response> {
+  try {
+    const user = await requireUser(deps.resolveSession);
+    (deps.rateLimiter ?? defaultInvitationRateLimiter).check(user.id);
+
+    const body = await request.json().catch(() => {
+      throw new InvalidInvitationCodeError();
+    });
+    const code = parseJoinCode(body);
+
+    await deps.db.transaction(async (tx) => {
+      const [match] = await tx
+        .select({
+          status: matches.status,
+          invitationCode: matches.invitationCode,
+        })
+        .from(matches)
+        .where(eq(matches.id, matchId))
+        .for("update");
+
+      // A missing match and a wrong code are indistinguishable (no leak).
+      if (match === undefined || match.invitationCode !== code) {
+        throw new InvalidInvitationCodeError();
+      }
+      if (match.status !== "waiting_for_opponent") {
+        throw new MatchNotJoinableError();
+      }
+
+      const players = await tx
+        .select({ userId: matchPlayers.userId, role: matchPlayers.role })
+        .from(matchPlayers)
+        .where(eq(matchPlayers.matchId, matchId));
+      if (players.some((p) => p.userId === user.id)) {
+        throw new MatchNotJoinableError("You are already in this match.");
+      }
+      if (players.some((p) => p.role === "guest")) {
+        throw new MatchNotJoinableError();
+      }
+
+      await tx.insert(matchPlayers).values({
+        id: randomUUID(),
+        matchId,
+        userId: user.id,
+        role: "guest",
+      });
+      await tx
+        .update(matches)
+        .set({ status: "commander_selection" })
+        .where(eq(matches.id, matchId));
+    });
+
+    return Response.json({ matchId, status: "commander_selection" });
+  } catch (error) {
+    return errorResponse(error);
+  }
+}
