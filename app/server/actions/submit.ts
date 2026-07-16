@@ -21,6 +21,7 @@ import { matchPlayers } from "../db/schema/match-players";
 import { matches } from "../db/schema/matches";
 import type { NewPlayerEventRow } from "../db/schema/player-events";
 import { createInvitationRateLimiter } from "../lifecycle/rate-limit";
+import { computeTurnDeadline } from "../lifecycle/turn-deadline";
 
 import type { ActionDeps } from "./deps";
 import { parseAction, parseActionEnvelope } from "./envelope";
@@ -93,6 +94,7 @@ export async function handleSubmitAction<
     });
     const envelope = parseActionEnvelope(rawBody);
     const makeRandom = deps.randomSourceFactory ?? createRandomSource;
+    const now = deps.now ?? (() => new Date());
 
     const result = await deps.db.transaction(async (tx) => {
       // Idempotency short-circuit: a retried key returns its original result.
@@ -105,7 +107,11 @@ export async function handleSubmitAction<
 
       // Lock the match row, then authorize membership within the lock.
       const [row] = await tx
-        .select({ status: matches.status, state: matches.state })
+        .select({
+          status: matches.status,
+          state: matches.state,
+          settings: matches.settings,
+        })
         .from(matches)
         .where(eq(matches.id, matchId))
         .for("update");
@@ -150,6 +156,13 @@ export async function handleSubmitAction<
         random,
       );
 
+      // A new turn began (end_turn hands off) — stamp its deadline off the host
+      // setting; the engine cleared it and the backend owns the clock (§time_model).
+      const turnStarted = events.some((e) => e.type === "turn_started");
+      const turnDeadlineAt = turnStarted
+        ? computeTurnDeadline(row.settings.turnDeadline, now())
+        : nextState.match.turnDeadlineAt;
+
       // Bump version and advance the random sequence in-state (committed only).
       const committedState: MatchState = {
         ...nextState,
@@ -158,6 +171,7 @@ export async function handleSubmitAction<
           stateVersion: state.match.stateVersion + 1,
           randomSequenceIndex:
             state.match.randomSequenceIndex + random.drawCount,
+          turnDeadlineAt,
         },
       };
 

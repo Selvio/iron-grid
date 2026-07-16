@@ -25,6 +25,7 @@ import type { NewPlayerEventRow } from "../db/schema/player-events";
 import type { LifecycleDeps } from "./deps";
 import { InvalidLifecycleTransitionError } from "./errors";
 import { errorResponse } from "./http";
+import { computeTurnDeadline } from "./turn-deadline";
 
 /**
  * `POST /api/matches/:id/ready` — confirm ready and activate (M6-T5).
@@ -45,14 +46,6 @@ import { errorResponse } from "./http";
  * @see docs/02-data/rules.yaml → match_lifecycle.ready_check, match_start
  * @see docs/04-development/milestones/m6-lifecycle.md (M6-T5)
  */
-
-/** Turn-deadline durations in ms, or null for an untimed match. */
-const TURN_DEADLINE_MS: Record<MatchSettings["turnDeadline"], number | null> = {
-  "24h": 24 * 60 * 60 * 1000,
-  "3d": 3 * 24 * 60 * 60 * 1000,
-  "7d": 7 * 24 * 60 * 60 * 1000,
-  none: null,
-};
 
 export interface ReadyDeps<
   TQuery extends PgQueryResultHKT,
@@ -102,10 +95,13 @@ function withTurnDeadline(
   deadline: MatchSettings["turnDeadline"],
   now: Date,
 ): MatchState {
-  const ms = TURN_DEADLINE_MS[deadline];
-  const turnDeadlineAt =
-    ms === null ? null : new Date(now.getTime() + ms).toISOString();
-  return { ...state, match: { ...state.match, turnDeadlineAt } };
+  return {
+    ...state,
+    match: {
+      ...state.match,
+      turnDeadlineAt: computeTurnDeadline(deadline, now),
+    },
+  };
 }
 
 /** Handles a ready request end-to-end, activating when both members are ready. */
