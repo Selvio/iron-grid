@@ -44,6 +44,28 @@ export function fixtureGameData(): GameData {
       headquarters: { economy: { income_per_turn: 1000 } },
       city: { economy: { income_per_turn: 1000 } },
     },
+    commanders: {
+      factions: {
+        blue: { id: "blue", commander_id: "cmdr-blue" },
+        green: { id: "green", commander_id: "cmdr-green" },
+        red: { id: "red", commander_id: "cmdr-red" },
+        yellow: { id: "yellow", commander_id: "cmdr-yellow" },
+      },
+      commanders: {
+        "cmdr-blue": { id: "cmdr-blue", faction_id: "blue", status: "blocked" },
+        "cmdr-green": {
+          id: "cmdr-green",
+          faction_id: "green",
+          status: "blocked",
+        },
+        "cmdr-red": { id: "cmdr-red", faction_id: "red", status: "blocked" },
+        "cmdr-yellow": {
+          id: "cmdr-yellow",
+          faction_id: "yellow",
+          status: "blocked",
+        },
+      },
+    },
     maps: {
       [TEST_MAP_ID]: {
         id: TEST_MAP_ID,
