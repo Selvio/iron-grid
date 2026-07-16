@@ -50,6 +50,8 @@
     "neondatabase",
     "nextauth",
     "passwordless",
+    "docstrings",
+    "unprojected",
     "hermeticity",
     "PGlite",
     "pathfinding",
