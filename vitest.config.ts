@@ -60,6 +60,14 @@ export default defineConfig({
           environment: "node",
         },
       },
+      {
+        test: {
+          name: "backend-actions",
+          root: "./app/server/actions",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
     ],
   },
 });

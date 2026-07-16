@@ -200,16 +200,21 @@ table exists (M4-T6) but has no enqueue helper — untouched here.
     an actions `errorResponse` mapping the typed errors — including
     `StateVersionConflictError` → **409** (with `currentStateVersion`),
     `match_not_active`, `not_active_player`, and the engine `ValidationError` codes.
-  - **Multi-connection harness**: a Postgres (PGlite or a real pool) test harness that
-    opens **two concurrent connections/transactions** so row-lock contention can be
-    genuinely exercised (PGlite single-connection cannot — `harness.ts`).
+  - **Multi-connection harness** *(CI-infra-gated)*: a real-Postgres harness that opens
+    **two concurrent connections** so row-lock contention can be genuinely exercised —
+    PGlite is single-connection and cannot (`harness.ts`). **This environment has no
+    local Postgres / `pg` driver**, so the contention test is gated on a
+    `TEST_DATABASE_URL` (runs in CI, skipped otherwise). Because the `FOR UPDATE` lock
+    serializes contenders, the **sequential** PGlite version-conflict test (T3/T7) is
+    outcome-equivalent and is the always-run proof of the guard; the two-connection
+    test adds CI-only defense-in-depth. See §6.
 - **Files:** `app/server/actions/envelope.ts`, `app/server/actions/deps.ts`,
-  `app/server/actions/http.ts`, `app/server/actions/errors.ts` (or reuse lifecycle
-  errors), the multi-connection test harness under `__tests__/`, tests.
+  `app/server/actions/http.ts`, `app/server/actions/errors.ts`, tests; the
+  CI-gated multi-connection harness lands with the CI Postgres infra.
 - **Acceptance:** a well-formed envelope parses to the typed action; a missing/invalid
   `expectedStateVersion`/`idempotencyKey`/`type` is rejected 400; a gated action type
-  is rejected with its typed error; `StateVersionConflictError` maps to 409 carrying
-  the safe version; the harness runs two real concurrent transactions in a test.
+  is rejected with its typed 422; `StateVersionConflictError` maps to 409 carrying the
+  safe version; `tsc`/`lint`/tests green.
 - **Dependencies:** M4-T7 (concurrency primitives), M6 (lifecycle patterns).
 
 ## M7-T3 · The transactional action pipeline & `POST /api/matches/:id/actions`
@@ -383,6 +388,10 @@ M7 is complete when, from a clean checkout:
   on the placeholder commander + test-map fixtures.
 - **Client-side previews** (`calculateLegalActions` / `calculateCombatPreview`) — pure
   in-browser engine calls, **M10** (`frontend.md` §6), not server endpoints.
+- **True two-connection row-lock contention test** — requires a real Postgres (`pg` +
+  `TEST_DATABASE_URL`) not present in the current dev environment; lands with the CI
+  Postgres infra and is skipped otherwise. The version-conflict **guard** is proven by
+  the always-run sequential PGlite test (outcome-equivalent under `FOR UPDATE`).
 
 ---
 
