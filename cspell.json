@@ -48,6 +48,7 @@
     "lifecycles",
     "matchups",
     "neondatabase",
+    "nextauth",
     "hermeticity",
     "PGlite",
     "pathfinding",
