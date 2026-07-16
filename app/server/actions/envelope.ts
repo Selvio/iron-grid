@@ -190,16 +190,16 @@ export function parseAction(input: unknown, context: ActionContext): Action {
         unitId: requireString(body.unitId, "unitId"),
       };
     case "end_turn":
+    case "resign":
       return { ...envelope, type };
     case "activate_power":
       // §33.1: commander effects/power are design-blocked until commanders.yaml.
       throw new UnsupportedActionError(
         "Commander powers are not available yet.",
       );
-    case "resign":
     case "claim_victory":
     case "launch_missile":
-      // resign lands in M7-T5; claim_victory + deadlines in M8; launch_missile §33.3.
+      // claim_victory + deadlines are M8; launch_missile is §33.3-gated.
       throw new UnsupportedActionError();
     default:
       throw new InvalidActionError(`Unknown action type: ${String(type)}.`);

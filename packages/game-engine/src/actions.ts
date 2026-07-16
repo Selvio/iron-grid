@@ -139,10 +139,15 @@ export interface EndTurnAction extends ActionEnvelope {
   readonly type: "end_turn";
 }
 
+/** The active player resigns, immediately awarding the match to the opponent (§4.5). */
+export interface ResignAction extends ActionEnvelope {
+  readonly type: "resign";
+}
+
 /**
  * Placeholder for the action types not yet resolved (launch_missile,
- * activate_power, resign, claim_victory). Refined into precise variants as each
- * system lands; kept in the union now so exhaustive handling is enforced.
+ * activate_power, claim_victory). Refined into precise variants as each system
+ * lands; kept in the union now so exhaustive handling is enforced.
  */
 export interface FutureAction extends ActionEnvelope {
   readonly type: Exclude<
@@ -159,6 +164,7 @@ export interface FutureAction extends ActionEnvelope {
     | "dive"
     | "surface"
     | "activate_power"
+    | "resign"
   >;
   readonly payload?: unknown;
 }
@@ -177,4 +183,5 @@ export type Action =
   | SurfaceAction
   | ActivatePowerAction
   | EndTurnAction
+  | ResignAction
   | FutureAction;

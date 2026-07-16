@@ -156,14 +156,19 @@ export async function handleSubmitAction<
         random,
       );
 
+      const completed = nextState.match.status === "completed";
       // A new turn began (end_turn hands off) — stamp its deadline off the host
-      // setting; the engine cleared it and the backend owns the clock (§time_model).
+      // setting; the engine cleared it and the backend owns the clock
+      // (§time_model). A completed match carries no deadline.
       const turnStarted = events.some((e) => e.type === "turn_started");
-      const turnDeadlineAt = turnStarted
-        ? computeTurnDeadline(row.settings.turnDeadline, now())
-        : nextState.match.turnDeadlineAt;
+      const turnDeadlineAt = completed
+        ? null
+        : turnStarted
+          ? computeTurnDeadline(row.settings.turnDeadline, now())
+          : nextState.match.turnDeadlineAt;
 
-      // Bump version and advance the random sequence in-state (committed only).
+      // Bump version and advance the random sequence in-state (committed only);
+      // stamp the backend-owned completion time when the action ends the match.
       const committedState: MatchState = {
         ...nextState,
         match: {
@@ -172,6 +177,9 @@ export async function handleSubmitAction<
           randomSequenceIndex:
             state.match.randomSequenceIndex + random.drawCount,
           turnDeadlineAt,
+          completedAt: completed
+            ? (nextState.match.completedAt ?? now().toISOString())
+            : nextState.match.completedAt,
         },
       };
 

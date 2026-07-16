@@ -25,6 +25,7 @@ import { applyAttack } from "./combat";
 import { applyActivatePower } from "./commanders";
 import { applyJoin } from "./join";
 import { applyProduce } from "./production";
+import { applyResign } from "./resign";
 import { applyDive, applySurface } from "./submarine";
 import { applySupply } from "./supply";
 import { applyLoad, applyUnload } from "./transport";
@@ -221,6 +222,8 @@ function dispatch(
       return applyActivatePower(state, action, gameData);
     case "end_turn":
       return applyEndTurn(state, action, gameData);
+    case "resign":
+      return applyResign(state, action);
     default:
       // Unreachable: validateAction rejects every other type not yet supported.
       throw new Error(`applyAction: "${action.type}" is not resolvable in M2`);

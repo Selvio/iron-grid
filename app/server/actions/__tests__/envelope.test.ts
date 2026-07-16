@@ -98,10 +98,11 @@ describe("parseAction", () => {
     });
   });
 
-  it("parses end_turn", () => {
+  it("parses envelope-only actions (end_turn, resign)", () => {
     expect(parseAction(base({ type: "end_turn" }), CONTEXT).type).toBe(
       "end_turn",
     );
+    expect(parseAction(base({ type: "resign" }), CONTEXT).type).toBe("resign");
   });
 
   it("rejects a malformed payload", () => {
@@ -128,8 +129,8 @@ describe("parseAction", () => {
     ).toThrow(UnsupportedActionError);
   });
 
-  it("rejects not-yet-supported types (resign / claim_victory / launch_missile)", () => {
-    for (const type of ["resign", "claim_victory", "launch_missile"]) {
+  it("rejects not-yet-supported types (claim_victory / launch_missile)", () => {
+    for (const type of ["claim_victory", "launch_missile"]) {
       expect(() => parseAction(base({ type }), CONTEXT)).toThrow(
         UnsupportedActionError,
       );

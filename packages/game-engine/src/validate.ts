@@ -132,6 +132,7 @@ export function validateAction(
     case "activate_power":
       return validateActivatePower(state, action, gameData);
     case "end_turn":
+    case "resign":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));
     default:

@@ -227,6 +227,12 @@ export interface TurnEndedEvent {
   readonly playerId: Id;
 }
 
+/** A player resigned (`player_resigned`, §4.5). */
+export interface PlayerResignedEvent {
+  readonly type: "player_resigned";
+  readonly playerId: Id;
+}
+
 /**
  * Placeholder for the events emitted by M3 systems (combat, capture, …). Kept in
  * the union so exhaustive handling is enforced; refined as each system lands.
@@ -258,6 +264,7 @@ export interface FutureEvent {
     | "match_completed"
     | "unit_blocked_by_fog"
     | "power_activated"
+    | "player_resigned"
   >;
   readonly payload?: unknown;
 }
@@ -281,6 +288,7 @@ export type Event =
   | UnitsJoinedEvent
   | UnitLoadedEvent
   | UnitUnloadedEvent
+  | PlayerResignedEvent
   | SubmarineDivedEvent
   | SubmarineSurfacedEvent
   | MatchCompletedEvent
