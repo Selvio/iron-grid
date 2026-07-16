@@ -4,19 +4,21 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
 /**
- * Guard: the server-only database layer must never be imported by the pure
- * packages — the dependency arrow points backend → engine/data, never the
- * reverse (`architecture.md` §4). Mirrors the engine's forbidden-dependency
- * guard (`packages/game-engine/src/forbidden-deps.test.ts`), enforcing the same
- * boundary from the database side.
+ * Guard: the server-only layers must never be imported by the pure packages —
+ * the dependency arrow points backend → engine/data, never the reverse
+ * (`architecture.md` §4). Mirrors the engine's forbidden-dependency guard
+ * (`packages/game-engine/src/forbidden-deps.test.ts`), enforcing the same
+ * boundary from the server side. Covers both the database layer (`server/db`,
+ * M4-T1) and the auth layer (`server/auth`, M5-T1).
  *
  * @see docs/03-architecture/architecture.md §4
  * @see docs/04-development/milestones/m4-persistence.md (M4-T1)
+ * @see docs/04-development/milestones/m5-auth.md (M5-T1)
  */
 const PURE_PACKAGES = ["game-engine", "game-data"] as const;
 
-/** Any import specifier reaching into the server db module is forbidden. */
-const FORBIDDEN_SPECIFIER = /server\/db/;
+/** Any import specifier reaching into a server-only module is forbidden. */
+const FORBIDDEN_SPECIFIER = /server\/(db|auth)/;
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 
@@ -33,8 +35,8 @@ function typeScriptFiles(dir: string): string[] {
   return out;
 }
 
-describe("database layer boundary", () => {
-  it("is never imported by the pure packages", () => {
+describe("server layer boundary", () => {
+  it("db and auth layers are never imported by the pure packages", () => {
     const offenders: string[] = [];
 
     for (const pkg of PURE_PACKAGES) {
