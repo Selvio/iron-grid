@@ -1,11 +1,7 @@
-import { requireUser, UnauthenticatedError } from "@/app/server/auth";
-import { errorResponse } from "@/app/server/account/http";
 import {
-  getNotificationPreferences,
-  parseNotificationPreferencesPatch,
-  PreferencesValidationError,
-  updateNotificationPreferences,
-} from "@/app/server/account/notification-preferences";
+  handleGetNotifications,
+  handlePatchNotifications,
+} from "@/app/server/account/notifications-endpoint";
 import { createDatabase, type Database } from "@/app/server/db";
 
 /**
@@ -17,9 +13,12 @@ import { createDatabase, type Database } from "@/app/server/db";
  * match membership is involved. It stores intent only: **no** email is sent and
  * **no** `notification_jobs` row is written (that delivery is M8).
  *
+ * The behavior lives in `notifications-endpoint.ts` (integration-tested against
+ * PGlite); this file only injects the live database and mounts the handlers.
  * Pinned to the Node.js runtime: it reads the transactional database through the
  * Drizzle client, which the Edge runtime cannot serve (`backend.md` §2).
  *
+ * @see app/server/account/notifications-endpoint.ts
  * @see docs/03-architecture/backend.md §2, §3, §10
  * @see docs/04-development/milestones/m5-auth.md (M5-T5)
  */
@@ -34,36 +33,9 @@ function database(): Database {
 }
 
 export async function GET(): Promise<Response> {
-  try {
-    const user = await requireUser();
-    const preferences = await getNotificationPreferences(database(), user.id);
-    if (preferences === null) {
-      // A valid session whose user row no longer exists — treat as signed out.
-      throw new UnauthenticatedError();
-    }
-    return Response.json(preferences);
-  } catch (error) {
-    return errorResponse(error);
-  }
+  return handleGetNotifications({ db: database() });
 }
 
 export async function PATCH(request: Request): Promise<Response> {
-  try {
-    const user = await requireUser();
-    const body = await request.json().catch(() => {
-      throw new PreferencesValidationError("Request body must be valid JSON.");
-    });
-    const patch = parseNotificationPreferencesPatch(body);
-    const updated = await updateNotificationPreferences(
-      database(),
-      user.id,
-      patch,
-    );
-    if (updated === null) {
-      throw new UnauthenticatedError();
-    }
-    return Response.json(updated);
-  } catch (error) {
-    return errorResponse(error);
-  }
+  return handlePatchNotifications(request, { db: database() });
 }

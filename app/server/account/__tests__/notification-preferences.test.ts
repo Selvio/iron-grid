@@ -19,11 +19,16 @@ describe("parseNotificationPreferencesPatch", () => {
     expect(patch).toEqual({ turn_expired: true, match_completed: false });
   });
 
-  it("accepts exactly the rules.yaml default_preferences keys", () => {
-    // The accepted set is derived from the M4 defaults, which mirror rules.yaml.
-    expect([...NOTIFICATION_PREFERENCE_KEYS].sort()).toEqual(
-      Object.keys(DEFAULT_NOTIFICATION_PREFERENCES).sort(),
-    );
+  it("accepts exactly the five canonical notification keys", () => {
+    // Pinned to the literal rules.yaml → notifications.default_preferences keys,
+    // not to the implementation's own derivation, so a drift is actually caught.
+    expect([...NOTIFICATION_PREFERENCE_KEYS].sort()).toEqual([
+      "match_completed",
+      "match_invitation",
+      "turn_expired",
+      "turn_reminder",
+      "turn_started",
+    ]);
   });
 
   it("rejects an unknown key", () => {
