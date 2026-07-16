@@ -41,6 +41,7 @@ export type {
   ActivatePowerAction,
   AttackAction,
   CaptureAction,
+  ClaimVictoryAction,
   DiveAction,
   EndTurnAction,
   FutureAction,
@@ -83,6 +84,7 @@ export type {
   UnitsJoinedEvent,
   UnitSuppliedEvent,
   UnitUnloadedEvent,
+  VictoryClaimedEvent,
 } from "./events";
 export type { RandomSource, RandomStream } from "./random";
 export { createRandomSource } from "./random-source";

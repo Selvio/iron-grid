@@ -145,9 +145,17 @@ export interface ResignAction extends ActionEnvelope {
 }
 
 /**
+ * The inactive opponent claims victory after the turn deadline expired (§4.4,
+ * §9). The clock gate lives in the backend; the engine resolves the completion.
+ */
+export interface ClaimVictoryAction extends ActionEnvelope {
+  readonly type: "claim_victory";
+}
+
+/**
  * Placeholder for the action types not yet resolved (launch_missile,
- * activate_power, claim_victory). Refined into precise variants as each system
- * lands; kept in the union now so exhaustive handling is enforced.
+ * activate_power). Refined into precise variants as each system lands; kept in
+ * the union now so exhaustive handling is enforced.
  */
 export interface FutureAction extends ActionEnvelope {
   readonly type: Exclude<
@@ -165,6 +173,7 @@ export interface FutureAction extends ActionEnvelope {
     | "surface"
     | "activate_power"
     | "resign"
+    | "claim_victory"
   >;
   readonly payload?: unknown;
 }
@@ -184,4 +193,5 @@ export type Action =
   | ActivatePowerAction
   | EndTurnAction
   | ResignAction
+  | ClaimVictoryAction
   | FutureAction;

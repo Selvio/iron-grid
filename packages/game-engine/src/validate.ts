@@ -58,6 +58,26 @@ function turnPreconditions(
   return errors;
 }
 
+/**
+ * Clock-free preconditions for `claim_victory` (§4.4): the match must be active
+ * and the claimant must be a real player who is **not** the active one. The
+ * deadline-expired gate is enforced by the backend, not here.
+ */
+function claimPreconditions(
+  state: MatchState,
+  action: Action,
+): ValidationError[] {
+  const errors: ValidationError[] = [];
+  if (state.match.status !== "active") {
+    errors.push({ code: "match_not_active" });
+  }
+  const isMember = state.players.some((p) => p.playerId === action.playerId);
+  if (!isMember || action.playerId === state.match.activePlayerId) {
+    errors.push({ code: "victory_claim_unavailable" });
+  }
+  return errors;
+}
+
 /** Validate a `move_and_wait`: turn preconditions, unit ownership/state, path (§10). */
 function validateMoveAndWait(
   state: MatchState,
@@ -135,6 +155,10 @@ export function validateAction(
     case "resign":
       // Always legal for the active player of an active match.
       return result(turnPreconditions(state, action));
+    case "claim_victory":
+      // Inverted: the claimant is the INACTIVE opponent of an active match. The
+      // deadline-expired / no-late-action gates are the backend's (clock-owned).
+      return result(claimPreconditions(state, action));
     default:
       return {
         valid: false,

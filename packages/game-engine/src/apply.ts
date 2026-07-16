@@ -22,6 +22,7 @@ import type { EndTurnAction, MoveAndWaitAction, Action } from "./actions";
 import { replaceUnit, unitAt, unitById, updateMatch } from "./board";
 import { applyCapture, clearCaptureBy } from "./capture";
 import { applyAttack } from "./combat";
+import { applyClaimVictory } from "./claim-victory";
 import { applyActivatePower } from "./commanders";
 import { applyJoin } from "./join";
 import { applyProduce } from "./production";
@@ -224,6 +225,8 @@ function dispatch(
       return applyEndTurn(state, action, gameData);
     case "resign":
       return applyResign(state, action);
+    case "claim_victory":
+      return applyClaimVictory(state, action);
     default:
       // Unreachable: validateAction rejects every other type not yet supported.
       throw new Error(`applyAction: "${action.type}" is not resolvable in M2`);

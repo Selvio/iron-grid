@@ -233,6 +233,15 @@ export interface PlayerResignedEvent {
   readonly playerId: Id;
 }
 
+/** The inactive opponent claimed victory on an expired turn (`victory_claimed`, §4.4). */
+export interface VictoryClaimedEvent {
+  readonly type: "victory_claimed";
+  /** The claimant (winner). */
+  readonly playerId: Id;
+  /** The timed-out player whose turn expired. */
+  readonly timedOutPlayerId: Id;
+}
+
 /**
  * Placeholder for the events emitted by M3 systems (combat, capture, …). Kept in
  * the union so exhaustive handling is enforced; refined as each system lands.
@@ -265,6 +274,7 @@ export interface FutureEvent {
     | "unit_blocked_by_fog"
     | "power_activated"
     | "player_resigned"
+    | "victory_claimed"
   >;
   readonly payload?: unknown;
 }
@@ -289,6 +299,7 @@ export type Event =
   | UnitLoadedEvent
   | UnitUnloadedEvent
   | PlayerResignedEvent
+  | VictoryClaimedEvent
   | SubmarineDivedEvent
   | SubmarineSurfacedEvent
   | MatchCompletedEvent
