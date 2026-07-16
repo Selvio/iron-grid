@@ -42,7 +42,7 @@ function captureTile(unit: UnitState, path: CaptureAction["path"]): Coordinate {
 }
 
 /** A property's configured maximum capture points, defaulting to 20. */
-function maxPointsFor(gameData: GameData, typeId: string): number {
+export function maxPointsFor(gameData: GameData, typeId: string): number {
   return gameData.properties[typeId]?.max_capture_points ?? DEFAULT_MAX_POINTS;
 }
 

@@ -117,6 +117,9 @@ export {
   validateAction,
   validateMovementPath,
 } from "./engine";
+
+export { createInitialMatchState } from "./setup";
+export type { InitialMatchInput, RosterEntry } from "./setup";
 export type {
   CombatPreview,
   DamageForecast,
