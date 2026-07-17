@@ -83,7 +83,14 @@ export async function handleSubmitAction<
         .from(matches)
         .where(eq(matches.id, matchId))
         .for("update");
-      const membership = await requireMatchMembership(tx, user.id, matchId);
+      // Prefer the active player's row so a practice/hotseat match (same user on
+      // both sides) acts as whichever side is active; a normal match has one row.
+      const membership = await requireMatchMembership(
+        tx,
+        user.id,
+        matchId,
+        row?.state?.match.activePlayerId,
+      );
 
       // Idempotency short-circuit — AFTER membership (a non-member never learns a
       // stored result) and under the lock (a concurrent retry re-reads the now-

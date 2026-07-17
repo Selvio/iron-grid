@@ -41,14 +41,6 @@ export default async function PlayPage({
   const { id } = await params;
   const db = database();
 
-  let viewerPlayerId: string;
-  try {
-    const membership = await requireMatchMembership(db, user.id, id);
-    viewerPlayerId = membership.playerId;
-  } catch {
-    notFound();
-  }
-
   const [row] = await db
     .select({ state: matches.state })
     .from(matches)
@@ -56,6 +48,21 @@ export default async function PlayPage({
 
   if (row === undefined) notFound();
   if (row.state === null) redirect("/dashboard"); // not started yet
+
+  // Prefer the active player's row so a practice/hotseat match (same user on both
+  // sides) plays whichever army is active; a normal match resolves to your one row.
+  let viewerPlayerId: string;
+  try {
+    const membership = await requireMatchMembership(
+      db,
+      user.id,
+      id,
+      row.state.match.activePlayerId,
+    );
+    viewerPlayerId = membership.playerId;
+  } catch {
+    notFound();
+  }
 
   const data = gameData();
   const matchView = projectMatchView(row.state, viewerPlayerId, data);

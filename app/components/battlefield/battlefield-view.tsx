@@ -12,6 +12,8 @@ import { previewUnitActions } from "@/app/lib/preview/actions";
 import { previewMovementRange } from "@/app/lib/preview/movement";
 import { computePath } from "@/app/lib/preview/path";
 
+import { Button } from "@/app/components/ui/button";
+
 import { ActionPanel } from "./action-panel";
 import { Battlefield } from "./battlefield";
 import { Hud, type HudUnit } from "./hud/hud";
@@ -115,6 +117,23 @@ export function BattlefieldView({
     }
   }
 
+  async function endTurn(): Promise<void> {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await apiClient.submitAction(view.matchId, {
+        type: "end_turn",
+        expectedStateVersion: view.stateVersion,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      await refetch();
+    } catch (error) {
+      if (error instanceof ApiError) await refetch();
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const selectedUnit =
     state.kind !== "idle"
       ? (view.units.find((u) => u.id === state.unitId) ?? null)
@@ -157,6 +176,15 @@ export function BattlefieldView({
         onConfirm={() => void handleConfirm()}
         onCancel={() => dispatch({ type: "cancel" })}
       />
+      {isMyTurn && state.kind === "idle" && (
+        <Button
+          className="pointer-events-auto absolute bottom-4 left-4"
+          disabled={busy}
+          onClick={() => void endTurn()}
+        >
+          End turn
+        </Button>
+      )}
     </div>
   );
 }

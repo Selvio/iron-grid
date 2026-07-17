@@ -43,10 +43,17 @@ export interface MatchMembership {
 /**
  * Resolves the caller's accepted membership in the match, or raises the typed 403.
  *
- * A single lookup keyed on `(matchId, userId)`: an accepted host/guest row exists
- * only when its `user_id` equals the session user, so a pending guest slot
- * (`user_id` null) and a non-member both miss — and so does an unknown match,
- * deliberately indistinguishable so existence never leaks (`backend.md` §12).
+ * Keyed on `(matchId, userId)`: an accepted host/guest row exists only when its
+ * `user_id` equals the session user, so a pending guest slot (`user_id` null) and
+ * a non-member both miss — and so does an unknown match, deliberately
+ * indistinguishable so existence never leaks (`backend.md` §12).
+ *
+ * A normal match gives each user exactly one row. `preferPlayerId` supports the
+ * **practice / hotseat** match a dev seed creates, where the same user owns BOTH
+ * sides: when given (the active player id) and it matches one of the caller's
+ * rows, that row is returned, so the caller acts as whichever side is active. It
+ * has no effect on a normal match (one row), so it is safe — a real opponent can
+ * never resolve to your player.
  *
  * @throws {@link MembershipForbiddenError} when the session is not an accepted member.
  */
@@ -57,14 +64,19 @@ export async function requireMatchMembership<
   db: PgDatabase<TQuery, TSchema>,
   userId: string,
   matchId: string,
+  preferPlayerId?: string,
 ): Promise<MatchMembership> {
-  const [row] = await db
+  const rows = await db
     .select()
     .from(matchPlayers)
     .where(
       and(eq(matchPlayers.matchId, matchId), eq(matchPlayers.userId, userId)),
-    )
-    .limit(1);
+    );
+
+  const row =
+    (preferPlayerId !== undefined
+      ? rows.find((r) => r.id === preferPlayerId)
+      : undefined) ?? rows[0];
 
   if (row === undefined) {
     throw new MembershipForbiddenError();

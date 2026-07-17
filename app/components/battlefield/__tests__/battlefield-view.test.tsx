@@ -102,6 +102,36 @@ describe("BattlefieldView", () => {
     expect(screen.getByText("Tank")).toBeInTheDocument();
   });
 
+  it("ends the turn, submitting an end_turn action then refetching", async () => {
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >(
+      async (url) =>
+        ({
+          ok: true,
+          status: 200,
+          json: async () =>
+            url.includes("/actions")
+              ? { stateVersion: 5, status: "active" }
+              : view(),
+        }) as Response,
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByRole("button", { name: /end turn/i }));
+
+    await waitFor(() => {
+      const submit = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/actions"),
+      );
+      expect(submit).toBeDefined();
+      expect(
+        JSON.parse((submit![1] as RequestInit).body as string),
+      ).toMatchObject({ type: "end_turn", expectedStateVersion: 4 });
+    });
+  });
+
   it("submits the move on confirm, then refetches the authoritative view", async () => {
     const fetchMock = vi.fn<
       (url: string, init?: RequestInit) => Promise<Response>

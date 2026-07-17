@@ -175,12 +175,21 @@ export async function handleGetMatch<
 >(matchId: string, deps: ActionDeps<TQuery, TSchema>): Promise<Response> {
   try {
     const user = await requireUser(deps.resolveSession);
-    const membership = await requireMatchMembership(deps.db, user.id, matchId);
 
     const [row] = await deps.db
       .select({ status: matches.status, state: matches.state })
       .from(matches)
       .where(eq(matches.id, matchId));
+
+    // Prefer the active player's row so a practice/hotseat match (same user on
+    // both sides) is projected for whichever side is active; membership still
+    // gates before any state is returned.
+    const membership = await requireMatchMembership(
+      deps.db,
+      user.id,
+      matchId,
+      row?.state?.match.activePlayerId,
+    );
 
     // A pre-active match has no engine state yet — return status only.
     if (row === undefined || row.state === null) {
