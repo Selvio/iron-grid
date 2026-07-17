@@ -25,6 +25,7 @@ export {
   requireAuthSecret,
   requireResendApiKey,
   requireEmailFrom,
+  requireCronSecret,
 } from "./env";
 export {
   magicLinkProvider,

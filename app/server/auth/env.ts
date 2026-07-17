@@ -70,3 +70,21 @@ export function requireEmailFrom(): string {
   }
   return from;
 }
+
+/**
+ * Returns the shared secret guarding the notification cron drain, throwing if
+ * absent. The scheduled invoker (Vercel Cron) presents it as a bearer token; a
+ * missing value must fail loudly so the drain is never left unauthenticated.
+ *
+ * @throws if `CRON_SECRET` is unset or empty.
+ */
+export function requireCronSecret(): string {
+  const secret = process.env.CRON_SECRET;
+  if (secret === undefined || secret.length === 0) {
+    throw new Error(
+      "CRON_SECRET is not set. The notification drain endpoint needs it to " +
+        "authenticate the scheduler — see docs/03-architecture/backend.md §10.",
+    );
+  }
+  return secret;
+}
