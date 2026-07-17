@@ -71,6 +71,28 @@ export class MatchAlreadyCompletedError extends Error {
   }
 }
 
+/** A Claim Victory before the turn deadline has passed — a typed 409 (§4.4). */
+export class DeadlineNotExpiredError extends Error {
+  readonly status = 409 as const;
+  readonly code = "deadline_not_expired" as const;
+
+  constructor(message = "The turn deadline has not passed.") {
+    super(message);
+    this.name = "DeadlineNotExpiredError";
+  }
+}
+
+/** A Claim Victory that is not available to the caller — a typed 409 (§4.4). */
+export class VictoryClaimUnavailableError extends Error {
+  readonly status = 409 as const;
+  readonly code = "victory_claim_unavailable" as const;
+
+  constructor(message = "Victory cannot be claimed.") {
+    super(message);
+    this.name = "VictoryClaimUnavailableError";
+  }
+}
+
 /**
  * An action the engine rejected as illegal — a typed 422 carrying the engine's
  * `validation_error_codes`. Raised when `validateAction` returns `{valid:false}`;
