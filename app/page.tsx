@@ -33,6 +33,12 @@ export default async function Home() {
           <Link href="/sign-in">Sign in to play</Link>
         </Button>
       </div>
+      <Link
+        href="/credits"
+        className="mt-12 text-sm text-muted-foreground underline-offset-4 hover:underline"
+      >
+        Credits
+      </Link>
     </main>
   );
 }
