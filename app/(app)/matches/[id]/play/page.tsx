@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 
 import { Battlefield } from "@/app/components/battlefield/battlefield";
+import { Hud } from "@/app/components/battlefield/hud/hud";
 import { requireSessionUser } from "@/app/lib/session";
 import { requireMatchMembership } from "@/app/server/auth/membership";
 import { projectMatchView } from "@/app/server/actions/read";
@@ -61,7 +62,10 @@ export default async function PlayPage({
 
   return (
     <div className="fixed inset-0 top-14 bg-background">
-      <Battlefield matchView={matchView} />
+      <div className="relative h-full w-full">
+        <Battlefield matchView={matchView} />
+        <Hud matchView={matchView} />
+      </div>
     </div>
   );
 }
