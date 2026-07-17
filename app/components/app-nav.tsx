@@ -1,6 +1,6 @@
 "use client";
 
-import { Grid3x3, LogOut } from "lucide-react";
+import { Grid3x3, LogOut, Settings } from "lucide-react";
 import Link from "next/link";
 
 import { Button } from "@/app/components/ui/button";
@@ -33,6 +33,14 @@ export function AppNav({
         </Link>
         <div className="flex items-center gap-3">
           <span className="text-sm text-muted-foreground">{userLabel}</span>
+          <Button asChild variant="ghost" size="sm">
+            <Link
+              href="/account/notifications"
+              aria-label="Notification settings"
+            >
+              <Settings className="size-4" aria-hidden="true" />
+            </Link>
+          </Button>
           <form action={signOutAction}>
             <Button type="submit" variant="ghost" size="sm">
               <LogOut className="size-4" aria-hidden="true" />

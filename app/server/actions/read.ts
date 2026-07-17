@@ -1,5 +1,9 @@
 import { and, asc, eq, gt } from "drizzle-orm";
-import { projectStateForPlayer, type MatchState } from "game-engine";
+import {
+  projectStateForPlayer,
+  type CompletionReason,
+  type MatchState,
+} from "game-engine";
 import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { requireMatchMembership } from "../auth/membership";
@@ -60,6 +64,9 @@ export interface MatchView {
   readonly properties: ReturnType<typeof projectStateForPlayer>["properties"];
   readonly you: OwnPlayerView | null;
   readonly opponent: OpponentView | null;
+  /** Set once the match completes — public, so the completed screen can read it. */
+  readonly winnerPlayerId: string | null;
+  readonly completionReason: CompletionReason | null;
 }
 
 /** Projects a match state into the viewer's fog-filtered, privacy-safe view. */
@@ -100,6 +107,8 @@ export function projectMatchView(
           resigned: opponent.resigned,
         }
       : null,
+    winnerPlayerId: state.match.winnerPlayerId,
+    completionReason: state.match.completionReason,
   };
 }
 
