@@ -83,7 +83,7 @@ describe("valid data loads (positive)", () => {
     expect(Object.keys(data.terrain)).toHaveLength(19);
     expect(Object.keys(data.properties)).toHaveLength(5);
     expect(Object.keys(data.commanders.commanders)).toHaveLength(4);
-    expect(Object.keys(data.maps)).toHaveLength(0);
+    expect(Object.keys(data.maps)).toHaveLength(1); // the first official map (M10)
   });
 });
 

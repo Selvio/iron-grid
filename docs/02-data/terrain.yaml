@@ -585,13 +585,13 @@ terrains:
       destructible: false
       special_behavior: null
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
         - "row 13 small urban building candidates"
       preferred_base_tile: null
       requires_overlay: true
       ownership_overlay_required: true
-    official_map_allowed: false
+    official_map_allowed: true
     unlock_condition: "Approve City sprite and neutral/faction ownership treatment."
 
   base:
@@ -619,13 +619,13 @@ terrains:
       destructible: false
       special_behavior: null
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
         - "row 14 hangar/industrial building candidates"
       preferred_base_tile: null
       requires_overlay: true
       ownership_overlay_required: true
-    official_map_allowed: false
+    official_map_allowed: true
     unlock_condition: "Approve Base sprite and ownership treatment."
 
   airport:
@@ -653,13 +653,13 @@ terrains:
       destructible: false
       special_behavior: null
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
         - "radar/airfield or industrial structure candidate"
       preferred_base_tile: null
       requires_overlay: true
       ownership_overlay_required: true
-    official_map_allowed: false
+    official_map_allowed: true
     unlock_condition: "Approve Airport sprite and ownership treatment."
 
   port:
@@ -687,13 +687,13 @@ terrains:
       destructible: false
       special_behavior: "Allows naval units and ground units to occupy the same logical terrain type at different times, subject to single-tile occupancy."
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
         - "row 15 harbor/dock candidate"
       preferred_base_tile: null
       requires_overlay: true
       ownership_overlay_required: true
-    official_map_allowed: false
+    official_map_allowed: true
     unlock_condition: "Approve Port sprite and ownership treatment."
 
   headquarters:
@@ -721,14 +721,14 @@ terrains:
       destructible: false
       special_behavior: "Capturing an enemy Headquarters immediately defeats that player."
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
         - "large elevated command/civic structure candidate"
       preferred_base_tile: null
       requires_overlay: true
       ownership_overlay_required: true
       neutral_variant_allowed: false
-    official_map_allowed: false
+    official_map_allowed: true
     unlock_condition: "Approve Headquarters sprite and four-faction ownership treatment."
 
   missile_silo:

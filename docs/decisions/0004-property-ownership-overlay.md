@@ -38,9 +38,13 @@ capture overlay**, and approve that treatment for the five property types.
   confirmed visually in M12 (the canvas is manual).
 - **Data:** flip `properties.yaml` `rendering.asset_status` for city / base /
   airport / port / headquarters from `mapping_required` to `confirmed`, recording
-  that the ownership/capture visuals are approved. This unblocks placing
-  properties on the first official map (M10-T10). Special terrain (§33.3) is
-  untouched and stays blocked.
+  that the ownership/capture visuals are approved. Because each property must sit
+  on its own `terrain_id` (`validateIntegrity`), also flip the matching
+  **terrain** entries (`terrain.yaml` city / base / airport / port / headquarters)
+  to `asset_status: confirmed` + `official_map_allowed: true`, keeping the
+  `official_map_allowed === (asset_status === "confirmed")` invariant intact. This
+  unblocks placing properties on the first official map (M10-T10). Special terrain
+  (§33.3 — bridge, reef, pipe, missile silo) is untouched and stays blocked.
 
 ## Consequences
 

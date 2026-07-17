@@ -523,11 +523,67 @@ map_template:
       - balance_not_reviewed
     acceptance_tests: []
 
-official_maps: {}
+official_maps:
+  crossfire-basin:
+    id: "crossfire-basin"
+    version: "1.0.0"
+    status: "review"
+    dimensions:
+      width: 20
+      height: 16
+    player_slots:
+      player_1:
+        id: "player_1"
+        headquarters_property_id: "hq_p1"
+      player_2:
+        id: "player_2"
+        headquarters_property_id: "hq_p2"
+    logical_terrain:
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "base", "plain", "plain", "headquarters", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "city", "plain", "plain", "plain", "plain", "mountain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "forest", "mountain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "forest", "forest", "forest", "plain", "plain", "mountain", "forest", "plain", "forest", "forest", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "road", "road", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "road", "road", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "forest", "mountain", "plain", "plain", "forest", "forest", "forest", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "mountain", "forest", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "mountain", "plain", "plain", "plain", "plain", "city", "plain", "forest", "forest", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "headquarters", "plain", "plain", "base", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+    properties:
+      - { id: "hq_p1", type_id: "headquarters", x: 2, y: 13, initial_owner: "player_1" }
+      - { id: "hq_p2", type_id: "headquarters", x: 17, y: 2, initial_owner: "player_2" }
+      - { id: "base_p1", type_id: "base", x: 5, y: 13, initial_owner: "player_1" }
+      - { id: "base_p2", type_id: "base", x: 14, y: 2, initial_owner: "player_2" }
+      - { id: "city_p1", type_id: "city", x: 2, y: 10, initial_owner: "player_1" }
+      - { id: "city_p2", type_id: "city", x: 17, y: 5, initial_owner: "player_2" }
+      - { id: "city2_p1", type_id: "city", x: 6, y: 13, initial_owner: "player_1" }
+      - { id: "city2_p2", type_id: "city", x: 13, y: 2, initial_owner: "player_2" }
+      - { id: "city_n1", type_id: "city", x: 9, y: 3, initial_owner: "neutral" }
+      - { id: "city_n2", type_id: "city", x: 10, y: 12, initial_owner: "neutral" }
+      - { id: "city_n3", type_id: "city", x: 4, y: 7, initial_owner: "neutral" }
+      - { id: "city_n4", type_id: "city", x: 15, y: 8, initial_owner: "neutral" }
+      - { id: "city_n5", type_id: "city", x: 9, y: 11, initial_owner: "neutral" }
+      - { id: "city_n6", type_id: "city", x: 10, y: 4, initial_owner: "neutral" }
+    starting_units:
+      - { id: "inf_p1", type_id: "infantry", owner: "player_1", x: 3, y: 13 }
+      - { id: "inf_p2", type_id: "infantry", owner: "player_2", x: 16, y: 2 }
+      - { id: "tank_p1", type_id: "tank", owner: "player_1", x: 4, y: 12 }
+      - { id: "tank_p2", type_id: "tank", owner: "player_2", x: 15, y: 3 }
+    starting_funds:
+      player_1: 0
+      player_2: 0
+    balance:
+      status: "pending_review"
 
 publication_state:
-  official_map_count: 0
-  playable_map_count: 0
+  official_map_count: 1
+  playable_map_count: 1
   mvp_minimum_required: 1
   status: "blocked"
   blockers:

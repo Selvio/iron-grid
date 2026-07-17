@@ -36,8 +36,8 @@ describe("commanders (design-blocked) contract", () => {
 });
 
 describe("maps: empty official set", () => {
-  it("loads zero official maps in the blocked publication state", () => {
-    expect(Object.keys(data.maps)).toHaveLength(0);
+  it("loads the first official map (M10)", () => {
+    expect(Object.keys(data.maps)).toContain("crossfire-basin");
   });
 });
 
