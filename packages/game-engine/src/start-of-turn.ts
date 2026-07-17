@@ -231,7 +231,9 @@ export function resolveStartOfTurn(
 
   // 12. set_turn_deadline — clear the previous turn's deadline; the backend
   //     stamps the new instant on seeing `turn_started` (§3, clock is injected).
-  next = updateMatch(next, { turnDeadlineAt: null });
+  //     Also reset the late-action marker: the fresh turn has taken no action, so
+  //     the deadline-expiry claim (§4.4) is evaluated from a clean slate.
+  next = updateMatch(next, { turnDeadlineAt: null, lastActionAt: null });
 
   // 13. emit_turn_started (final ordered step).
   events.push({ type: "turn_started", playerId: activeId, day });

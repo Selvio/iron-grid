@@ -173,6 +173,7 @@ export function createInitialMatchState(
     completionReason: null,
     turnDeadlineAt: null,
     expiredTurnClaimAvailableTo: null,
+    lastActionAt: null,
     deterministicSeed: input.seed,
     randomSequenceIndex: 0,
     fogEnabled: input.fogEnabled,

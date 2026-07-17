@@ -52,6 +52,13 @@ export interface MatchMeta {
   readonly completionReason: CompletionReason | null;
   readonly turnDeadlineAt: Timestamp | null;
   readonly expiredTurnClaimAvailableTo: Id | null;
+  /**
+   * When the active player last committed an action this turn (backend-stamped,
+   * opaque to the engine). Null at turn start; a value **after** `turnDeadlineAt`
+   * means the late player acted, revoking the deadline-expiry claim (§4.4).
+   * Optional so pre-M8 snapshots and fixtures need not set it.
+   */
+  readonly lastActionAt?: Timestamp | null;
   /** Server-owned deterministic PRNG seed (`rules.yaml` → randomness). */
   readonly deterministicSeed: string;
   /** How many random draws have been taken; advanced only on committed draws. */

@@ -204,8 +204,11 @@ describe("createInitialMatchState", () => {
 
   it("yields a state the first start-of-turn can run, landing Day 1", () => {
     const state = createInitialMatchState(input(), gameData());
+    expect(state.match.lastActionAt).toBeNull();
     const { nextState, events } = resolveStartOfTurn(state, gameData());
     expect(nextState.match.currentDay).toBe(1);
+    // start-of-turn resets the late-action marker.
+    expect(nextState.match.lastActionAt).toBeNull();
     expect(events.some((e) => e.type === "turn_started")).toBe(true);
   });
 

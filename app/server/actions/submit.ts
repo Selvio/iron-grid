@@ -187,6 +187,9 @@ export async function handleSubmitAction<
           randomSequenceIndex:
             state.match.randomSequenceIndex + random.drawCount,
           turnDeadlineAt,
+          // Late-action marker (§4.4): a new turn resets it; any other action
+          // stamps its commit time so a post-deadline action revokes the claim.
+          lastActionAt: turnStarted ? null : now().toISOString(),
           completedAt: completed
             ? (nextState.match.completedAt ?? now().toISOString())
             : nextState.match.completedAt,

@@ -66,6 +66,8 @@ describe("end_turn hand-off", () => {
     expect(row.turnDeadlineAt).toEqual(
       new Date(NOW.getTime() + 24 * 60 * 60 * 1000),
     );
+    // The new turn resets the late-action marker.
+    expect(row.state!.match.lastActionAt).toBeNull();
   });
 
   it("advances the day only when the day's second player ends", async () => {

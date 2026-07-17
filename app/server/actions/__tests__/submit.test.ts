@@ -181,6 +181,8 @@ describe("action pipeline (submit)", () => {
     const unit = match.state!.units.find((u) => u.id === "u1");
     expect(unit?.position).toEqual({ x: 1, y: 1 });
     expect(unit?.hasActed).toBe(true);
+    // A mid-turn action stamps the late-action marker.
+    expect(match.state!.match.lastActionAt).not.toBeNull();
   });
 
   it("advances randomSequenceIndex by the committed draw count", async () => {
