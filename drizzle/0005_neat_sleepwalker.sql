@@ -1,0 +1,2 @@
+ALTER TABLE "notification_jobs" ADD COLUMN "dedupe_key" text NOT NULL;--> statement-breakpoint
+ALTER TABLE "notification_jobs" ADD CONSTRAINT "notification_jobs_dedupe_key" UNIQUE("match_id","player_id","type","dedupe_key");

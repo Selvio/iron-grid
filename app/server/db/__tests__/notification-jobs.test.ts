@@ -28,6 +28,7 @@ describe("notification jobs", () => {
       playerId: "p1",
       type: "turn_reminder",
       scheduledAt: new Date("2026-07-20T00:00:00.000Z"),
+      dedupeKey: "turn-1",
     });
 
     const [job] = await handle.db.select().from(notificationJobs);
@@ -42,6 +43,7 @@ describe("notification jobs", () => {
         playerId: "p1",
         type: "turn_reminder",
         scheduledAt: new Date("2026-07-20T10:00:00.000Z"),
+        dedupeKey: "turn-a",
       },
       {
         matchId: "match-1",
@@ -49,6 +51,7 @@ describe("notification jobs", () => {
         type: "turn_expired",
         scheduledAt: new Date("2026-07-20T08:00:00.000Z"),
         status: "sent",
+        dedupeKey: "turn-b",
       },
     ]);
 
@@ -76,6 +79,7 @@ describe("notification jobs", () => {
         playerId: "ghost",
         type: "turn_started",
         scheduledAt: new Date("2026-07-20T00:00:00.000Z"),
+        dedupeKey: "turn-1",
       }),
     ).rejects.toThrow();
   });

@@ -31,4 +31,13 @@ export {
   getPinnedGameDataVersion,
   pinGameDataVersion,
 } from "./queries/versioning";
+export {
+  enqueueNotificationJob,
+  claimDueJobs,
+  markJobSent,
+  markJobCancelled,
+  cancelPendingJobs,
+  type EnqueueNotificationJob,
+  type NotificationJobType,
+} from "./queries/notification-jobs";
 export * as schema from "./schema";
