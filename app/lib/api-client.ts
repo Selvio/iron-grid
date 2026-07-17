@@ -1,0 +1,167 @@
+import type { NotificationPreferences } from "@/app/server/db/schema/users";
+import type { MatchView } from "@/app/server/actions/read";
+
+import type { CreateMatchInput } from "./schemas";
+
+/**
+ * Typed client for the server surface the UI consumes (M9-T3).
+ *
+ * The single seam the frontend calls the backend through (`frontend.md` §2, §9).
+ * Same-origin `fetch` carries the Auth.js **session cookie** automatically —
+ * there is no bearer token. Every failure decodes to a typed `ApiError`
+ * (`{ error: code }`, plus `currentStateVersion` on a `409` conflict and `codes`
+ * on a validation failure) so callers branch on `code`, not HTTP status strings.
+ * Response *types* are imported type-only from the server/engine boundary; no
+ * runtime server module is pulled into the client bundle.
+ *
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T3)
+ */
+
+export type { MatchView, NotificationPreferences };
+
+/** A match's lifecycle status, as the read model reports it. */
+export type MatchStatus = MatchView["status"];
+
+/** A row of the dashboard list (`GET /api/matches`, added in M9-T4). */
+export interface MatchSummary {
+  readonly matchId: string;
+  readonly status: MatchStatus;
+  readonly role: "host" | "guest";
+  readonly activePlayerId: string | null;
+  readonly turnDeadlineAt: string | null;
+}
+
+export interface CreateMatchResult {
+  readonly matchId: string;
+  readonly invitationCode: string;
+  readonly status: "waiting_for_opponent";
+}
+
+export interface JoinMatchResult {
+  readonly matchId: string;
+  readonly status: "commander_selection";
+}
+
+export interface CommanderSelectResult {
+  readonly matchId: string;
+  readonly status: "commander_selection" | "ready_check";
+  readonly commanderId: string;
+  readonly factionId: string;
+}
+
+export interface ReadyResult {
+  readonly matchId: string;
+  readonly status: "ready_check" | "active";
+}
+
+export interface CancelResult {
+  readonly matchId: string;
+  readonly status: "cancelled";
+}
+
+/** A pre-active match has no engine state yet (`GET /api/matches/:id`). */
+export interface PreActiveMatchView {
+  readonly matchId: string;
+  readonly status: MatchStatus | null;
+  readonly board: null;
+}
+
+/** A typed transport/domain error decoded from a non-2xx response. */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    readonly currentStateVersion?: number,
+    readonly codes?: readonly string[],
+  ) {
+    super(code);
+    this.name = "ApiError";
+  }
+}
+
+type JsonBody = Record<string, unknown>;
+
+async function request<T>(
+  path: string,
+  init?: { method?: string; body?: JsonBody },
+): Promise<T> {
+  const response = await fetch(path, {
+    method: init?.method ?? "GET",
+    credentials: "same-origin",
+    headers: init?.body ? { "content-type": "application/json" } : undefined,
+    body: init?.body ? JSON.stringify(init.body) : undefined,
+  });
+
+  const data = (await response.json().catch(() => null)) as
+    | (JsonBody & {
+        error?: string;
+        currentStateVersion?: number;
+        codes?: string[];
+      })
+    | null;
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      data?.error ?? "request_failed",
+      data?.currentStateVersion,
+      data?.codes,
+    );
+  }
+  return data as T;
+}
+
+export const apiClient = {
+  listMatches: () => request<MatchSummary[]>("/api/matches"),
+
+  getMatch: (matchId: string) =>
+    request<MatchView | PreActiveMatchView>(
+      `/api/matches/${encodeURIComponent(matchId)}`,
+    ),
+
+  createMatch: (input: CreateMatchInput) =>
+    request<CreateMatchResult>("/api/matches", {
+      method: "POST",
+      body: {
+        mapId: input.mapId,
+        settings: {
+          fogEnabled: false,
+          turnDeadline: input.turnDeadline,
+          dayLimit: input.dayLimit,
+        },
+      },
+    }),
+
+  joinMatch: (matchId: string, code: string) =>
+    request<JoinMatchResult>(
+      `/api/matches/${encodeURIComponent(matchId)}/join`,
+      { method: "POST", body: { code: code.trim().toUpperCase() } },
+    ),
+
+  selectCommander: (matchId: string, commanderId: string) =>
+    request<CommanderSelectResult>(
+      `/api/matches/${encodeURIComponent(matchId)}/commander`,
+      { method: "POST", body: { commanderId } },
+    ),
+
+  readyUp: (matchId: string) =>
+    request<ReadyResult>(`/api/matches/${encodeURIComponent(matchId)}/ready`, {
+      method: "POST",
+      body: {},
+    }),
+
+  cancelMatch: (matchId: string) =>
+    request<CancelResult>(
+      `/api/matches/${encodeURIComponent(matchId)}/cancel`,
+      { method: "POST", body: {} },
+    ),
+
+  getNotificationPreferences: () =>
+    request<NotificationPreferences>("/api/me/notifications"),
+
+  updateNotificationPreferences: (patch: Partial<NotificationPreferences>) =>
+    request<NotificationPreferences>("/api/me/notifications", {
+      method: "PATCH",
+      body: patch,
+    }),
+};
