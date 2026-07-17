@@ -54,6 +54,13 @@ export function buildAuthConfig(): NextAuthConfig {
     // the callback with `UntrustedHost` under a bare `NODE_ENV=production`. The
     // canonical origin is still pinned by `AUTH_URL` when present (`backend.md` §2).
     trustHost: true,
+    // Point Auth.js at the branded M9 screens instead of its built-in pages: an
+    // unauthenticated redirect and the post-send "check your inbox" state both
+    // land on `/sign-in` (M9-T2). The magic-link email itself is unchanged.
+    pages: {
+      signIn: "/sign-in",
+      verifyRequest: "/sign-in?sent=1",
+    },
     providers: [magicLinkProvider()],
     callbacks: {
       // Database sessions carry the adapter user, but the default `Session.user`
