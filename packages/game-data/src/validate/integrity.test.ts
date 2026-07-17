@@ -105,10 +105,10 @@ function fixtureMap(
   };
 }
 
-// A fully cross-file-valid official map is not constructible yet: every property
-// terrain (headquarters/city/base/...) is still art-gated to official_map_allowed
-// = false, which is exactly why official_maps is empty and blocked. We therefore
-// exercise the per-map reference checks through the failures they must catch.
+// The first official map (crossfire-basin, M10) exercises the per-map reference
+// checks on the success path (it loads and validates). These synthetic fixtures
+// exercise the same checks through the FAILURES they must catch — a property on
+// the wrong terrain, a blocked terrain, a unit that cannot occupy its tile.
 describe("per-map references (fixture)", () => {
   it("rejects a property sitting on the wrong terrain", () => {
     // All-Plain grid: the HQ properties no longer sit on 'headquarters' tiles.

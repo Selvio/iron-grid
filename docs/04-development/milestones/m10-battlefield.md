@@ -351,21 +351,31 @@ M10 is complete when, from a clean checkout:
    with the **real** unit sprites (correct faction sheet, §9.5 rows), confirmed
    terrain tiles, fog overlay, shadows, and the acted/greyed + submarine states —
    the §9.5 approval recorded by ADR.
-3. The active player can **select a unit**, see its **movement range**, a **legal-
-   action menu** and a **combat preview** (min/max + counter) computed **in-browser
-   by the pure engine** over the projected view (no hidden-state leak), and a
-   **no-undo confirmation** previewing destination/path/cost/fuel/follow-ups (§10.4).
-4. Confirming **submits** through `POST …/actions` with `expectedStateVersion` +
-   `idempotencyKey`; the returned **event animates** (missing animations via
-   overlays, reduced-motion honored, never gating gameplay); the client **refetches**
-   the projected view. A **stale submit** is a typed conflict that triggers a
-   refetch, never a local re-apply (`frontend.md` §9).
+3. The active player can **select a unit**, see its **movement range** and a
+   **legal-action menu**, computed **in-browser by the pure engine** over the
+   projected view (no hidden-state leak), and a **no-undo confirmation** previewing
+   the destination and available actions (§10.4). The **combat-preview** path
+   (`previewCombat` + the `combat-preview` reducer state + the forecast panel) is
+   built and unit-tested but **not wired into the live controller** — see §6: the
+   fixture game data carries no weapons/damage tables, so live attack targeting +
+   forecast land with combat data in **M12** (the M7 precedent).
+4. Confirming a **move** **submits** through `POST …/actions` with
+   `expectedStateVersion` + `idempotencyKey`; the client **refetches** the projected
+   view, and a **stale submit** is a typed conflict that triggers a refetch, never a
+   local re-apply (`frontend.md` §9). The **animation** builder (`buildAnimationPlan`
+   + the scene's `playAnimation`) is built and unit-tested; the live
+   submit→`getEvents`→plan→`playAnimation` **bridge is not yet wired** (§6): it is
+   the M12 manual-canvas layer, and animation never gates gameplay (§28.2), so the
+   refetched view is always authoritative.
 5. **Properties** render with neutral/faction ownership + capture-progress under the
    recorded §33.4 treatment; the **first official 20×16 map** is authored, validated,
    renders end-to-end, and ships with a balance rationale + ≥10 openings/start, with
    the two-human balance sign-off status explicit.
 6. The **HUD** (funds/day/turn/deadline/selected-unit) renders as accessible HTML,
-   faction identity is color + insignia, and reduced-motion is honored by default.
+   faction identity in the HUD is color + insignia (`FactionBadge`), and
+   reduced-motion is honored by default. On the **canvas**, ownership is conveyed by
+   the faction sheet + property tint (color); the per-tile board insignia (§27.4)
+   is scoped to the M12 visual pass (§6, ADR-0004).
 7. The **pure** logic (state machine, preview wiring + adapter, render mapping,
    animation plan) is unit-tested in the `ui`/node projects; the Phaser canvas is a
    thin shell verified manually. Scope stays inside the battlefield: **no** opponent
@@ -384,9 +394,21 @@ M10 is complete when, from a clean checkout:
 - **The two-human balance sign-off** — M10 authors a symmetric candidate map + the
   balance evidence; the formal `official_map_release_gates` human review is recorded
   by the owner, not fabricated here.
+- **Live combat targeting & submit** — `previewCombat`, the `combat-preview`
+  reducer state and the forecast panel are built and unit-tested, but the live path
+  (choose a target → forecast → submit an `attack`) is **not wired**: the fixture
+  game data has no weapons/damage tables, so a live combat run cannot execute yet.
+  It lands with combat data in **M12** — the same deferral M7 recorded for real
+  combat through the action pipeline.
+- **The live event-fetch → animation bridge** — `buildAnimationPlan` and the scene's
+  `playAnimation` are built and unit-tested, but the runtime seam
+  (submit → `getEvents` → plan → `playAnimation`) is **not wired**; `BattlefieldView`
+  reconciles by refetch only. Wiring it is part of the **M12** manual-canvas layer
+  (animation never gates gameplay, §28.2, so the refetch is always authoritative).
 - **The Phaser canvas visual verification** — no WebGL in jsdom; pixel-level
-  rendering is verified manually and in the **M12** acceptance suite. M10 tests the
-  pure logic only.
+  rendering, the provisional `BASE_TERRAIN_TILE`/`PROPERTY_TILE` atlas cells, and the
+  per-tile board **ownership insignia** (§27.4; ADR-0004) are verified/authored in
+  the **M12** visual pass. M10 tests the pure logic only.
 - **The 30 acceptance scenarios, security pass & deploy** — **M12**.
 - **Fog-on matches** — still blocked at create (M7 guard); the renderer draws the
   fog overlay from the projection, but no live fog-on match is created until that

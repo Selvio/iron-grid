@@ -28,9 +28,13 @@ Render properties as the pack's **building tile plus a programmatic ownership +
 capture overlay**, and approve that treatment for the five property types.
 
 - **Ownership** is a programmatic overlay on the base building tile: a faction
-  tint (`--faction-*`) plus the faction insignia (`FactionBadge`), and a neutral
-  (grey, no tint) treatment when `ownerPlayerId` is null. No bespoke
-  per-faction building sheets are required.
+  tint (`--faction-*`), and a neutral (grey, no tint) treatment when
+  `ownerPlayerId` is null. No bespoke per-faction building sheets are required. The
+  paired per-tile **insignia** on the canvas (§27.4 — do not rely on color alone)
+  is authored in the M12 visual pass; **in the interim the on-canvas ownership is
+  color-only**, a known §27.4 gap (the HUD's selected-unit panel already shows the
+  `FactionBadge` insignia). The tint hexes currently duplicated in
+  `create-game.ts` should be derived from the shared `--faction-*` tokens in M12.
 - **Capture progress** renders as a UI bar from `capturePointsRemaining`
   (`(20 − remaining) / 20`), satisfying `capture_progress_ui_required`.
 - The mapping lives in `app/lib/render/property-map.ts` (`PROPERTY_TILE`,
@@ -44,7 +48,8 @@ capture overlay**, and approve that treatment for the five property types.
   to `asset_status: confirmed` + `official_map_allowed: true`, keeping the
   `official_map_allowed === (asset_status === "confirmed")` invariant intact. This
   unblocks placing properties on the first official map (M10-T10). Special terrain
-  (§33.3 — bridge, reef, pipe, missile silo) is untouched and stays blocked.
+  (§33.3 — reef, pipe, pipe seam, missile silo) and `bridge` (`mapping_required`)
+  are untouched and stay blocked.
 
 ## Consequences
 

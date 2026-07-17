@@ -35,9 +35,51 @@ describe("commanders (design-blocked) contract", () => {
   });
 });
 
-describe("maps: empty official set", () => {
-  it("loads the first official map (M10)", () => {
-    expect(Object.keys(data.maps)).toContain("crossfire-basin");
+describe("maps: the first official map (M10)", () => {
+  const map = data.maps["crossfire-basin"];
+
+  it("loads crossfire-basin, pending its balance sign-off", () => {
+    expect(map).toBeDefined();
+    // Not published — the two-human balance review is the owner's to record.
+    expect(map!.status).toBe("review");
+  });
+
+  it("is 180°-rotationally symmetric — terrain, properties and starting units", () => {
+    const m = map!;
+    const W = m.dimensions.width;
+    const H = m.dimensions.height;
+    // Terrain mirrors under (x,y) -> (W-1-x, H-1-y).
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        expect(m.logical_terrain[y]![x]).toBe(
+          m.logical_terrain[H - 1 - y]![W - 1 - x],
+        );
+      }
+    }
+    // Every property has a mirror of the same type; owned ones mirror to the
+    // opposite player, neutral to neutral.
+    const propAt = (x: number, y: number) =>
+      m.properties.find((p) => p.x === x && p.y === y);
+    const otherOwner: Record<string, string> = {
+      player_1: "player_2",
+      player_2: "player_1",
+      neutral: "neutral",
+    };
+    for (const p of m.properties) {
+      const mirror = propAt(W - 1 - p.x, H - 1 - p.y);
+      expect(mirror, `mirror of ${p.id}`).toBeDefined();
+      expect(mirror!.type_id).toBe(p.type_id);
+      expect(mirror!.initial_owner).toBe(otherOwner[p.initial_owner]);
+    }
+    // Every starting unit has a mirror of the same type owned by the other player.
+    const unitAt = (x: number, y: number) =>
+      m.starting_units.find((u) => u.x === x && u.y === y);
+    for (const u of m.starting_units) {
+      const mirror = unitAt(W - 1 - u.x, H - 1 - u.y);
+      expect(mirror, `mirror of ${u.id}`).toBeDefined();
+      expect(mirror!.type_id).toBe(u.type_id);
+      expect(mirror!.owner).toBe(otherOwner[u.owner]);
+    }
   });
 });
 

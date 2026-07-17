@@ -587,13 +587,12 @@ publication_state:
   mvp_minimum_required: 1
   status: "blocked"
   blockers:
-    - "No official map layout has been designed."
-    - "Property visual mappings are not approved."
+    - "crossfire-basin balance is pending the two-human sign-off (status: review)."
     - "Reef, Pipe, Pipe Seam and Missile Silo remain asset-gated."
     - "Day-limit scoring is not implemented."
   allowed_next_step: >
-    Design the first official 20x16 map using only approved terrain and property
-    assets, then complete deterministic balance review before enabling it.
+    Complete the two-human balance review of crossfire-basin, then flip it to
+    status: published / balance: approved to enable it.
 
 cross_file_contracts:
   terrain_yaml:

@@ -50,7 +50,8 @@ player 1's, so listing player 1's set defines both.
 
 ## Reviewer checklist (for the owner's sign-off)
 
-- [ ] Symmetry verified (already machine-enforced by construction).
+- [ ] Symmetry verified (author-enforced by construction; not machine-checked by
+      `validateIntegrity`, though the M10-T10 tests assert it — see below).
 - [ ] No terrain/property/unit references unresolved (enforced by `validateIntegrity`).
 - [ ] Opening variety adequate for both starts (the ten above + mirrors).
 - [ ] Two human reviewers approve balance → then flip `status: published` and
