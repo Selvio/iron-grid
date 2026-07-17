@@ -57,6 +57,21 @@ describe("CreateMatchForm", () => {
     );
   });
 
+  it("blocks an invalid day limit inline with no request", async () => {
+    const fetchMock = mockFetch(201, {
+      matchId: "m1",
+      invitationCode: "ABC123",
+      status: "waiting_for_opponent",
+    });
+    render(<CreateMatchForm maps={MAPS} />);
+    await userEvent.type(screen.getByLabelText(/day limit/i), "0");
+    await userEvent.click(
+      screen.getByRole("button", { name: /create match/i }),
+    );
+    await waitFor(() => expect(screen.getByRole("alert")).toBeInTheDocument());
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
   it("disables creation when no maps are available (design-blocked)", () => {
     render(<CreateMatchForm maps={[]} />);
     expect(screen.getByText(/no maps are available yet/i)).toBeInTheDocument();

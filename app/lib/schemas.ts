@@ -28,12 +28,19 @@ export const createMatchSchema = z.object({
 });
 export type CreateMatchInput = z.infer<typeof createMatchSchema>;
 
-/** Join-by-code form — six unambiguous alphanumerics (§3.3). */
+/**
+ * Join-by-code form — six unambiguous alphanumerics (§3.3). The server alphabet
+ * excludes the ambiguous `I O 0 1` (`invitation-code.ts`); the client accepts
+ * either case and upper-cases before sending.
+ */
 export const joinMatchSchema = z.object({
   code: z
     .string()
     .trim()
-    .regex(/^[A-Za-z0-9]{6}$/, "Enter the 6-character invitation code."),
+    .regex(
+      /^[A-HJ-NP-Za-hj-np-z2-9]{6}$/,
+      "Enter the 6-character invitation code.",
+    ),
 });
 export type JoinMatchInput = z.infer<typeof joinMatchSchema>;
 

@@ -31,7 +31,8 @@ const STATUS_LABEL: Record<MatchSummary["status"], string> = {
   cancelled: "Cancelled",
 };
 
-function matchHref(match: MatchSummary): string {
+/** The screen a row links to, or `null` when the status has no M9 destination. */
+function matchHref(match: MatchSummary): string | null {
   switch (match.status) {
     case "commander_selection":
       return `/matches/${match.matchId}/commander`;
@@ -39,8 +40,12 @@ function matchHref(match: MatchSummary): string {
       return `/matches/${match.matchId}/ready`;
     case "completed":
       return `/matches/${match.matchId}/completed`;
-    default:
+    case "active":
+      // The battlefield is M10; the row links forward to it.
       return `/matches/${match.matchId}`;
+    default:
+      // draft / waiting_for_opponent / cancelled have no M9 screen yet.
+      return null;
   }
 }
 
@@ -67,12 +72,19 @@ const GROUP_ORDER: readonly { key: Group; heading: string }[] = [
 
 function MatchRow({ match, now }: { match: MatchSummary; now: number | null }) {
   const showCountdown = match.status === "active";
+  const href = matchHref(match);
   return (
     <Card>
       <CardContent className="flex items-center justify-between p-4">
-        <Link href={matchHref(match)} className="font-medium hover:underline">
-          {STATUS_LABEL[match.status]}
-        </Link>
+        {href ? (
+          <Link href={href} className="font-medium hover:underline">
+            {STATUS_LABEL[match.status]}
+          </Link>
+        ) : (
+          <span className="font-medium text-muted-foreground">
+            {STATUS_LABEL[match.status]}
+          </span>
+        )}
         {showCountdown && (
           <span className="inline-flex items-center gap-1.5 font-mono text-sm text-muted-foreground">
             <Clock className="size-4" aria-hidden="true" />

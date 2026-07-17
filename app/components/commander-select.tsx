@@ -52,7 +52,7 @@ export function CommanderSelect({
       }
     } catch (err) {
       setError(
-        err instanceof ApiError
+        err instanceof ApiError && err.code === "commander_unavailable"
           ? "That faction is taken. Choose another."
           : "Something went wrong. Try again.",
       );

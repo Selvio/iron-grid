@@ -62,17 +62,19 @@ export function NotificationPreferencesForm({
   const [error, setError] = useState<string | null>(null);
 
   async function toggle(key: keyof NotificationPreferences, next: boolean) {
-    const previous = preferences;
-    setPreferences({ ...preferences, [key]: next }); // optimistic
+    // Functional, per-key updates so a second in-flight toggle on another key
+    // is never clobbered by this one's stale whole-object snapshot.
+    setPreferences((prev) => ({ ...prev, [key]: next })); // optimistic
     setPending(key);
     setError(null);
     try {
       const updated = await apiClient.updateNotificationPreferences({
         [key]: next,
       });
-      setPreferences(updated); // reconcile with the server
+      // Reconcile only the key we changed with the server's authoritative value.
+      setPreferences((prev) => ({ ...prev, [key]: updated[key] }));
     } catch (err) {
-      setPreferences(previous); // revert
+      setPreferences((prev) => ({ ...prev, [key]: !next })); // revert this key
       setError(
         err instanceof ApiError
           ? "Could not save that change. Try again."

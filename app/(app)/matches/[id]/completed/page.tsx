@@ -45,13 +45,16 @@ export default async function CompletedPage({
 
   const [row] = await db
     .select({
+      status: matches.status,
       winnerPlayerId: matches.winnerPlayerId,
       completionReason: matches.completionReason,
     })
     .from(matches)
     .where(eq(matches.id, id));
 
-  if (row === undefined) {
+  // Only a genuinely completed match shows the summary; anything else (a match
+  // still in play reached by a stale/direct URL) is a 404, not a bogus card.
+  if (row === undefined || row.status !== "completed") {
     notFound();
   }
 

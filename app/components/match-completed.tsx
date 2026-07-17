@@ -1,3 +1,4 @@
+import type { CompletionReason } from "game-engine";
 import { Flag, Trophy } from "lucide-react";
 import Link from "next/link";
 
@@ -20,13 +21,7 @@ import {
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T7)
  */
 
-export type CompletionReason =
-  | "headquarters_captured"
-  | "army_eliminated"
-  | "resignation"
-  | "timeout_claimed"
-  | "day_limit_score"
-  | "administrative";
+export type { CompletionReason };
 
 const REASON_TEXT: Record<CompletionReason, string> = {
   headquarters_captured: "Headquarters captured",

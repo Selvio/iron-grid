@@ -123,6 +123,49 @@ describe("list matches endpoint", () => {
     expect(rows[0].turnDeadlineAt).toBe(deadline.toISOString());
   });
 
+  it("returns the caller's matches newest-first", async () => {
+    const older = await insertMatch(handle, {
+      createdAt: new Date("2026-07-10T00:00:00.000Z"),
+    });
+    const newer = await insertMatch(handle, {
+      createdAt: new Date("2026-07-15T00:00:00.000Z"),
+    });
+    await join(older, userId, "host");
+    await join(newer, userId, "host");
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    const rows = (await response.json()) as Array<{ matchId: string }>;
+    expect(rows.map((r) => r.matchId)).toEqual([newer, older]);
+  });
+
+  it("returns an empty list for a user with no matches", async () => {
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    expect(await response.json()).toEqual([]);
+  });
+
+  it("includes matches the caller joined as guest", async () => {
+    const match = await insertMatch(handle, { status: "commander_selection" });
+    await join(match, otherId, "host");
+    await join(match, userId, "guest");
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    const rows = (await response.json()) as Array<{
+      matchId: string;
+      role: string;
+    }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ matchId: match, role: "guest" });
+  });
+
   it("rejects an unauthenticated caller with 401", async () => {
     const response = await handleListMatches({
       db: handle.db,

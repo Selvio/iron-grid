@@ -34,18 +34,21 @@ describe("NotificationPreferencesForm", () => {
     expect(screen.getByLabelText("Turn deadline passed")).not.toBeChecked();
   });
 
-  it("patches a toggled key and reconciles with the server", async () => {
-    const fetchMock = mockFetch(200, { ...PREFS, turn_expired: true });
+  it("patches a toggled key and lets the server value win over the optimistic one", async () => {
+    // The user turns turn_expired ON, but the server answers that it is still
+    // OFF — the reconcile must show the SERVER value, not the optimistic click.
+    const fetchMock = mockFetch(200, { ...PREFS, turn_expired: false });
     render(<NotificationPreferencesForm initial={PREFS} />);
     await userEvent.click(screen.getByLabelText("Turn deadline passed"));
 
-    await waitFor(() =>
-      expect(screen.getByLabelText("Turn deadline passed")).toBeChecked(),
-    );
     const [path, init] = fetchMock.mock.calls[0];
     expect(path).toBe("/api/me/notifications");
     expect(init.method).toBe("PATCH");
     expect(JSON.parse(init.body)).toEqual({ turn_expired: true });
+    // Server said false → the toggle reconciles back to unchecked.
+    await waitFor(() =>
+      expect(screen.getByLabelText("Turn deadline passed")).not.toBeChecked(),
+    );
   });
 
   it("reverts and surfaces an error when the patch fails", async () => {

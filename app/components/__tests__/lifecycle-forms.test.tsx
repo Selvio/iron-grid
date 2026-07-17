@@ -34,7 +34,7 @@ describe("JoinForm", () => {
       matchId: "m1",
       status: "commander_selection",
     });
-    render(<JoinForm matchId="m1" defaultCode="ABC123" />);
+    render(<JoinForm matchId="m1" defaultCode="ABC234" />);
     await userEvent.click(screen.getByRole("button", { name: /join match/i }));
 
     await waitFor(() =>
@@ -42,7 +42,7 @@ describe("JoinForm", () => {
     );
     const [path, init] = fetchMock.mock.calls[0];
     expect(path).toBe("/api/matches/m1/join");
-    expect(JSON.parse(init.body)).toEqual({ code: "ABC123" });
+    expect(JSON.parse(init.body)).toEqual({ code: "ABC234" });
   });
 
   it("surfaces an invalid-invitation error", async () => {
@@ -111,12 +111,23 @@ describe("CommanderSelect", () => {
     expect(push).not.toHaveBeenCalled();
   });
 
-  it("surfaces a taken-faction conflict", async () => {
-    mockFetch(409, { error: "faction_taken" });
+  it("surfaces a taken-faction conflict (commander_unavailable)", async () => {
+    mockFetch(409, { error: "commander_unavailable" });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
     await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/faction is taken/i),
+    );
+  });
+
+  it("shows a generic message for a non-taken error code", async () => {
+    mockFetch(500, { error: "server_error" });
+    render(<CommanderSelect matchId="m1" commanders={commanders} />);
+    await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
+    await waitFor(() =>
+      expect(screen.getByRole("alert")).toHaveTextContent(
+        /something went wrong/i,
+      ),
     );
   });
 });

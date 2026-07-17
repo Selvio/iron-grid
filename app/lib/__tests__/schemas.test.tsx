@@ -43,10 +43,12 @@ describe("createMatchSchema", () => {
 });
 
 describe("joinMatchSchema", () => {
-  it("accepts six alphanumerics and rejects the wrong length", () => {
-    expect(joinMatchSchema.safeParse({ code: "ABC123" }).success).toBe(true);
-    expect(joinMatchSchema.safeParse({ code: "ABC12" }).success).toBe(false);
+  it("accepts six unambiguous alphanumerics and rejects the rest", () => {
+    expect(joinMatchSchema.safeParse({ code: "ABC234" }).success).toBe(true);
+    expect(joinMatchSchema.safeParse({ code: "ABC23" }).success).toBe(false);
     expect(joinMatchSchema.safeParse({ code: "" }).success).toBe(false);
+    // Ambiguous characters (I O 0 1) are rejected — the server alphabet omits them.
+    expect(joinMatchSchema.safeParse({ code: "ABC1O0" }).success).toBe(false);
   });
 });
 
