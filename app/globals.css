@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
+/**
+ * Iron Grid design tokens (M9-T1).
+ *
+ * Dark by default with a light variant (`design-reference.md` §4). The shell
+ * mounts `.dark` on <html>; a later theme toggle flips the class. Faction
+ * identity is color **paired with an insignia**, never color alone
+ * (`game-specification.md` §27.4, `frontend.md` §10) — the colors below are the
+ * paint, `FactionBadge` supplies the shape.
+ */
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f7f8fa;
+  --foreground: #12151c;
+  --card: #ffffff;
+  --card-foreground: #12151c;
+  --popover: #ffffff;
+  --popover-foreground: #12151c;
+  --primary: #1f6feb;
+  --primary-foreground: #f7f8fa;
+  --secondary: #e6e9ef;
+  --secondary-foreground: #12151c;
+  --muted: #eceff4;
+  --muted-foreground: #5a6472;
+  --accent: #e6e9ef;
+  --accent-foreground: #12151c;
+  --destructive: #d1242f;
+  --destructive-foreground: #f7f8fa;
+  --border: #d6dae2;
+  --input: #d6dae2;
+  --ring: #1f6feb;
+
+  --faction-blue: #2f74d0;
+  --faction-green: #3fa34d;
+  --faction-red: #cf3b3b;
+  --faction-yellow: #d9a520;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  --background: #0b0e14;
+  --foreground: #e6e9ef;
+  --card: #12161f;
+  --card-foreground: #e6e9ef;
+  --popover: #12161f;
+  --popover-foreground: #e6e9ef;
+  --primary: #4c8dff;
+  --primary-foreground: #0b0e14;
+  --secondary: #1b212d;
+  --secondary-foreground: #e6e9ef;
+  --muted: #161b25;
+  --muted-foreground: #8b94a3;
+  --accent: #1b212d;
+  --accent-foreground: #e6e9ef;
+  --destructive: #f0616d;
+  --destructive-foreground: #0b0e14;
+  --border: #232b39;
+  --input: #232b39;
+  --ring: #4c8dff;
+
+  --faction-blue: #4c8dff;
+  --faction-green: #4fb85f;
+  --faction-red: #f0616d;
+  --faction-yellow: #e6b23a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-faction-blue: var(--faction-blue);
+  --color-faction-green: var(--faction-green);
+  --color-faction-red: var(--faction-red);
+  --color-faction-yellow: var(--faction-yellow);
+
+  --font-sans: var(--font-manrope);
+  --font-mono: var(--font-jetbrains-mono);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Honor reduced-motion by default (`frontend.md` §10) — the mockup's motion
+ * Tweak is illustrative; production respects the OS setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

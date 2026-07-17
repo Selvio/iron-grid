@@ -1,17 +1,37 @@
+import { fileURLToPath } from "node:url";
+
+import react from "@vitejs/plugin-react";
 import { defineConfig } from "vitest/config";
 
 /**
  * Workspace Vitest harness (M0-T4).
  *
  * Node environment, TypeScript + ESM native. Each package is a project so
- * engine and data stay testable in isolation (`testing.md` §12).
+ * engine and data stay testable in isolation (`testing.md` §12). M9-T1 adds the
+ * `ui` project (jsdom + React Testing Library) for the frontend shell.
  *
  * @see docs/04-development/milestones/m0-foundations.md (M0-T4)
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T1)
  */
 export default defineConfig({
   test: {
     environment: "node",
     projects: [
+      {
+        plugins: [react()],
+        resolve: {
+          alias: {
+            "@": fileURLToPath(new URL("./", import.meta.url)),
+          },
+        },
+        test: {
+          name: "ui",
+          root: "./app",
+          include: ["**/*.test.tsx"],
+          environment: "jsdom",
+          setupFiles: ["../vitest.setup.ui.ts"],
+        },
+      },
       {
         test: {
           name: "game-engine",
