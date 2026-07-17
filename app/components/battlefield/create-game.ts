@@ -1,10 +1,12 @@
 import Phaser from "phaser";
 
 import {
+  FACTION_SHEETS,
   TERRAIN_TILE_PX,
   terrainTileFrame,
 } from "@/app/lib/render/derive-render-data";
 import type { TerrainCell } from "@/app/lib/render/terrain-map";
+import type { UnitSprite } from "@/app/lib/render/unit-map";
 
 /**
  * The Phaser bootstrap — a thin imperative shell (M10-T1/T2).
@@ -26,6 +28,7 @@ const RENDER_SCALE = 2;
 
 export interface BattlefieldData {
   readonly terrain: readonly TerrainCell[];
+  readonly units: readonly UnitSprite[];
   readonly mapWidth: number;
   readonly mapHeight: number;
 }
@@ -44,6 +47,39 @@ class BattlefieldScene extends Phaser.Scene {
       frameHeight: TERRAIN_TILE_PX,
     });
     this.load.image("fog", `${ASSET_BASE}/tileset/fog-of-war.png`);
+    this.load.image("shadow", `${ASSET_BASE}/tileset/small-unit-shadow.png`);
+    for (const [faction, file] of Object.entries(FACTION_SHEETS)) {
+      this.load.image(`units-${faction}`, `${ASSET_BASE}/units/${file}`);
+    }
+  }
+
+  /** Draws unit sprites, bottom-centered over their 24px tile. */
+  private drawUnits(): void {
+    for (const unit of this.model.units) {
+      const key = `units-${unit.faction}`;
+      const frameName = `f${unit.frame.y}_${unit.frame.x}`;
+      const texture = this.textures.get(key);
+      if (!texture.has(frameName)) {
+        texture.add(
+          frameName,
+          0,
+          unit.frame.x,
+          unit.frame.y,
+          unit.frame.width,
+          unit.frame.height,
+        );
+      }
+      const worldX = unit.x * TERRAIN_TILE_PX + TERRAIN_TILE_PX / 2;
+      const worldY = (unit.y + 1) * TERRAIN_TILE_PX;
+      if (unit.shadow) {
+        this.add.image(worldX, worldY, "shadow").setOrigin(0.5, 1);
+      }
+      const sprite = this.add
+        .image(worldX, worldY, key, frameName)
+        .setOrigin(0.5, 1);
+      if (unit.greyed) sprite.setTint(0x8a94a3);
+      if (unit.submerged) sprite.setAlpha(0.55);
+    }
   }
 
   create(): void {
@@ -73,6 +109,7 @@ class BattlefieldScene extends Phaser.Scene {
           .setOrigin(0, 0);
       }
     }
+    this.drawUnits();
     this.cameras.main
       .setBounds(
         0,

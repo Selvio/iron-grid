@@ -56,6 +56,40 @@ export interface MapView {
   readonly logicalTerrain: readonly (readonly string[])[];
 }
 
+/** Static render metadata per unit type — the client cannot load game data. */
+export interface UnitRenderMeta {
+  /** The §9.5 sprite row (surfaced row for a submarine). */
+  readonly spriteRow: number;
+  /** The submerged row for a submarine, else null. */
+  readonly submergedRow: number | null;
+  /** Air units are elevated and cast a shadow. */
+  readonly isAir: boolean;
+}
+
+/** Builds the typeId → render-meta table for every MVP unit. */
+function unitRenderTable(
+  gameData: Parameters<typeof projectStateForPlayer>[2],
+): Record<string, UnitRenderMeta> {
+  const table: Record<string, UnitRenderMeta> = {};
+  for (const [typeId, unit] of Object.entries(gameData.units)) {
+    if (!unit.enabled_in_mvp) continue;
+    const rendering = unit.rendering;
+    table[typeId] =
+      "sprite_rows" in rendering
+        ? {
+            spriteRow: rendering.sprite_rows.surfaced,
+            submergedRow: rendering.sprite_rows.submerged,
+            isAir: unit.category === "air",
+          }
+        : {
+            spriteRow: rendering.sprite_row,
+            submergedRow: null,
+            isAir: unit.category === "air",
+          };
+  }
+  return table;
+}
+
 /** The full read response for one viewer (`domain-model.md` §13). */
 export interface MatchView {
   readonly matchId: string;
@@ -67,6 +101,8 @@ export interface MatchView {
   readonly viewerPlayerId: string;
   /** The map layout to render (public); the battlefield draws terrain from it. */
   readonly map: MapView;
+  /** Static per-type sprite metadata the client cannot derive itself. */
+  readonly unitRender: Record<string, UnitRenderMeta>;
   readonly visibleTiles: ReturnType<
     typeof projectStateForPlayer
   >["visibleTiles"];
@@ -102,6 +138,7 @@ export function projectMatchView(
       height: map.dimensions.height,
       logicalTerrain: map.logical_terrain,
     },
+    unitRender: unitRenderTable(gameData),
     visibleTiles: view.visibleTiles,
     units: view.units,
     properties: view.properties,

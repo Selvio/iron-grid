@@ -27,19 +27,23 @@ export function fixtureGameData(): GameData {
     units: {
       infantry: {
         category: "ground",
+        enabled_in_mvp: true,
         max_true_hp: 100,
         movement: { type: "foot", points: 3 },
         logistics: { max_fuel: 99, daily_fuel: { default: 0 }, max_ammo: null },
         vision: { base_range: 2 },
         special_states: [],
+        rendering: { sprite_row: 0, row_id: "unit_r00" },
       },
       tank: {
         category: "ground",
+        enabled_in_mvp: true,
         max_true_hp: 100,
         movement: { type: "treads", points: 6 },
         logistics: { max_fuel: 70, daily_fuel: { default: 0 }, max_ammo: 9 },
         vision: { base_range: 3 },
         special_states: [],
+        rendering: { sprite_row: 9, row_id: "unit_r09" },
       },
     },
     properties: {

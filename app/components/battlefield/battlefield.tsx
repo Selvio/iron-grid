@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 import type { MatchView } from "@/app/lib/api-client";
 import { buildTerrainRenderModel } from "@/app/lib/render/terrain-map";
+import { buildUnitRenderModel } from "@/app/lib/render/unit-map";
 
 /**
  * Battlefield canvas host (M10-T1/T2).
@@ -23,6 +24,7 @@ export function Battlefield({ matchView }: { matchView: MatchView }) {
   const data = useMemo(
     () => ({
       terrain: buildTerrainRenderModel(matchView.map, matchView.visibleTiles),
+      units: buildUnitRenderModel(matchView),
       mapWidth: matchView.map.width,
       mapHeight: matchView.map.height,
     }),

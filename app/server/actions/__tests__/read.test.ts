@@ -42,6 +42,7 @@ describe("read endpoints", () => {
       viewerPlayerId: string;
       units: unknown[];
       map: { width: number; height: number; logicalTerrain: string[][] };
+      unitRender: Record<string, { spriteRow: number; isAir: boolean }>;
       you: { playerId: string; funds: number };
       opponent: Record<string, unknown>;
     };
@@ -52,6 +53,8 @@ describe("read endpoints", () => {
     expect(view.map.width).toBeGreaterThan(0);
     expect(view.map.logicalTerrain).toHaveLength(view.map.height);
     expect(view.map.logicalTerrain[0]).toHaveLength(view.map.width);
+    // Static sprite metadata for the client (it cannot load game data).
+    expect(Object.keys(view.unitRender).length).toBeGreaterThan(0);
     // Fog is off in the fixture → both starting units are visible.
     expect(view.units).toHaveLength(2);
     expect(view.you.playerId).toBe(active.hostPlayerId);

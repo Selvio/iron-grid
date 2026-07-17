@@ -22,6 +22,10 @@ const MATCH_VIEW = {
     logicalTerrain: [["plain", "forest"]],
   },
   visibleTiles: [{ x: 0, y: 0 }],
+  units: [],
+  unitRender: {},
+  you: null,
+  opponent: null,
 } as unknown as MatchView;
 
 describe("Battlefield", () => {
