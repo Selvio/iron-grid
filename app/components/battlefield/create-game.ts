@@ -5,6 +5,7 @@ import {
   TERRAIN_TILE_PX,
   terrainTileFrame,
 } from "@/app/lib/render/derive-render-data";
+import type { AnimationStep } from "@/app/lib/render/animation-plan";
 import type { TerrainCell } from "@/app/lib/render/terrain-map";
 import type { UnitSprite } from "@/app/lib/render/unit-map";
 
@@ -35,6 +36,7 @@ export interface BattlefieldData {
 
 class BattlefieldScene extends Phaser.Scene {
   private readonly model: BattlefieldData;
+  private readonly unitSprites = new Map<string, Phaser.GameObjects.Image>();
 
   constructor(data: BattlefieldData) {
     super("battlefield");
@@ -79,6 +81,7 @@ class BattlefieldScene extends Phaser.Scene {
         .setOrigin(0.5, 1);
       if (unit.greyed) sprite.setTint(0x8a94a3);
       if (unit.submerged) sprite.setAlpha(0.55);
+      this.unitSprites.set(unit.unitId, sprite);
     }
   }
 
@@ -118,6 +121,35 @@ class BattlefieldScene extends Phaser.Scene {
         this.model.mapHeight * TERRAIN_TILE_PX,
       )
       .setZoom(RENDER_SCALE);
+  }
+
+  /**
+   * Plays a resolved-event animation plan (M10-T8). Imperative and verified
+   * manually — moves tween the sprite along the path, attacks flash the
+   * defender, destroys fade it out. Animation never gates gameplay (§28.2): the
+   * refetched state is already authoritative when this runs.
+   */
+  playAnimation(steps: readonly AnimationStep[]): void {
+    for (const step of steps) {
+      if (step.kind === "move") {
+        const sprite = this.unitSprites.get(step.unitId);
+        if (sprite === undefined) continue;
+        this.tweens.add({
+          targets: sprite,
+          x: step.path.at(-1)!.x * TERRAIN_TILE_PX + TERRAIN_TILE_PX / 2,
+          y: (step.path.at(-1)!.y + 1) * TERRAIN_TILE_PX,
+          duration: 120 * Math.max(1, step.path.length - 1),
+        });
+      } else if (step.kind === "attack") {
+        const defender = this.unitSprites.get(step.defenderUnitId);
+        if (defender !== undefined) defender.setTint(0xffffff);
+      } else if (step.kind === "destroy") {
+        const sprite = this.unitSprites.get(step.unitId);
+        if (sprite !== undefined) {
+          this.tweens.add({ targets: sprite, alpha: 0, duration: 200 });
+        }
+      }
+    }
   }
 }
 

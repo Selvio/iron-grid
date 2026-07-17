@@ -38,6 +38,8 @@
     "autotiles",
     "recomputable",
     "frameless",
+    "refetched",
+    "unstub",
     "refetch",
     "refetches",
     "replayable",
