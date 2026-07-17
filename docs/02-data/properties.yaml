@@ -220,7 +220,7 @@ properties:
     defeat:
       triggers_defeat_on_capture: false
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       asset_candidate: "row_13_small_urban_building"
       ownership_overlay_required: true
       neutral_state_required: true
@@ -290,7 +290,7 @@ properties:
     defeat:
       triggers_defeat_on_capture: false
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       asset_candidate: "row_14_hangar_or_industrial_building"
       ownership_overlay_required: true
       neutral_state_required: true
@@ -353,7 +353,7 @@ properties:
     defeat:
       triggers_defeat_on_capture: false
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       asset_candidate: "radar_or_airfield_structure"
       ownership_overlay_required: true
       neutral_state_required: true
@@ -416,7 +416,7 @@ properties:
     defeat:
       triggers_defeat_on_capture: false
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       asset_candidate: "row_15_harbor_or_dock"
       ownership_overlay_required: true
       neutral_state_required: true
@@ -479,7 +479,7 @@ properties:
       completion_reason: "headquarters_captured"
       timing: "immediate_after_atomic_capture_action"
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       asset_candidate: "large_elevated_command_structure"
       ownership_overlay_required: true
       neutral_state_required: false

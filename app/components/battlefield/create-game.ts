@@ -5,9 +5,19 @@ import {
   TERRAIN_TILE_PX,
   terrainTileFrame,
 } from "@/app/lib/render/derive-render-data";
+import type { FactionId } from "@/app/components/faction-badge";
 import type { AnimationStep } from "@/app/lib/render/animation-plan";
+import type { PropertySprite } from "@/app/lib/render/property-map";
 import type { TerrainCell } from "@/app/lib/render/terrain-map";
 import type { UnitSprite } from "@/app/lib/render/unit-map";
+
+/** Faction tint colors for the programmatic property ownership overlay (§33.4). */
+const FACTION_TINT: Record<FactionId, number> = {
+  blue: 0x4c8dff,
+  green: 0x4fb85f,
+  red: 0xf0616d,
+  yellow: 0xe6b23a,
+};
 
 /**
  * The Phaser bootstrap — a thin imperative shell (M10-T1/T2).
@@ -29,6 +39,7 @@ const RENDER_SCALE = 2;
 
 export interface BattlefieldData {
   readonly terrain: readonly TerrainCell[];
+  readonly properties: readonly PropertySprite[];
   readonly units: readonly UnitSprite[];
   readonly mapWidth: number;
   readonly mapHeight: number;
@@ -52,6 +63,35 @@ class BattlefieldScene extends Phaser.Scene {
     this.load.image("shadow", `${ASSET_BASE}/tileset/small-unit-shadow.png`);
     for (const [faction, file] of Object.entries(FACTION_SHEETS)) {
       this.load.image(`units-${faction}`, `${ASSET_BASE}/units/${file}`);
+    }
+  }
+
+  /** Draws property buildings with the §33.4 ownership tint + capture bar. */
+  private drawProperties(): void {
+    const columns = Math.max(1, Math.floor(240 / TERRAIN_TILE_PX));
+    for (const property of this.model.properties) {
+      const frame = terrainTileFrame(property.renderTileId);
+      const frameIndex =
+        (frame.y / TERRAIN_TILE_PX) * columns + frame.x / TERRAIN_TILE_PX;
+      const worldX = property.x * TERRAIN_TILE_PX;
+      const worldY = property.y * TERRAIN_TILE_PX;
+      const building = this.add
+        .image(worldX, worldY, "tileset", frameIndex)
+        .setOrigin(0, 0);
+      if (property.ownerFaction !== null) {
+        building.setTint(FACTION_TINT[property.ownerFaction]);
+      }
+      if (property.captureProgress > 0) {
+        this.add
+          .rectangle(
+            worldX + 2,
+            worldY + TERRAIN_TILE_PX - 4,
+            (TERRAIN_TILE_PX - 4) * property.captureProgress,
+            3,
+            0xffffff,
+          )
+          .setOrigin(0, 0);
+      }
     }
   }
 
@@ -112,6 +152,7 @@ class BattlefieldScene extends Phaser.Scene {
           .setOrigin(0, 0);
       }
     }
+    this.drawProperties();
     this.drawUnits();
     this.cameras.main
       .setBounds(

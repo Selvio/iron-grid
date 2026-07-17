@@ -23,6 +23,7 @@ const MATCH_VIEW = {
   },
   visibleTiles: [{ x: 0, y: 0 }],
   units: [],
+  properties: [],
   unitRender: {},
   you: null,
   opponent: null,
