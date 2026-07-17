@@ -8,8 +8,10 @@ import {
   INITIAL_INTERACTION,
   interactionReducer,
 } from "@/app/lib/battlefield/machine";
+import { previewUnitActions } from "@/app/lib/preview/actions";
 import { previewMovementRange } from "@/app/lib/preview/movement";
 
+import { ActionPanel } from "./action-panel";
 import { Battlefield } from "./battlefield";
 import { Hud, type HudUnit } from "./hud/hud";
 import { InteractionOverlay, TILE_DISPLAY_PX } from "./interaction-overlay";
@@ -35,28 +37,48 @@ export function BattlefieldView({
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
   const isMyTurn = matchView.activePlayerId === matchView.viewerPlayerId;
 
-  function handleTileClick(x: number, y: number): void {
+  function ownSelectableAt(x: number, y: number) {
     const unit = matchView.units.find(
       (u) => u.position !== null && u.position.x === x && u.position.y === y,
     );
-    if (
-      unit !== undefined &&
+    return unit !== undefined &&
       unit.ownerPlayerId === matchView.viewerPlayerId &&
       isMyTurn &&
       !unit.hasActed
-    ) {
-      dispatch({
-        type: "select",
-        unitId: unit.id,
-        reachable: previewMovementRange(matchView, unit.id, gameData),
-      });
+      ? unit
+      : undefined;
+  }
+
+  function select(unitId: string): void {
+    dispatch({
+      type: "select",
+      unitId,
+      reachable: previewMovementRange(matchView, unitId, gameData),
+    });
+  }
+
+  function handleTileClick(x: number, y: number): void {
+    const own = ownSelectableAt(x, y);
+    if (state.kind === "unit-selected") {
+      if (own !== undefined) return select(own.id);
+      const reachable = state.reachable.some((c) => c.x === x && c.y === y);
+      if (reachable) {
+        dispatch({
+          type: "choose-destination",
+          destination: { x, y },
+          actions: previewUnitActions(matchView, state.unitId, gameData),
+        });
+        return;
+      }
+      dispatch({ type: "deselect" });
       return;
     }
+    if (own !== undefined) return select(own.id);
     dispatch({ type: "deselect" });
   }
 
   const selectedUnit =
-    state.kind === "unit-selected"
+    state.kind !== "idle"
       ? (matchView.units.find((u) => u.id === state.unitId) ?? null)
       : null;
   const hudUnit: HudUnit | null = selectedUnit
@@ -68,7 +90,7 @@ export function BattlefieldView({
         ammo: selectedUnit.ammo,
       }
     : null;
-  const reachable = state.kind === "unit-selected" ? state.reachable : [];
+  const reachable = state.kind === "idle" ? [] : state.reachable;
 
   return (
     <div className="relative h-full w-full overflow-auto">
@@ -92,6 +114,11 @@ export function BattlefieldView({
         </div>
       </div>
       <Hud matchView={matchView} selectedUnit={hudUnit} />
+      <ActionPanel
+        state={state}
+        onConfirm={() => dispatch({ type: "deselect" })}
+        onCancel={() => dispatch({ type: "cancel" })}
+      />
     </div>
   );
 }

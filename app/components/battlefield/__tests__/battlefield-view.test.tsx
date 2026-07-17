@@ -23,7 +23,8 @@ const TANK = {
   ownerPlayerId: "me",
   position: { x: 2, y: 1 },
   trueHp: 100,
-  fuel: 70,
+  // Low fuel keeps the range small so far tiles are unreachable (deselect path).
+  fuel: 2,
   ammo: 9,
   hasActed: false,
   captureTargetPropertyId: null,
@@ -82,5 +83,20 @@ describe("BattlefieldView", () => {
 
     await userEvent.click(screen.getByLabelText("Tile 0, 3"));
     expect(screen.queryByText("Tank")).not.toBeInTheDocument();
+  });
+
+  it("opens the no-undo confirm panel at a chosen destination", async () => {
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // reachable dest
+
+    expect(screen.getByText("Confirm move")).toBeInTheDocument();
+    expect(screen.getByText(/no undo/i)).toBeInTheDocument();
+    expect(screen.getByText("Move here")).toBeInTheDocument();
+
+    // Cancel steps back to the selected-unit state (range still shown).
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByText("Confirm move")).not.toBeInTheDocument();
+    expect(screen.getByText("Tank")).toBeInTheDocument();
   });
 });
