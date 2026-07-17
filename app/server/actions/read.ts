@@ -99,6 +99,8 @@ export interface MatchView {
   readonly activePlayerId: string;
   readonly turnDeadlineAt: string | null;
   readonly viewerPlayerId: string;
+  /** The map id, so the client can key game data for in-browser previews. */
+  readonly mapId: string;
   /** The map layout to render (public); the battlefield draws terrain from it. */
   readonly map: MapView;
   /** Static per-type sprite metadata the client cannot derive itself. */
@@ -133,6 +135,7 @@ export function projectMatchView(
     activePlayerId: state.match.activePlayerId,
     turnDeadlineAt: state.match.turnDeadlineAt,
     viewerPlayerId,
+    mapId: state.match.mapId,
     map: {
       width: map.dimensions.width,
       height: map.dimensions.height,

@@ -2,8 +2,7 @@ import { loadGameData } from "game-data";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 
-import { Battlefield } from "@/app/components/battlefield/battlefield";
-import { Hud } from "@/app/components/battlefield/hud/hud";
+import { BattlefieldView } from "@/app/components/battlefield/battlefield-view";
 import { requireSessionUser } from "@/app/lib/session";
 import { requireMatchMembership } from "@/app/server/auth/membership";
 import { projectMatchView } from "@/app/server/actions/read";
@@ -58,14 +57,12 @@ export default async function PlayPage({
   if (row === undefined) notFound();
   if (row.state === null) redirect("/dashboard"); // not started yet
 
-  const matchView = projectMatchView(row.state, viewerPlayerId, gameData());
+  const data = gameData();
+  const matchView = projectMatchView(row.state, viewerPlayerId, data);
 
   return (
     <div className="fixed inset-0 top-14 bg-background">
-      <div className="relative h-full w-full">
-        <Battlefield matchView={matchView} />
-        <Hud matchView={matchView} />
-      </div>
+      <BattlefieldView matchView={matchView} gameData={data} />
     </div>
   );
 }
