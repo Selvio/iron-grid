@@ -21,6 +21,10 @@ import {
 import { matchPlayers } from "../db/schema/match-players";
 import { matches, type MatchSettings } from "../db/schema/matches";
 import type { NewPlayerEventRow } from "../db/schema/player-events";
+import {
+  safelyEnqueue,
+  scheduleTurnNotifications,
+} from "../notifications/enqueue";
 
 import type { LifecycleDeps } from "./deps";
 import { InvalidLifecycleTransitionError } from "./errors";
@@ -223,10 +227,34 @@ export async function handleReadyMatch<
       );
       await insertPlayerEvents(tx, projections);
 
-      return { status: "active" as const };
+      return {
+        status: "active" as const,
+        activation: {
+          activePlayerId: firstPlayerId,
+          turnDeadlineAt: activeState.match.turnDeadlineAt,
+          turnDeadline: match.settings.turnDeadline,
+          dedupeKey: `turn-${activeState.match.stateVersion}`,
+        },
+      };
     });
 
-    return Response.json({ matchId, ...result });
+    // Schedule the first turn's notifications after the commit — non-blocking
+    // (`notifications.gameplay_authority: false`).
+    if (result.status === "active") {
+      await safelyEnqueue(() =>
+        scheduleTurnNotifications(deps.db, {
+          matchId,
+          activePlayerId: result.activation.activePlayerId,
+          turnDeadlineAt: result.activation.turnDeadlineAt,
+          turnDeadline: result.activation.turnDeadline,
+          now: now(),
+          priorActivePlayerId: null,
+          dedupeKey: result.activation.dedupeKey,
+        }),
+      );
+    }
+
+    return Response.json({ matchId, status: result.status });
   } catch (error) {
     return errorResponse(error);
   }

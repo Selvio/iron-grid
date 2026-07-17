@@ -7,6 +7,11 @@ import { requireUser } from "../auth/session";
 import { assertStateVersion, getIdempotentResult } from "../db";
 import { matches } from "../db/schema/matches";
 
+import {
+  safelyEnqueue,
+  scheduleForCommittedAction,
+} from "../notifications/enqueue";
+
 import { handleClaimVictory } from "./claim";
 import { commitAction, defaultActionRateLimiter } from "./commit";
 import type { ActionDeps } from "./deps";
@@ -87,7 +92,7 @@ export async function handleSubmitAction<
         matchId,
         envelope.idempotencyKey,
       );
-      if (prior !== null) return prior.result;
+      if (prior !== null) return { result: prior.result, enqueue: null };
 
       if (row === undefined || row.state === null) {
         throw new MatchNotActiveError();
@@ -126,7 +131,7 @@ export async function handleSubmitAction<
         state.match.deterministicSeed,
         state.match.randomSequenceIndex,
       );
-      return commitAction(tx, {
+      const outcome = await commitAction(tx, {
         matchId,
         state,
         action,
@@ -136,9 +141,28 @@ export async function handleSubmitAction<
         turnDeadline: row.settings.turnDeadline,
         idempotencyKey: envelope.idempotencyKey,
       });
+      return {
+        result: outcome.result,
+        enqueue: {
+          committedState: outcome.committedState,
+          priorActivePlayerId: state.match.activePlayerId,
+          turnDeadline: row.settings.turnDeadline,
+        },
+      };
     });
 
-    return Response.json(result);
+    // Notifications never block gameplay — schedule after the commit, swallowing
+    // any failure (`notifications.gameplay_authority: false`).
+    if (result.enqueue !== null) {
+      await safelyEnqueue(() =>
+        scheduleForCommittedAction(deps.db, matchId, {
+          ...result.enqueue,
+          now: now(),
+        }),
+      );
+    }
+
+    return Response.json(result.result);
   } catch (error) {
     return errorResponse(error);
   }

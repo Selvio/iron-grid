@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
 
 import type { Session } from "next-auth";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import { matchPlayers } from "../../db/schema/match-players";
 import { matches } from "../../db/schema/matches";
+import { notificationJobs } from "../../db/schema/notification-jobs";
 import { users } from "../../db/schema/users";
 import { createTestDb, type TestDb } from "../../db/__tests__/harness";
 import { handleJoinMatch } from "../join";
@@ -76,6 +77,20 @@ describe("join match endpoint", () => {
       rateLimiter: createInvitationRateLimiter(100),
     };
   }
+
+  it("enqueues a match_invitation for the host on accept", async () => {
+    await handleJoinMatch(joinRequest({ code: CODE }), matchId, deps(guestId));
+    const invites = await handle.db
+      .select()
+      .from(notificationJobs)
+      .where(
+        and(
+          eq(notificationJobs.matchId, matchId),
+          eq(notificationJobs.type, "match_invitation"),
+        ),
+      );
+    expect(invites).toHaveLength(1);
+  });
 
   it("accepts a guest by code and moves to commander_selection", async () => {
     const response = await handleJoinMatch(

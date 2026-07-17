@@ -22,7 +22,8 @@ import { describe, expect, it } from "vitest";
 const PURE_PACKAGES = ["game-engine", "game-data"] as const;
 
 /** Any import specifier reaching into a server-only module is forbidden. */
-const FORBIDDEN_SPECIFIER = /server\/(db|auth|account|lifecycle|actions)/;
+const FORBIDDEN_SPECIFIER =
+  /server\/(db|auth|account|lifecycle|actions|notifications)/;
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 

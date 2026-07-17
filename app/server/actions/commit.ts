@@ -76,10 +76,17 @@ export interface CommitActionParams {
   readonly idempotencyKey: string;
 }
 
+/** A committed action's client envelope plus the persisted state (for enqueue). */
+export interface CommitOutcome {
+  readonly result: ActionResult;
+  readonly committedState: MatchState;
+}
+
 /**
  * Applies `action`, persists the committed snapshot + events + idempotency, and
- * returns the committed-result envelope. Assumes the caller has locked the row and
- * performed all authz/eligibility/version checks.
+ * returns the committed-result envelope + the persisted state (the latter for the
+ * caller's post-commit notification scheduling). Assumes the caller has locked the
+ * row and performed all authz/eligibility/version checks.
  */
 export async function commitAction<
   TQuery extends PgQueryResultHKT,
@@ -87,7 +94,7 @@ export async function commitAction<
 >(
   tx: PgDatabase<TQuery, TSchema>,
   params: CommitActionParams,
-): Promise<ActionResult> {
+): Promise<CommitOutcome> {
   const { matchId, state, action, gameData, random, now, turnDeadline } =
     params;
   const { nextState, events } = applyAction(state, action, gameData, random);
@@ -144,5 +151,5 @@ export async function commitAction<
 
   const committed = toResult(committedState);
   await recordIdempotentResult(tx, matchId, params.idempotencyKey, committed);
-  return committed;
+  return { result: committed, committedState };
 }

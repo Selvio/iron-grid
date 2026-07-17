@@ -6,6 +6,7 @@ import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 import { requireUser } from "../auth/session";
 import { matchPlayers } from "../db/schema/match-players";
 import { matches } from "../db/schema/matches";
+import { safelyEnqueue, scheduleInvitation } from "../notifications/enqueue";
 
 import type { LifecycleDeps } from "./deps";
 import { InvalidInvitationCodeError, MatchNotJoinableError } from "./errors";
@@ -69,7 +70,7 @@ export async function handleJoinMatch<
     });
     const code = parseJoinCode(body);
 
-    await deps.db.transaction(async (tx) => {
+    const hostPlayerId = await deps.db.transaction(async (tx) => {
       const [match] = await tx
         .select({
           status: matches.status,
@@ -88,7 +89,11 @@ export async function handleJoinMatch<
       }
 
       const players = await tx
-        .select({ userId: matchPlayers.userId, role: matchPlayers.role })
+        .select({
+          id: matchPlayers.id,
+          userId: matchPlayers.userId,
+          role: matchPlayers.role,
+        })
         .from(matchPlayers)
         .where(eq(matchPlayers.matchId, matchId));
       if (players.some((p) => p.userId === user.id)) {
@@ -108,7 +113,17 @@ export async function handleJoinMatch<
         .update(matches)
         .set({ status: "commander_selection" })
         .where(eq(matches.id, matchId));
+
+      return players.find((p) => p.role === "host")?.id ?? null;
     });
+
+    // Notify the host that their invitation was accepted — non-blocking
+    // (`notifications.gameplay_authority: false`).
+    if (hostPlayerId !== null) {
+      await safelyEnqueue(() =>
+        scheduleInvitation(deps.db, matchId, hostPlayerId, new Date()),
+      );
+    }
 
     return Response.json({ matchId, status: "commander_selection" });
   } catch (error) {
