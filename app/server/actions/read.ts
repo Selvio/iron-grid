@@ -48,6 +48,14 @@ interface OpponentView {
   readonly resigned: boolean;
 }
 
+/** The public map terrain the client renders (fog hides units, not the layout). */
+export interface MapView {
+  readonly width: number;
+  readonly height: number;
+  /** Row-major logical terrain ids; the client maps these to render tiles. */
+  readonly logicalTerrain: readonly (readonly string[])[];
+}
+
 /** The full read response for one viewer (`domain-model.md` §13). */
 export interface MatchView {
   readonly matchId: string;
@@ -57,6 +65,8 @@ export interface MatchView {
   readonly activePlayerId: string;
   readonly turnDeadlineAt: string | null;
   readonly viewerPlayerId: string;
+  /** The map layout to render (public); the battlefield draws terrain from it. */
+  readonly map: MapView;
   readonly visibleTiles: ReturnType<
     typeof projectStateForPlayer
   >["visibleTiles"];
@@ -78,6 +88,7 @@ export function projectMatchView(
   const view = projectStateForPlayer(state, viewerPlayerId, gameData);
   const you = state.players.find((p) => p.playerId === viewerPlayerId);
   const opponent = state.players.find((p) => p.playerId !== viewerPlayerId);
+  const map = gameData.maps[state.match.mapId];
   return {
     matchId: state.match.id,
     status: state.match.status,
@@ -86,6 +97,11 @@ export function projectMatchView(
     activePlayerId: state.match.activePlayerId,
     turnDeadlineAt: state.match.turnDeadlineAt,
     viewerPlayerId,
+    map: {
+      width: map.dimensions.width,
+      height: map.dimensions.height,
+      logicalTerrain: map.logical_terrain,
+    },
     visibleTiles: view.visibleTiles,
     units: view.units,
     properties: view.properties,

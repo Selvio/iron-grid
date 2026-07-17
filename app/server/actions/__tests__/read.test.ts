@@ -41,12 +41,17 @@ describe("read endpoints", () => {
       status: string;
       viewerPlayerId: string;
       units: unknown[];
+      map: { width: number; height: number; logicalTerrain: string[][] };
       you: { playerId: string; funds: number };
       opponent: Record<string, unknown>;
     };
 
     expect(view.status).toBe("active");
     expect(view.viewerPlayerId).toBe(active.hostPlayerId);
+    // The public map layout is included so the battlefield can render terrain.
+    expect(view.map.width).toBeGreaterThan(0);
+    expect(view.map.logicalTerrain).toHaveLength(view.map.height);
+    expect(view.map.logicalTerrain[0]).toHaveLength(view.map.width);
     // Fog is off in the fixture → both starting units are visible.
     expect(view.units).toHaveLength(2);
     expect(view.you.playerId).toBe(active.hostPlayerId);
