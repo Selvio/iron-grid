@@ -1,6 +1,7 @@
 import { loadGameData } from "game-data";
 
 import { handleCreateMatch } from "@/app/server/lifecycle/create";
+import { handleListMatches } from "@/app/server/lifecycle/list";
 import { createDatabase, type Database } from "@/app/server/db";
 
 /**
@@ -31,4 +32,17 @@ function gameData(): ReturnType<typeof loadGameData> {
 
 export async function POST(request: Request): Promise<Response> {
   return handleCreateMatch(request, { db: database(), gameData: gameData() });
+}
+
+/**
+ * `GET /api/matches` — the caller's match list for the dashboard (M9-T4).
+ *
+ * Injects the live database into the tested `handleListMatches`. Node.js runtime
+ * for the same reasons as `POST` — it reads the transactional database.
+ *
+ * @see app/server/lifecycle/list.ts
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T4)
+ */
+export async function GET(): Promise<Response> {
+  return handleListMatches({ db: database() });
 }

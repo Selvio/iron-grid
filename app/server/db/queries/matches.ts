@@ -1,8 +1,58 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { MatchState } from "game-engine";
 
+import { matchPlayers } from "../schema/match-players";
 import { matches } from "../schema/matches";
+
+/** One row of a player's match list (`GET /api/matches`, M9-T4). */
+export interface MatchSummaryRow {
+  readonly matchId: string;
+  readonly status: (typeof matches.status)["_"]["data"];
+  readonly role: (typeof matchPlayers.role)["_"]["data"];
+  readonly viewerPlayerId: string;
+  readonly activePlayerId: string | null;
+  readonly turnDeadlineAt: string | null;
+}
+
+/**
+ * Lists the matches a user belongs to, most-recent first (M9-T4).
+ *
+ * Membership-scoped: joins `match_players` to `matches` on the caller's id, so
+ * the result never leaks a match the user is not in. Returns only the shell's
+ * dashboard fields from the indexed mirror columns (no `state` jsonb read); the
+ * `viewerPlayerId` lets the client mark "your turn" without a projection.
+ *
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T4)
+ */
+export async function listMatchesForUser<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+>(db: PgDatabase<TQuery, TSchema>, userId: string): Promise<MatchSummaryRow[]> {
+  const rows = await db
+    .select({
+      matchId: matches.id,
+      status: matches.status,
+      role: matchPlayers.role,
+      viewerPlayerId: matchPlayers.id,
+      activePlayerId: matches.activePlayerId,
+      turnDeadlineAt: matches.turnDeadlineAt,
+    })
+    .from(matchPlayers)
+    .innerJoin(matches, eq(matchPlayers.matchId, matches.id))
+    .where(eq(matchPlayers.userId, userId))
+    .orderBy(desc(matches.createdAt));
+
+  return rows.map((row) => ({
+    matchId: row.matchId,
+    status: row.status,
+    role: row.role,
+    viewerPlayerId: row.viewerPlayerId,
+    activePlayerId: row.activePlayerId,
+    turnDeadlineAt:
+      row.turnDeadlineAt === null ? null : row.turnDeadlineAt.toISOString(),
+  }));
+}
 
 /**
  * Persist an authoritative match snapshot and its mirror columns atomically

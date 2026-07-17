@@ -27,6 +27,8 @@ export interface MatchSummary {
   readonly matchId: string;
   readonly status: MatchStatus;
   readonly role: "host" | "guest";
+  /** The caller's player id in this match — lets the client mark "your turn". */
+  readonly viewerPlayerId: string;
   readonly activePlayerId: string | null;
   readonly turnDeadlineAt: string | null;
 }
