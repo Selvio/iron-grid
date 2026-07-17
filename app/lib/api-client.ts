@@ -1,3 +1,4 @@
+import type { ActionResult } from "@/app/server/actions/commit";
 import type { NotificationPreferences } from "@/app/server/db/schema/users";
 import type { MatchView } from "@/app/server/actions/read";
 
@@ -17,7 +18,21 @@ import type { CreateMatchInput } from "./schemas";
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T3)
  */
 
-export type { MatchView, NotificationPreferences };
+export type { ActionResult, MatchView, NotificationPreferences };
+
+/** A gameplay action submit body: the engine action + concurrency envelope. */
+export type ActionBody = JsonBody & {
+  readonly type: string;
+  readonly expectedStateVersion: number;
+  readonly idempotencyKey: string;
+};
+
+/** One projected player event from the event stream. */
+export interface PlayerEvent {
+  readonly sequence: number;
+  readonly type: string;
+  readonly payload: unknown;
+}
 
 /** A match's lifecycle status, as the read model reports it. */
 export type MatchStatus = MatchView["status"];
@@ -156,6 +171,17 @@ export const apiClient = {
     request<CancelResult>(
       `/api/matches/${encodeURIComponent(matchId)}/cancel`,
       { method: "POST", body: {} },
+    ),
+
+  submitAction: (matchId: string, action: ActionBody) =>
+    request<ActionResult>(
+      `/api/matches/${encodeURIComponent(matchId)}/actions`,
+      { method: "POST", body: action },
+    ),
+
+  getEvents: (matchId: string, since = 0) =>
+    request<{ matchId: string; events: PlayerEvent[] }>(
+      `/api/matches/${encodeURIComponent(matchId)}/events?since=${since}`,
     ),
 
   getNotificationPreferences: () =>

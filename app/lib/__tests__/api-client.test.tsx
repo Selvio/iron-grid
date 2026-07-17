@@ -60,6 +60,39 @@ describe("apiClient", () => {
     expect(JSON.parse(init.body)).toEqual({ code: "ABC123" });
   });
 
+  it("submits a gameplay action with the version + idempotency key", async () => {
+    const fetchMock = mockFetch(200, {
+      stateVersion: 5,
+      status: "active",
+      completed: false,
+    });
+    await apiClient.submitAction("m1", {
+      type: "move_and_wait",
+      unitId: "u1",
+      path: [
+        { x: 2, y: 1 },
+        { x: 3, y: 1 },
+      ],
+      expectedStateVersion: 4,
+      idempotencyKey: "key-1",
+    });
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/matches/m1/actions");
+    expect(init.method).toBe("POST");
+    expect(JSON.parse(init.body)).toMatchObject({
+      type: "move_and_wait",
+      unitId: "u1",
+      expectedStateVersion: 4,
+      idempotencyKey: "key-1",
+    });
+  });
+
+  it("reads the event stream since a sequence", async () => {
+    const fetchMock = mockFetch(200, { matchId: "m1", events: [] });
+    await apiClient.getEvents("m1", 3);
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/matches/m1/events?since=3");
+  });
+
   it("decodes a typed error, including the 409 conflict version", async () => {
     mockFetch(409, {
       error: "stale_state_version",

@@ -31,7 +31,11 @@ import type {
 export { applyAction } from "./apply";
 export { calculateCombatPreview, destroyUnit } from "./combat";
 export { calculateLegalActions } from "./legal-actions";
-export { calculateMovementRange, validateMovementPath } from "./movement";
+export {
+  calculateMovementRange,
+  terrainMovementCost,
+  validateMovementPath,
+} from "./movement";
 export type { MovementPathResult } from "./movement";
 export { resolveStartOfTurn } from "./start-of-turn";
 export { validateAction } from "./validate";

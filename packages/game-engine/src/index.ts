@@ -120,6 +120,7 @@ export {
   evaluateVictory,
   projectStateForPlayer,
   resolveStartOfTurn,
+  terrainMovementCost,
   validateAction,
   validateMovementPath,
 } from "./engine";

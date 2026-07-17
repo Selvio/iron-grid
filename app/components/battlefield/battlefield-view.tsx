@@ -1,15 +1,16 @@
 "use client";
 
 import type { GameData } from "game-data";
-import { useReducer } from "react";
+import { useReducer, useState } from "react";
 
-import type { MatchView } from "@/app/lib/api-client";
+import { ApiError, apiClient, type MatchView } from "@/app/lib/api-client";
 import {
   INITIAL_INTERACTION,
   interactionReducer,
 } from "@/app/lib/battlefield/machine";
 import { previewUnitActions } from "@/app/lib/preview/actions";
 import { previewMovementRange } from "@/app/lib/preview/movement";
+import { computePath } from "@/app/lib/preview/path";
 
 import { ActionPanel } from "./action-panel";
 import { Battlefield } from "./battlefield";
@@ -17,15 +18,16 @@ import { Hud, type HudUnit } from "./hud/hud";
 import { InteractionOverlay, TILE_DISPLAY_PX } from "./interaction-overlay";
 
 /**
- * Battlefield interaction controller (M10-T5).
+ * Battlefield interaction controller (M10-T5/T6/T7).
  *
- * Owns the selection state and wires the pieces: the Phaser board beneath, the
- * DOM interaction overlay over it, and the HUD. Selecting one of your own,
- * not-yet-acted units on your turn computes its movement range in-browser (the
- * pure engine over the projected view) and highlights it. Destination/move,
- * action menu and combat preview land in T6.
+ * Owns the projected view + selection state and wires the pieces: the Phaser
+ * board, the DOM interaction overlay, the HUD and the confirm panel. Selecting an
+ * own unit previews its range; a destination opens the no-undo confirm; Confirm
+ * **submits** the action (`expectedStateVersion` + a fresh `idempotencyKey`) and
+ * then refetches the authoritative view. A stale submit is a typed 409 conflict
+ * that also refetches — the client never re-applies locally (`frontend.md` §9).
  *
- * @see docs/04-development/milestones/m10-battlefield.md (M10-T5)
+ * @see docs/04-development/milestones/m10-battlefield.md (M10-T7)
  */
 export function BattlefieldView({
   matchView,
@@ -34,15 +36,17 @@ export function BattlefieldView({
   matchView: MatchView;
   gameData: GameData;
 }) {
+  const [view, setView] = useState(matchView);
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
-  const isMyTurn = matchView.activePlayerId === matchView.viewerPlayerId;
+  const [busy, setBusy] = useState(false);
+  const isMyTurn = view.activePlayerId === view.viewerPlayerId;
 
   function ownSelectableAt(x: number, y: number) {
-    const unit = matchView.units.find(
+    const unit = view.units.find(
       (u) => u.position !== null && u.position.x === x && u.position.y === y,
     );
     return unit !== undefined &&
-      unit.ownerPlayerId === matchView.viewerPlayerId &&
+      unit.ownerPlayerId === view.viewerPlayerId &&
       isMyTurn &&
       !unit.hasActed
       ? unit
@@ -53,20 +57,20 @@ export function BattlefieldView({
     dispatch({
       type: "select",
       unitId,
-      reachable: previewMovementRange(matchView, unitId, gameData),
+      reachable: previewMovementRange(view, unitId, gameData),
     });
   }
 
   function handleTileClick(x: number, y: number): void {
+    if (busy) return;
     const own = ownSelectableAt(x, y);
     if (state.kind === "unit-selected") {
       if (own !== undefined) return select(own.id);
-      const reachable = state.reachable.some((c) => c.x === x && c.y === y);
-      if (reachable) {
+      if (state.reachable.some((c) => c.x === x && c.y === y)) {
         dispatch({
           type: "choose-destination",
           destination: { x, y },
-          actions: previewUnitActions(matchView, state.unitId, gameData),
+          actions: previewUnitActions(view, state.unitId, gameData),
         });
         return;
       }
@@ -77,9 +81,43 @@ export function BattlefieldView({
     dispatch({ type: "deselect" });
   }
 
+  /** Refetch the authoritative projected view (reconcile, never re-apply). */
+  async function refetch(): Promise<void> {
+    const fresh = await apiClient.getMatch(view.matchId);
+    if ("map" in fresh) setView(fresh);
+    dispatch({ type: "deselect" });
+  }
+
+  async function handleConfirm(): Promise<void> {
+    if (state.kind !== "destination" || busy) return;
+    const path = computePath(view, state.unitId, state.destination, gameData);
+    if (path === null) {
+      dispatch({ type: "deselect" });
+      return;
+    }
+    setBusy(true);
+    try {
+      await apiClient.submitAction(view.matchId, {
+        type: "move_and_wait",
+        unitId: state.unitId,
+        path,
+        expectedStateVersion: view.stateVersion,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      await refetch();
+    } catch (error) {
+      // A stale-version conflict (or any error) reconciles by refetching.
+      if (error instanceof ApiError) {
+        await refetch();
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
   const selectedUnit =
     state.kind !== "idle"
-      ? (matchView.units.find((u) => u.id === state.unitId) ?? null)
+      ? (view.units.find((u) => u.id === state.unitId) ?? null)
       : null;
   const hudUnit: HudUnit | null = selectedUnit
     ? {
@@ -97,26 +135,26 @@ export function BattlefieldView({
       <div
         className="relative"
         style={{
-          width: matchView.map.width * TILE_DISPLAY_PX,
-          height: matchView.map.height * TILE_DISPLAY_PX,
+          width: view.map.width * TILE_DISPLAY_PX,
+          height: view.map.height * TILE_DISPLAY_PX,
         }}
       >
         <div className="absolute inset-0">
-          <Battlefield matchView={matchView} />
+          <Battlefield matchView={view} />
         </div>
         <div className="absolute inset-0">
           <InteractionOverlay
-            width={matchView.map.width}
-            height={matchView.map.height}
+            width={view.map.width}
+            height={view.map.height}
             reachable={reachable}
             onTileClick={handleTileClick}
           />
         </div>
       </div>
-      <Hud matchView={matchView} selectedUnit={hudUnit} />
+      <Hud matchView={view} selectedUnit={hudUnit} />
       <ActionPanel
         state={state}
-        onConfirm={() => dispatch({ type: "deselect" })}
+        onConfirm={() => void handleConfirm()}
         onCancel={() => dispatch({ type: "cancel" })}
       />
     </div>

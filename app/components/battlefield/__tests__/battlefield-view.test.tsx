@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { MatchView } from "@/app/lib/api-client";
 import { fixtureGameData } from "@/app/server/lifecycle/__tests__/fixtures";
@@ -10,6 +10,8 @@ import { BattlefieldView } from "../battlefield-view";
 vi.mock("../create-game", () => ({
   createBattlefieldGame: vi.fn(() => ({ destroy: vi.fn() })),
 }));
+
+afterEach(() => vi.unstubAllGlobals());
 
 function plainRows(w: number, h: number): string[][] {
   return Array.from({ length: h }, () =>
@@ -98,5 +100,55 @@ describe("BattlefieldView", () => {
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("Confirm move")).not.toBeInTheDocument();
     expect(screen.getByText("Tank")).toBeInTheDocument();
+  });
+
+  it("submits the move on confirm, then refetches the authoritative view", async () => {
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >(async (url) => {
+      if (url.includes("/actions")) {
+        return {
+          ok: true,
+          status: 200,
+          json: async () => ({ stateVersion: 5, status: "active" }),
+        } as Response;
+      }
+      // The refetch — return the same view (a fresh snapshot in production).
+      return {
+        ok: true,
+        status: 200,
+        json: async () => view(),
+      } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // reachable dest
+    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+
+    await waitFor(() => {
+      const submit = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/actions"),
+      );
+      expect(submit).toBeDefined();
+      expect(
+        JSON.parse((submit![1] as RequestInit).body as string),
+      ).toMatchObject({
+        type: "move_and_wait",
+        unitId: "u1",
+        expectedStateVersion: 4,
+      });
+    });
+    // A refetch (GET the match) followed the submit — reconcile, not re-apply.
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          (c) =>
+            String(c[0]).includes("/api/matches/m1") &&
+            !String(c[0]).includes("/actions"),
+        ),
+      ).toBe(true),
+    );
   });
 });
