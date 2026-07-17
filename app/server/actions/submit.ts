@@ -59,8 +59,9 @@ export async function handleSubmitAction<
 
     // Claim Victory has its own transactional rules (inactive-opponent authz +
     // deadline gate) — dispatch it before the active-player pipeline (`backend.md`
-    // §3, §9).
-    if ((rawBody as { type?: unknown }).type === "claim_victory") {
+    // §3, §9). The optional chaining tolerates a non-object body (e.g. `null`),
+    // which then falls through to the typed 400 in `parseActionEnvelope`.
+    if ((rawBody as { type?: unknown } | null)?.type === "claim_victory") {
       return await handleClaimVictory(rawBody, matchId, deps);
     }
 

@@ -268,6 +268,14 @@ describe("action pipeline (submit)", () => {
     );
     expect(malformed.status).toBe(400);
 
+    // A literal `null` JSON body is valid JSON but not an action envelope.
+    const nullBody = await handleSubmitAction(
+      actionRequest("null"),
+      active.matchId,
+      deps(active.hostId),
+    );
+    expect(nullBody.status).toBe(400);
+
     const unauth = await handleSubmitAction(
       actionRequest(endTurn()),
       active.matchId,

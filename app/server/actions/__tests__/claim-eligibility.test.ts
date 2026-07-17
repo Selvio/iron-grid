@@ -46,4 +46,13 @@ describe("isClaimEligible", () => {
       false,
     );
   });
+
+  it("handles the exact-boundary instants", () => {
+    // now exactly at the deadline is not yet expired (strict >).
+    expect(isClaimEligible(stateWith(DEADLINE, null), new Date(DEADLINE))).toBe(
+      false,
+    );
+    // an action exactly at the deadline does not revoke (<=).
+    expect(isClaimEligible(stateWith(DEADLINE, DEADLINE), NOW)).toBe(true);
+  });
 });

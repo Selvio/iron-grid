@@ -124,7 +124,7 @@ and `GET/PATCH /api/me/notifications` (M5-T5) are live. There is **no cron / wor
   `reminder.remaining_time_percent: 20`, `turn_expired` at the deadline) with a
   future `scheduledAt`; `turnDeadline = "none"` schedules neither
   (`reminder.no_deadline_match_has_reminder: false`). A secured
-  `POST /api/cron/notifications` claims due `pending` jobs, checks the recipient's
+  `GET /api/cron/notifications` claims due `pending` jobs, checks the recipient's
   `users.notification_preferences`, sends via the injected mailer, and marks
   `sent`; on turn hand-off the pipeline **cancels** the prior turn's outstanding
   `turn_reminder` / `turn_expired` jobs (`pending → cancelled`).
@@ -257,7 +257,7 @@ and `GET/PATCH /api/me/notifications` (M5-T5) are live. There is **no cron / wor
 - **Scope:**
   - A `NotificationMailer` seam + default `resendMailer`-style impl (M5 pattern; secrets
     at send time); per-`type` email content.
-  - `POST /api/cron/notifications` — shared-secret guarded; `claimDueJobs` → per job,
+  - `GET /api/cron/notifications` — shared-secret guarded; `claimDueJobs` → per job,
     load the recipient's `users.notification_preferences`, skip (mark `cancelled` or
     leave) when the toggle is off, else send via the mailer and `markSent`; failures
     logged, never thrown into gameplay.

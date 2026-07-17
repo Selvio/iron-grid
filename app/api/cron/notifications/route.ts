@@ -1,5 +1,5 @@
-import { requireCronSecret } from "@/app/server/auth";
 import { createDatabase, type Database } from "@/app/server/db";
+import { isCronAuthorized } from "@/app/server/notifications/cron-auth";
 import { drainNotifications } from "@/app/server/notifications/drain";
 
 /**
@@ -23,9 +23,7 @@ function database(): Database {
 }
 
 export async function GET(request: Request): Promise<Response> {
-  if (
-    request.headers.get("authorization") !== `Bearer ${requireCronSecret()}`
-  ) {
+  if (!isCronAuthorized(request.headers.get("authorization"))) {
     return Response.json({ error: "unauthorized" }, { status: 401 });
   }
   const result = await drainNotifications({ db: database() });
