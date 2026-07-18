@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { PlayerEvent } from "@/app/lib/api-client";
-import { buildAnimationPlan, prefersReducedMotion } from "../animation-plan";
+import {
+  buildAnimationPlan,
+  prefersReducedMotion,
+  submittedAttackPlan,
+  submittedMovePlan,
+} from "../animation-plan";
 
 function ev(sequence: number, type: string, payload: unknown): PlayerEvent {
   return { sequence, type, payload };
@@ -85,6 +90,67 @@ describe("buildAnimationPlan", () => {
       buildAnimationPlan([ev(1, "unit_moved", { unitId: "u1", path: [] })], {
         reducedMotion: true,
       }),
+    ).toEqual([]);
+  });
+});
+
+describe("submittedMovePlan", () => {
+  const path = [
+    { x: 2, y: 1 },
+    { x: 3, y: 1 },
+  ];
+
+  it("builds a single move step from the submitted path", () => {
+    expect(submittedMovePlan("u1", path, { reducedMotion: false })).toEqual([
+      { kind: "move", unitId: "u1", path },
+    ]);
+  });
+
+  it("is empty under reduced motion (snap, no walk)", () => {
+    expect(submittedMovePlan("u1", path, { reducedMotion: true })).toEqual([]);
+  });
+});
+
+describe("submittedAttackPlan", () => {
+  const path = [
+    { x: 2, y: 1 },
+    { x: 3, y: 1 },
+  ];
+
+  it("walks to the firing tile, then strikes the defender", () => {
+    expect(
+      submittedAttackPlan("u1", path, "e1", { reducedMotion: false }),
+    ).toEqual([
+      { kind: "move", unitId: "u1", path },
+      {
+        kind: "attack",
+        attackerUnitId: "u1",
+        defenderUnitId: "e1",
+        damage: 0,
+        defenderHpAfter: 0,
+      },
+    ]);
+  });
+
+  it("omits the walk for an attack in place (single-tile path)", () => {
+    expect(
+      submittedAttackPlan("u1", [{ x: 2, y: 1 }], "e1", {
+        reducedMotion: false,
+      }),
+    ).toEqual([
+      {
+        kind: "attack",
+        attackerUnitId: "u1",
+        defenderUnitId: "e1",
+        damage: 0,
+        defenderHpAfter: 0,
+      },
+    ]);
+  });
+
+  it("is empty under reduced motion", () => {
+    expect(
+      submittedAttackPlan("u1", path, "e1", { reducedMotion: true }),
     ).toEqual([]);
   });
 });

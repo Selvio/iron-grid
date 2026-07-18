@@ -246,18 +246,34 @@ runs on the `setup.ts` test fixture map. No battlefield UI exists.
   fixture unit; the reducer transitions select→range correctly (unit-tested).
 - **Dependencies:** M10-T2, M10-T3.
 
-## M10-T6 · Legal actions, combat preview & confirmation
-- **Goal:** preview legal actions + combat and confirm with no undo
+## M10-T6 · Legal actions, combat preview & the selectable action menu
+- **Goal:** preview legal actions + combat and commit an action with no undo
   (`game-specification.md` §11, §12.7, §10.4).
-- **Scope:** at a destination, `calculateLegalActions` → the action menu;
-  `calculateCombatPreview` → min/max damage + counter forecast (no luck drawn); the
-  **no-undo** confirmation panel previewing destination / path / movement cost /
-  fuel / follow-up actions (§10.4). All in the reducer + React DOM.
-- **Files:** `app/lib/preview/*`, `app/components/battlefield/*`, reducer, tests.
+- **Scope:** at a destination, `calculateLegalActions` → the **selectable**
+  Advance-Wars action menu (Wait / Capture / Attack, each committing with no undo);
+  Attack opens a target picker then `calculateCombatPreview` → min/max damage +
+  counter forecast (no luck drawn) before the final confirm (§12.7, §10.4). All in
+  the reducer + React DOM.
+- **Files:** `app/lib/preview/*`, `app/components/battlefield/*`, reducer, tests;
+  `packages/game-engine/src/legal-actions.ts` (+ `combat.ts` / `capture.ts` legality
+  predicates).
 - **Acceptance:** legal actions + combat min/max/counter match the engine over a
-  fixture combat; the confirm panel shows the required previews; the reducer reaches
-  the confirm state and blocks undo (unit-tested).
+  fixture combat; the menu shows only the actions legal at the chosen tile and each
+  is selectable; the reducer reaches the confirm state and blocks undo (unit-tested).
 - **Dependencies:** M10-T5.
+
+> **Amendment (post-M10, practice mode):** `calculateLegalActions` originally
+> enumerated only `move_and_wait` + `end_turn`, so the menu could offer only "move
+> here" and the combat-preview path stayed out of the live controller (see §4/§6 — the fixture game
+> data has no weapons/damage tables). With the **practice/hotseat seed** loading the
+> **real** `crossfire-basin` game data, the enumerator was extended to emit `attack`
+> (firing-tile → target pairs) and `capture` (capturable-property tiles) via pure
+> `canAttackFrom` / `canCaptureAt` predicates that mirror `validateAttack` /
+> `validateCapture`. The panel became a **selectable** Wait/Capture/Attack menu and
+> the live **choose-target → forecast → submit `attack`** path is now wired and
+> unit-tested over combat-capable fixtures. The move-component path is still built
+> client-side (`computePath`) and re-validated on submit — the enumeration only
+> asserts a legal path to each tile exists.
 
 ## M10-T7 · Submit & reconcile
 - **Goal:** submit the confirmed action and reconcile authoritatively
@@ -352,21 +368,23 @@ M10 is complete when, from a clean checkout:
    terrain tiles, fog overlay, shadows, and the acted/greyed + submarine states —
    the §9.5 approval recorded by ADR.
 3. The active player can **select a unit**, see its **movement range** and a
-   **legal-action menu**, computed **in-browser by the pure engine** over the
-   projected view (no hidden-state leak), and a **no-undo confirmation** previewing
-   the destination and available actions (§10.4). The **combat-preview** path
-   (`previewCombat` + the `combat-preview` reducer state + the forecast panel) is
-   built and unit-tested but **not wired into the live controller** — see §6: the
-   fixture game data carries no weapons/damage tables, so live attack targeting +
-   forecast land with combat data in **M12** (the M7 precedent).
-4. Confirming a **move** **submits** through `POST …/actions` with
-   `expectedStateVersion` + `idempotencyKey`; the client **refetches** the projected
-   view, and a **stale submit** is a typed conflict that triggers a refetch, never a
-   local re-apply (`frontend.md` §9). The **animation** builder (`buildAnimationPlan`
-   + the scene's `playAnimation`) is built and unit-tested; the live
-   submit→`getEvents`→plan→`playAnimation` **bridge is not yet wired** (§6): it is
-   the M12 manual-canvas layer, and animation never gates gameplay (§28.2), so the
-   refetched view is always authoritative.
+   **selectable legal-action menu** (Wait / Capture / Attack), computed
+   **in-browser by the pure engine** over the projected view (no hidden-state leak),
+   each committing with **no undo** (§10.4). Attack opens a **target picker** then a
+   **combat-preview** forecast (`previewCombat` + the `combat-preview` reducer state
+   + the forecast panel) before the final confirm — this path is now **wired into
+   the live controller** and unit-tested over combat-capable fixtures (see the
+   §M10-T6 amendment). Live combat needs real weapons/damage tables, which the
+   **practice/hotseat** match supplies (real `crossfire-basin` game data).
+4. Committing a **move / capture / attack** **submits** through `POST …/actions`
+   with `expectedStateVersion` + `idempotencyKey`; the client **refetches** the
+   projected view, and a **stale submit** is a typed conflict that triggers a
+   refetch, never a local re-apply (`frontend.md` §9). The **animation** builder
+   (`buildAnimationPlan` / `submittedMovePlan` / `submittedAttackPlan` + the scene's
+   `playAnimation`) is built and unit-tested; the live submit→`getEvents`→plan
+   **event bridge** is not yet wired (§6) — `BattlefieldView` animates the
+   just-submitted action optimistically, then reconciles by refetch, and animation
+   never gates gameplay (§28.2), so the refetched view is always authoritative.
 5. **Properties** render with neutral/faction ownership + capture-progress under the
    recorded §33.4 treatment; the **first official 20×16 map** is authored, validated,
    renders end-to-end, and ships with a balance rationale + ≥10 openings/start, with
@@ -394,17 +412,21 @@ M10 is complete when, from a clean checkout:
 - **The two-human balance sign-off** — M10 authors a symmetric candidate map + the
   balance evidence; the formal `official_map_release_gates` human review is recorded
   by the owner, not fabricated here.
-- **Live combat targeting & submit** — `previewCombat`, the `combat-preview`
-  reducer state and the forecast panel are built and unit-tested, but the live path
-  (choose a target → forecast → submit an `attack`) is **not wired**: the fixture
-  game data has no weapons/damage tables, so a live combat run cannot execute yet.
-  It lands with combat data in **M12** — the same deferral M7 recorded for real
-  combat through the action pipeline.
+- **Live combat targeting & submit** — ~~deferred to M12~~ **delivered** by the
+  §M10-T6 amendment: `calculateLegalActions` now enumerates `attack`/`capture`, the
+  action menu is selectable, and the choose-target → forecast → submit `attack` path
+  is wired and unit-tested over combat-capable fixtures. It became runnable once the
+  **practice/hotseat** seed loaded real `crossfire-basin` weapons/damage tables. What
+  remains deferred is the **full action surface** (produce / supply / load / unload /
+  join / dive / surface / power / missile): those are neither enumerated by
+  `calculateLegalActions` nor offered by the menu yet, and land with their own UI in
+  a later pass.
 - **The live event-fetch → animation bridge** — `buildAnimationPlan` and the scene's
   `playAnimation` are built and unit-tested, but the runtime seam
   (submit → `getEvents` → plan → `playAnimation`) is **not wired**; `BattlefieldView`
-  reconciles by refetch only. Wiring it is part of the **M12** manual-canvas layer
-  (animation never gates gameplay, §28.2, so the refetch is always authoritative).
+  animates the just-submitted move/attack optimistically, then reconciles by refetch.
+  Wiring the event bridge is part of the **M12** manual-canvas layer (animation never
+  gates gameplay, §28.2, so the refetch is always authoritative).
 - **The Phaser canvas visual verification** — no WebGL in jsdom; pixel-level
   rendering, the provisional `BASE_TERRAIN_TILE`/`PROPERTY_TILE` atlas cells, and the
   per-tile board **ownership insignia** (§27.4; ADR-0004) are verified/authored in

@@ -41,6 +41,7 @@ describe("read endpoints", () => {
       status: string;
       viewerPlayerId: string;
       units: unknown[];
+      visibleTiles: unknown[];
       map: { width: number; height: number; logicalTerrain: string[][] };
       unitRender: Record<string, { spriteRow: number; isAir: boolean }>;
       you: { playerId: string; funds: number };
@@ -53,6 +54,8 @@ describe("read endpoints", () => {
     expect(view.map.width).toBeGreaterThan(0);
     expect(view.map.logicalTerrain).toHaveLength(view.map.height);
     expect(view.map.logicalTerrain[0]).toHaveLength(view.map.width);
+    // Fog is off → every tile is visible (no shroud darkens the board).
+    expect(view.visibleTiles).toHaveLength(view.map.width * view.map.height);
     // Static sprite metadata for the client (it cannot load game data).
     expect(Object.keys(view.unitRender).length).toBeGreaterThan(0);
     // Fog is off in the fixture → both starting units are visible.

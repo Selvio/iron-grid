@@ -62,7 +62,7 @@ function matchupFor(
   attackerTypeId: string,
   defenderTypeId: string,
 ): Matchup | undefined {
-  return gameData.damageChart.attackers[attackerTypeId]?.matchups[
+  return gameData.damageChart?.attackers[attackerTypeId]?.matchups[
     defenderTypeId
   ];
 }
@@ -301,6 +301,31 @@ export function validateAttack(
   if (weapon === null) errors.push({ code: "no_valid_weapon" });
 
   return done();
+}
+
+/**
+ * Whether `attacker`, firing from tile `from`, could legally hit `defender` —
+ * the range + weapon core of `validateAttack`, minus the move-path legality the
+ * caller establishes separately (`from` is an origin or a proven-reachable tile).
+ * Pure and side-effect free; used to enumerate `attack` legal actions (§11, §12).
+ */
+export function canAttackFrom(
+  gameData: GameData,
+  attacker: UnitState,
+  attackerDef: UnitDef,
+  from: Coordinate,
+  defender: UnitState,
+): boolean {
+  if (defender.position === null) return false;
+  if (defender.ownerPlayerId === attacker.ownerPlayerId) return false;
+  if (attackerDef.combat === undefined) return false;
+  if (!inRange(attackerDef, distance(from, defender.position))) return false;
+  return (
+    selectWeapon(
+      matchupFor(gameData, attacker.typeId, defender.typeId),
+      attacker.ammo,
+    ) !== null
+  );
 }
 
 /** The outcome of one directed hit, ready to be threaded into state and events. */

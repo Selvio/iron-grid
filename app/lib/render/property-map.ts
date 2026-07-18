@@ -19,13 +19,17 @@ import type { MatchView } from "@/app/lib/api-client";
 /** Property capture resistance starts at 20 (`properties.yaml`). */
 export const MAX_CAPTURE_POINTS = 20;
 
-/** Base building tile per property type (§33.4, ADR-0004; provisional cells). */
+/**
+ * Base building tile per property type (§33.4, ADR-0004).
+ * Cells follow `assets-inventory.md` §4.7 (buildings at cols 0–5, rows 13–15).
+ * Row 12 is asphalt road / dirt — never use it as a building.
+ */
 export const PROPERTY_TILE: Record<string, string> = {
-  city: "terrain_r12_c00",
-  base: "terrain_r13_c00",
-  airport: "terrain_r14_c00",
+  city: "terrain_r13_c00",
+  base: "terrain_r14_c00",
+  airport: "terrain_r15_c02",
   port: "terrain_r15_c00",
-  headquarters: "terrain_r12_c07",
+  headquarters: "terrain_r14_c03",
 };
 
 export interface PropertySprite {

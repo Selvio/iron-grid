@@ -3,18 +3,17 @@ document_version: "1.0.0"
 document_status: "definitive-schema"
 document_purpose: >
   Canonical official-map schema and validation contract for Iron Grid.
-  This file defines the required structure of every official 20x16 map,
-  player starts, terrain grid, render layers, property instances, starting
-  units, starting funds, supported settings, symmetry metadata, balance
-  requirements, map versioning, and release gates. No playable official map
-  is invented here because no map layout has yet been designed and approved.
+  This file defines the required structure of every official map (dimensions
+  are declared per map and must match the terrain grid), player starts,
+  terrain grid, render layers, property instances, starting units, starting
+  funds, supported settings, balance requirements, map versioning, and
+  release gates. The first official map is `crossfire-basin` (15×10 island).
 
 game_reference:
   inspiration: "Advance Wars 2: Black Hole Rising"
   iron_grid_constraints:
     player_count: 2
-    map_width: 20
-    map_height: 16
+    map_dimensions: "declared per map; terrain cell count must equal width × height"
     official_maps_only_in_mvp: true
     user_generated_maps_enabled: false
     map_editor_enabled: false
@@ -49,12 +48,12 @@ conventions:
     origin: "top_left"
     x_axis: "increases_right"
     y_axis: "increases_down"
-    x_range_inclusive: [0, 19]
-    y_range_inclusive: [0, 15]
+    x_range_inclusive: "0 .. width-1"
+    y_range_inclusive: "0 .. height-1"
   dimensions:
-    width: 20
-    height: 16
-    tile_count: 320
+    width: "positive integer declared per map"
+    height: "positive integer declared per map"
+    tile_count: "width × height"
   logical_tile_key_format: "{x},{y}"
   render_layers:
     - base
@@ -102,7 +101,7 @@ enums:
     - retired
     - blocked
   map_sizes:
-    - fixed_20x16
+    - per_map_dimensions
   symmetry_types:
     - rotational_180
     - horizontal
@@ -163,10 +162,10 @@ map_schema:
       - player_1
       - player_2
   logical_terrain:
-    required_tile_count: 320
+    required_tile_count: "width × height"
     allowed_encoding: "row_major_array"
-    row_count: 16
-    column_count_per_row: 20
+    row_count: "equals dimensions.height"
+    column_count_per_row: "equals dimensions.width"
     terrain_ids_source: "terrain.yaml"
   render_layers:
     required_layers:
@@ -232,27 +231,27 @@ logical_terrain_schema:
 render_layer_schema:
   base:
     required: true
-    dimensions: "20x16"
+    dimensions: "matches map width × height"
     null_values_allowed: false
     use: "Primary visual tile for every coordinate."
   transition:
     required: false
-    dimensions: "20x16"
+    dimensions: "matches map width × height"
     null_values_allowed: true
     use: "Coast, road, river and biome transition overlays."
   structure:
     required: false
-    dimensions: "20x16"
+    dimensions: "matches map width × height"
     null_values_allowed: true
     use: "Properties, pipes, silos and destructible terrain visuals."
   ownership:
     required: false
-    dimensions: "20x16"
+    dimensions: "matches map width × height"
     null_values_allowed: true
     use: "Neutral/player ownership flags, tints or overlays."
   decoration:
     required: false
-    dimensions: "20x16"
+    dimensions: "matches map width × height"
     null_values_allowed: true
     gameplay_effect: false
     use: "Purely cosmetic details."
@@ -412,7 +411,7 @@ balance_schema:
 official_map_release_gates:
   data:
     - "Map YAML validates against this schema."
-    - "Exactly 320 logical terrain cells exist."
+    - "Logical terrain cell count equals width × height."
     - "Every ID and cross-reference resolves."
     - "Exactly two player slots exist."
     - "Exactly one Headquarters belongs to each player."
@@ -444,8 +443,8 @@ map_template:
   description: null
   status: "draft"
   dimensions:
-    width: 20
-    height: 16
+    width: null
+    height: null
   player_slots:
     player_1:
       id: "player_1"
@@ -524,13 +523,16 @@ map_template:
     acceptance_tests: []
 
 official_maps:
+  # Island skirmish reconstructed from the visual reference (15×10). player_1
+  # starts NE (Blue), player_2 SW (Red). Visual bridges are logical `road`.
   crossfire-basin:
     id: "crossfire-basin"
-    version: "1.0.0"
+    version: "2.0.0"
+    display_name: null
     status: "review"
     dimensions:
-      width: 20
-      height: 16
+      width: 15
+      height: 10
     player_slots:
       player_1:
         id: "player_1"
@@ -539,42 +541,42 @@ official_maps:
         id: "player_2"
         headquarters_property_id: "hq_p2"
     logical_terrain:
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "base", "plain", "plain", "headquarters", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "city", "plain", "plain", "plain", "plain", "mountain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "forest", "mountain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "forest", "forest", "forest", "plain", "plain", "mountain", "forest", "plain", "forest", "forest", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "road", "road", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "road", "road", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "forest", "mountain", "plain", "plain", "forest", "forest", "forest", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "mountain", "forest", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "mountain", "plain", "plain", "plain", "plain", "city", "plain", "forest", "forest", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "headquarters", "plain", "plain", "base", "city", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
-      - ["plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain", "plain"]
+      - ["sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
+      - ["sea", "sea", "forest", "road", "road", "road", "road", "road", "road", "road", "road", "road", "base", "headquarters", "sea"]
+      - ["sea", "plain", "plain", "road", "sea", "sea", "road", "plain", "city", "plain", "road", "base", "base", "base", "sea"]
+      - ["sea", "city", "city", "road", "sea", "sea", "road", "forest", "plain", "mountain", "road", "plain", "plain", "plain", "sea"]
+      - ["sea", "plain", "base", "road", "road", "road", "road", "plain", "plain", "mountain", "road", "road", "road", "plain", "sea"]
+      - ["sea", "base", "headquarters", "plain", "plain", "forest", "forest", "plain", "city", "plain", "road", "city", "plain", "plain", "sea"]
+      - ["sea", "base", "base", "plain", "plain", "forest", "plain", "plain", "plain", "plain", "road", "sea", "sea", "city", "sea"]
+      - ["sea", "plain", "plain", "plain", "plain", "plain", "mountain", "mountain", "plain", "plain", "road", "road", "road", "city", "sea"]
+      - ["sea", "sea", "sea", "city", "city", "road", "forest", "road", "city", "road", "road", "plain", "plain", "plain", "sea"]
+      - ["sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
     properties:
-      - { id: "hq_p1", type_id: "headquarters", x: 2, y: 13, initial_owner: "player_1" }
-      - { id: "hq_p2", type_id: "headquarters", x: 17, y: 2, initial_owner: "player_2" }
-      - { id: "base_p1", type_id: "base", x: 5, y: 13, initial_owner: "player_1" }
-      - { id: "base_p2", type_id: "base", x: 14, y: 2, initial_owner: "player_2" }
-      - { id: "city_p1", type_id: "city", x: 2, y: 10, initial_owner: "player_1" }
-      - { id: "city_p2", type_id: "city", x: 17, y: 5, initial_owner: "player_2" }
-      - { id: "city2_p1", type_id: "city", x: 6, y: 13, initial_owner: "player_1" }
-      - { id: "city2_p2", type_id: "city", x: 13, y: 2, initial_owner: "player_2" }
-      - { id: "city_n1", type_id: "city", x: 9, y: 3, initial_owner: "neutral" }
-      - { id: "city_n2", type_id: "city", x: 10, y: 12, initial_owner: "neutral" }
-      - { id: "city_n3", type_id: "city", x: 4, y: 7, initial_owner: "neutral" }
-      - { id: "city_n4", type_id: "city", x: 15, y: 8, initial_owner: "neutral" }
-      - { id: "city_n5", type_id: "city", x: 9, y: 11, initial_owner: "neutral" }
-      - { id: "city_n6", type_id: "city", x: 10, y: 4, initial_owner: "neutral" }
+      - { id: "hq_p1", type_id: "headquarters", x: 13, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_a", type_id: "base", x: 12, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_b", type_id: "base", x: 12, y: 2, initial_owner: "player_1" }
+      - { id: "base_p1_c", type_id: "base", x: 11, y: 2, initial_owner: "player_1" }
+      - { id: "base_p1_d", type_id: "base", x: 13, y: 2, initial_owner: "player_1" }
+      - { id: "hq_p2", type_id: "headquarters", x: 2, y: 5, initial_owner: "player_2" }
+      - { id: "base_p2_a", type_id: "base", x: 1, y: 5, initial_owner: "player_2" }
+      - { id: "base_p2_b", type_id: "base", x: 1, y: 6, initial_owner: "player_2" }
+      - { id: "base_p2_c", type_id: "base", x: 2, y: 6, initial_owner: "player_2" }
+      - { id: "base_p2_d", type_id: "base", x: 2, y: 4, initial_owner: "player_2" }
+      - { id: "city_n1", type_id: "city", x: 1, y: 3, initial_owner: "neutral" }
+      - { id: "city_n2", type_id: "city", x: 2, y: 3, initial_owner: "neutral" }
+      - { id: "city_n3", type_id: "city", x: 8, y: 2, initial_owner: "neutral" }
+      - { id: "city_n4", type_id: "city", x: 8, y: 5, initial_owner: "neutral" }
+      - { id: "city_n5", type_id: "city", x: 11, y: 5, initial_owner: "neutral" }
+      - { id: "city_n6", type_id: "city", x: 3, y: 8, initial_owner: "neutral" }
+      - { id: "city_n7", type_id: "city", x: 4, y: 8, initial_owner: "neutral" }
+      - { id: "city_n8", type_id: "city", x: 8, y: 8, initial_owner: "neutral" }
+      - { id: "city_n9", type_id: "city", x: 13, y: 6, initial_owner: "neutral" }
+      - { id: "city_n10", type_id: "city", x: 13, y: 7, initial_owner: "neutral" }
     starting_units:
-      - { id: "inf_p1", type_id: "infantry", owner: "player_1", x: 3, y: 13 }
-      - { id: "inf_p2", type_id: "infantry", owner: "player_2", x: 16, y: 2 }
-      - { id: "tank_p1", type_id: "tank", owner: "player_1", x: 4, y: 12 }
-      - { id: "tank_p2", type_id: "tank", owner: "player_2", x: 15, y: 3 }
+      - { id: "inf_p1", type_id: "infantry", owner: "player_1", x: 11, y: 3 }
+      - { id: "tank_p1", type_id: "tank", owner: "player_1", x: 12, y: 3 }
+      - { id: "inf_p2", type_id: "infantry", owner: "player_2", x: 3, y: 5 }
+      - { id: "tank_p2", type_id: "tank", owner: "player_2", x: 3, y: 6 }
     starting_funds:
       player_1: 0
       player_2: 0
@@ -637,8 +639,8 @@ implementation_constraints:
   - "Do not enable day-limit scoring before rules.yaml weights are defined."
 
 required_validation_tests:
-  - "Map dimensions are exactly 20x16."
-  - "Logical terrain contains exactly 320 cells."
+  - "Logical terrain row/column counts equal declared dimensions."
+  - "Logical terrain cell count equals width × height."
   - "Every terrain ID resolves in terrain.yaml."
   - "Every used terrain is allowed in official maps."
   - "Every property ID is unique."

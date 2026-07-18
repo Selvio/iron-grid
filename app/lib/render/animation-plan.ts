@@ -102,3 +102,52 @@ export function buildAnimationPlan(
   }
   return steps;
 }
+
+/**
+ * A move plan built from the client's just-submitted path. Under fog-off (all
+ * current matches) the submitted path equals the server's resolved `unit_moved`
+ * path, so this animates the same tiles the authoritative event carries without
+ * an events round-trip. Empty under reduced motion (snap, no walk). When fog
+ * lands, switch the source to `getEvents` + `buildAnimationPlan`.
+ *
+ * @see docs/04-development/milestones/m10-battlefield.md
+ */
+export function submittedMovePlan(
+  unitId: string,
+  path: readonly Coordinate[],
+  options: { readonly reducedMotion: boolean },
+): AnimationStep[] {
+  if (options.reducedMotion) return [];
+  return [{ kind: "move", unitId, path }];
+}
+
+/**
+ * An attack plan built from the client's just-submitted action: the optional walk
+ * to the firing tile (only when the path is a real move), then the attack beat on
+ * the defender. Like `submittedMovePlan` this animates the committed action while
+ * the refetch reconciles the authoritative result; the true damage/HP come from
+ * the resolved event, so the pre-submit beat carries neutral placeholders (the
+ * scene only flashes the defender). Empty under reduced motion.
+ *
+ * @see docs/04-development/milestones/m10-battlefield.md
+ */
+export function submittedAttackPlan(
+  attackerUnitId: string,
+  path: readonly Coordinate[],
+  defenderUnitId: string,
+  options: { readonly reducedMotion: boolean },
+): AnimationStep[] {
+  if (options.reducedMotion) return [];
+  const steps: AnimationStep[] = [];
+  if (path.length > 1) {
+    steps.push({ kind: "move", unitId: attackerUnitId, path });
+  }
+  steps.push({
+    kind: "attack",
+    attackerUnitId,
+    defenderUnitId,
+    damage: 0,
+    defenderHpAfter: 0,
+  });
+  return steps;
+}

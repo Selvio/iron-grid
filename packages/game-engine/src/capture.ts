@@ -74,6 +74,27 @@ export function clearCaptureBy(
   return next;
 }
 
+/**
+ * Whether `unit` could legally capture the property it would occupy at `tile` —
+ * the capability + target core of `validateCapture`, minus the move-path legality
+ * the caller establishes separately (`tile` is an origin or a proven-reachable
+ * tile). Pure; used to enumerate `capture` legal actions (§11, §13).
+ */
+export function canCaptureAt(
+  state: MatchState,
+  gameData: GameData,
+  unit: UnitState,
+  unitDef: GameData["units"][string],
+  tile: Coordinate,
+): boolean {
+  if (!unitDef.capabilities?.can_capture) return false;
+  const property = propertyAt(state, tile);
+  if (property === undefined) return false;
+  const propDef = gameData.properties[property.typeId];
+  if (propDef === undefined || !propDef.capturable) return false;
+  return property.ownerPlayerId !== unit.ownerPlayerId;
+}
+
 /** Validate a `capture` (turn/ownership, capability, optional move, target; §13). */
 export function validateCapture(
   state: MatchState,

@@ -245,14 +245,33 @@ function sanitizeEnemy(unit: UnitState): UnitState {
  * enemy units sanitized, and public property ownership. When fog is off every
  * board unit is visible; enemy cargo identity is hidden either way.
  */
+/** Every coordinate of the match map — the visible set when fog is off (§18.1). */
+function allMapCoordinates(
+  state: MatchState,
+  gameData: GameData,
+): Coordinate[] {
+  const map = gameData.maps[state.match.mapId];
+  const coords: Coordinate[] = [];
+  if (map === undefined) return coords;
+  for (let y = 0; y < map.dimensions.height; y++) {
+    for (let x = 0; x < map.dimensions.width; x++) {
+      coords.push({ x, y });
+    }
+  }
+  return coords;
+}
+
 export function projectStateForPlayer(
   state: MatchState,
   playerId: Id,
   gameData: GameData,
 ): PlayerView {
-  const visible = calculateVisibility(state, playerId, gameData).visible;
-  const visibleSet = new Set(visible.map(key));
   const fog = state.match.fogEnabled === true;
+  // Range-based visibility drives the enemy-unit gate; but with fog off the whole
+  // board is seen, so the tile map the client renders is every tile (no shroud).
+  const rangeVisible = calculateVisibility(state, playerId, gameData).visible;
+  const visibleSet = new Set(rangeVisible.map(key));
+  const visible = fog ? rangeVisible : allMapCoordinates(state, gameData);
 
   const units: UnitState[] = [];
   for (const unit of state.units) {

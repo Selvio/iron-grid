@@ -13,62 +13,82 @@ import {
 /**
  * Action / confirmation panel (M10-T6).
  *
- * Shown at a chosen destination or a combat preview. It lists the available
- * follow-up actions and, for an attack, the min/max damage + counter forecast,
- * then confirms with **no undo** (`game-specification.md` §10.4): Confirm commits
- * (the submit lands in T7), Cancel steps back one state. Renders nothing outside
- * the destination / combat-preview states.
+ * The Advance-Wars post-move menu (`game-specification.md` §11, §27.2): at a
+ * chosen destination it offers the **selectable** follow-up actions legal there —
+ * Wait, Capture, Attack — each committing with **no undo** (§10.4). Attack opens
+ * a target picker (`select-target`); choosing a target shows the min/max damage +
+ * counter forecast (`combat-preview`) before the final Attack confirm. Cancel
+ * steps back one state. Renders nothing outside the menu / target / preview
+ * states.
  *
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T6)
  */
 
-const ACTION_LABEL: Record<string, string> = {
-  move_and_wait: "Move here",
-  attack: "Attack",
-  capture: "Capture",
-  supply: "Supply",
-  load: "Load",
-  unload: "Unload",
-  join: "Join",
-  dive: "Dive",
-  surface: "Surface",
-};
+/** Callbacks the controller wires to each menu action. */
+export interface ActionPanelHandlers {
+  /** Commit a `move_and_wait` to the chosen tile. */
+  readonly onWait: () => void;
+  /** Commit a `capture` at the chosen tile. */
+  readonly onCapture: () => void;
+  /** Open the target picker (or forecast, when a single target exists). */
+  readonly onAttack: () => void;
+  /** Commit the previewed `attack`. */
+  readonly onConfirmAttack: () => void;
+  /** Step back one interaction state. */
+  readonly onCancel: () => void;
+}
 
 export function ActionPanel({
   state,
-  onConfirm,
-  onCancel,
+  handlers,
 }: {
   state: InteractionState;
-  onConfirm: () => void;
-  onCancel: () => void;
+  handlers: ActionPanelHandlers;
 }) {
-  if (state.kind !== "destination" && state.kind !== "combat-preview") {
+  if (
+    state.kind !== "action-menu" &&
+    state.kind !== "select-target" &&
+    state.kind !== "combat-preview"
+  ) {
     return null;
   }
+
+  const title =
+    state.kind === "combat-preview"
+      ? "Combat"
+      : state.kind === "select-target"
+        ? "Choose target"
+        : "Actions";
 
   return (
     <Card className="pointer-events-auto absolute bottom-4 right-4 w-64">
       <CardHeader>
-        <CardTitle>
-          {state.kind === "combat-preview" ? "Combat" : "Confirm move"}
-        </CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>
-          To ({state.destination.x}, {state.destination.y}) · no undo
+          {state.kind === "select-target"
+            ? "Select an enemy to attack"
+            : `To (${state.destination.x}, ${state.destination.y}) · no undo`}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex flex-col gap-3">
-        {state.kind === "destination" && state.actions.length > 0 && (
-          <ul className="flex flex-wrap gap-1.5">
-            {state.actions.map((action) => (
-              <li
-                key={action}
-                className="rounded bg-secondary px-2 py-0.5 text-xs text-secondary-foreground"
-              >
-                {ACTION_LABEL[action] ?? action}
-              </li>
-            ))}
-          </ul>
+        {state.kind === "action-menu" && (
+          <div className="flex flex-col gap-1.5">
+            {state.options.canWait && (
+              <Button variant="secondary" onClick={handlers.onWait}>
+                Wait
+              </Button>
+            )}
+            {state.options.canCapture && (
+              <Button variant="secondary" onClick={handlers.onCapture}>
+                Capture
+              </Button>
+            )}
+            {state.options.attackTargets.length > 0 && (
+              <Button variant="secondary" onClick={handlers.onAttack}>
+                Attack
+              </Button>
+            )}
+          </div>
         )}
 
         {state.kind === "combat-preview" && (
@@ -91,12 +111,18 @@ export function ActionPanel({
         )}
 
         <div className="flex gap-2">
-          <Button variant="outline" className="flex-1" onClick={onCancel}>
+          <Button
+            variant="outline"
+            className="flex-1"
+            onClick={handlers.onCancel}
+          >
             Cancel
           </Button>
-          <Button className="flex-1" onClick={onConfirm}>
-            Confirm
-          </Button>
+          {state.kind === "combat-preview" && (
+            <Button className="flex-1" onClick={handlers.onConfirmAttack}>
+              Attack
+            </Button>
+          )}
         </div>
       </CardContent>
     </Card>

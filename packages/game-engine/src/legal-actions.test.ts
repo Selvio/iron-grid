@@ -5,18 +5,22 @@ import type { GameData } from "game-data";
 import { calculateLegalActions } from "./legal-actions";
 import type {
   Coordinate,
+  Id,
   MatchMeta,
   MatchState,
+  PropertyState,
   PlayerState,
   UnitState,
 } from "./state";
 
 /**
- * M2-T5: `calculateLegalActions` enumerates a `move_and_wait` per idle unit (its
- * reachable tiles plus its own tile) and one `end_turn`, in board order, only for
- * the active player of an active match.
+ * `calculateLegalActions` enumerates, per idle unit, a `move_and_wait` (its
+ * reachable tiles plus its own tile), a `capture` and an `attack` when available,
+ * plus one `end_turn` — in board order, only for the active player of an active
+ * match (M2-T5; attack/capture enumeration added in M10-T6).
  *
  * @see docs/04-development/milestones/m2-engine-core.md (M2-T5)
+ * @see docs/04-development/milestones/m10-battlefield.md (M10-T6)
  */
 
 const PLAIN = {
@@ -29,12 +33,61 @@ const PLAIN = {
   transport_ship: null,
 } as const;
 
+/** A direct 1-range unit that may move-and-fire; `infantry` can also capture. */
+const UNIT_DEFS = {
+  tank: {
+    category: "ground",
+    movement: { type: "treads", points: 6, can_move_and_attack: true },
+    combat: { type: "direct", min_range: 1, max_range: 1 },
+    capabilities: { can_capture: false },
+    logistics: { primary_ammo_per_attack: 1 },
+  },
+  infantry: {
+    category: "ground",
+    movement: {
+      type: "foot",
+      points: 3,
+      can_move_and_attack: true,
+      can_move_and_capture: true,
+    },
+    combat: { type: "direct", min_range: 1, max_range: 1 },
+    capabilities: { can_capture: true },
+    logistics: { primary_ammo_per_attack: 0 },
+  },
+} as const;
+
+/** A tiny damage chart so `selectWeapon` finds a legal weapon for the matchups. */
+const DAMAGE_CHART = {
+  attackers: {
+    tank: {
+      matchups: {
+        tank: {
+          weapon_values: { primary: { weapon_id: "cannon", base_damage: 55 } },
+        },
+        infantry: {
+          weapon_values: { secondary: { weapon_id: "mg", base_damage: 75 } },
+        },
+      },
+    },
+    infantry: {
+      matchups: {
+        tank: {
+          weapon_values: { primary: { weapon_id: "rifle", base_damage: 5 } },
+        },
+      },
+    },
+  },
+} as const;
+
 function makeGameData(grid: readonly string[][]): GameData {
   return {
-    units: {
-      tank: { category: "ground", movement: { type: "treads", points: 6 } },
-    },
+    units: UNIT_DEFS,
     terrain: { plain: { movement_costs: PLAIN } },
+    properties: {
+      city: { capturable: true, max_capture_points: 20 },
+      headquarters: { capturable: true, max_capture_points: 20 },
+    },
+    damageChart: DAMAGE_CHART,
     maps: {
       m: {
         dimensions: { width: grid[0]!.length, height: grid.length },
@@ -42,6 +95,22 @@ function makeGameData(grid: readonly string[][]): GameData {
       },
     },
   } as unknown as GameData;
+}
+
+function property(
+  id: string,
+  typeId: string,
+  position: Coordinate,
+  ownerPlayerId: Id | null,
+): PropertyState {
+  return {
+    id,
+    typeId,
+    position,
+    ownerPlayerId,
+    capturePointsRemaining: 20,
+    capturingUnitId: null,
+  };
 }
 
 function unit(
@@ -105,12 +174,13 @@ function match(patch: Partial<MatchMeta> = {}): MatchMeta {
 function state(
   units: readonly UnitState[],
   patch: Partial<MatchMeta> = {},
+  properties: readonly PropertyState[] = [],
 ): MatchState {
   return {
     match: match(patch),
     players: [player("p1"), player("p2")],
     units,
-    properties: [],
+    properties,
     terrainObjects: [],
   };
 }
@@ -168,5 +238,78 @@ describe("calculateLegalActions", () => {
     const gd = makeGameData(PLAIN_1x3);
     const s = state([unit("a", "p1", { x: 0, y: 0 })], { status: "completed" });
     expect(calculateLegalActions(s, "p1", gd)).toEqual([]);
+  });
+
+  it("offers an attack against an adjacent enemy, from the origin and move tiles", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    // p1 tank at x=0, p2 tank at x=2 on a 1×3 strip; the empty x=1 is a firing tile.
+    const s = state([
+      unit("a", "p1", { x: 0, y: 0 }, { ammo: 9 }),
+      unit("e", "p2", { x: 2, y: 0 }, { ammo: 9 }),
+    ]);
+    const actions = calculateLegalActions(s, "p1", gd);
+
+    const attack = actions.find((x) => x.type === "attack");
+    expect(attack?.unitId).toBe("a");
+    // The only tile adjacent to the enemy the tank can reach/hit from is x=1.
+    expect(attack?.attacks).toEqual([
+      { from: { x: 1, y: 0 }, targetUnitId: "e" },
+    ]);
+    // move_and_wait precedes attack for the same unit.
+    expect(actions.map((x) => x.type)).toEqual([
+      "move_and_wait",
+      "attack",
+      "end_turn",
+    ]);
+  });
+
+  it("omits attack when no enemy is in range, and out-of-ammo cannons cannot fire", () => {
+    const gd = makeGameData([["plain", "plain", "plain", "plain", "plain"]]);
+    // Enemy is 4 tiles away — a treads-6 tank reaches x=1..? but the only weapon
+    // vs a tank is the ammo-gated primary; with ammo 0 there is no legal weapon.
+    const s = state([
+      unit("a", "p1", { x: 0, y: 0 }, { ammo: 0 }),
+      unit("e", "p2", { x: 4, y: 0 }, { ammo: 9 }),
+    ]);
+    const actions = calculateLegalActions(s, "p1", gd);
+    expect(actions.some((x) => x.type === "attack")).toBe(false);
+  });
+
+  it("offers a capture for an infantry standing on a capturable enemy property", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state(
+      [unit("i", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 })],
+      {},
+      [property("c", "city", { x: 0, y: 0 }, "p2")],
+    );
+    const actions = calculateLegalActions(s, "p1", gd);
+
+    const capture = actions.find((x) => x.type === "capture");
+    expect(capture?.unitId).toBe("i");
+    // Capture-in-place: the origin tile carrying the enemy city.
+    expect(capture?.destinations).toContainEqual({ x: 0, y: 0 });
+    expect(actions.map((x) => x.type)).toEqual([
+      "move_and_wait",
+      "capture",
+      "end_turn",
+    ]);
+  });
+
+  it("does not offer a capture for a non-capturing unit or an own property", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    // A tank cannot capture; and even infantry cannot capture a property it owns.
+    const s = state(
+      [
+        unit("t", "p1", { x: 0, y: 0 }, { typeId: "tank", ammo: 0 }),
+        unit("i", "p1", { x: 2, y: 0 }, { typeId: "infantry", ammo: 0 }),
+      ],
+      {},
+      [
+        property("c1", "city", { x: 0, y: 0 }, "p2"), // enemy, but tank can't capture
+        property("c2", "city", { x: 2, y: 0 }, "p1"), // own, infantry can't capture
+      ],
+    );
+    const actions = calculateLegalActions(s, "p1", gd);
+    expect(actions.some((x) => x.type === "capture")).toBe(false);
   });
 });

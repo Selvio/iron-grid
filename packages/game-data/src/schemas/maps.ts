@@ -1,15 +1,10 @@
 /**
  * `maps.yaml` schema and intra-file validation.
  *
- * No official map has been designed yet, so `official_maps` is empty and the
- * file is in its `blocked` publication state — which M1-T4 must accept as valid.
- * This module validates the map-instance *contract* and implements the
- * self-contained per-map integrity checks (dimensions, 320 cells, two player
- * slots, one non-neutral Headquarters per player, unique IDs/coordinates,
- * non-negative funds) so they are ready to bite the moment a map is added in
- * M10. Cross-file checks — terrain/property/unit references resolving, terrain
- * being official-map-allowed, units enabled and able to occupy their tile — are
- * deferred to M1-T5.
+ * Validates the map-instance contract and self-contained per-map integrity
+ * checks (dimensions vs terrain grid, two player slots, one non-neutral
+ * Headquarters per player, unique IDs/coordinates, in-bounds placements,
+ * non-negative funds). Cross-file checks are deferred to integrity.ts.
  *
  * @see docs/02-data/maps.yaml
  * @see docs/04-development/milestones/m1-game-data.md (M1-T4)
@@ -49,7 +44,10 @@ const mapInstance = z.looseObject({
   id: z.string(),
   version: z.string(),
   status: mapStatus,
-  dimensions: z.looseObject({ width: z.int(), height: z.int() }),
+  dimensions: z.looseObject({
+    width: z.int().positive(),
+    height: z.int().positive(),
+  }),
   player_slots: z.looseObject({ player_1: playerSlot, player_2: playerSlot }),
   logical_terrain: z.array(z.array(z.string())),
   properties: z.array(propertyInstance),
@@ -58,20 +56,17 @@ const mapInstance = z.looseObject({
   balance: z.looseObject({ status: z.string() }),
 });
 
-/** The top-level `maps.yaml` document. */
-const mapsFile = z.looseObject({
-  official_maps: z.record(z.string(), mapInstance),
-  publication_state: z.looseObject({ official_map_count: z.int() }),
-});
-
 /** A validated map instance. */
 export type GameMap = z.infer<typeof mapInstance>;
 
 /** The validated official maps, keyed by map ID (empty until M10). */
 export type GameMaps = Readonly<Record<string, GameMap>>;
 
-const MAP_WIDTH = 20;
-const MAP_HEIGHT = 16;
+/** The top-level `maps.yaml` document. */
+const mapsFile = z.looseObject({
+  official_maps: z.record(z.string(), mapInstance),
+  publication_state: z.looseObject({ official_map_count: z.int() }),
+});
 
 /** Report duplicate values in `items`, mapping each to a locating string for the message. */
 function findDuplicates(items: readonly string[]): string[] {
@@ -84,33 +79,41 @@ function findDuplicates(items: readonly string[]): string[] {
   return [...dupes];
 }
 
+/** Whether a coordinate lies inside the map's declared dimensions. */
+function inBounds(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): boolean {
+  return x >= 0 && y >= 0 && x < width && y < height;
+}
+
 /** Run the self-contained integrity checks for one map, collecting any issues. */
 function validateMap(c: IssueCollector, key: string, map: GameMap): void {
   const at = (sub: string): string => `official_maps.${key}.${sub}`;
+  const width = map.dimensions.width;
+  const height = map.dimensions.height;
+  const expectedCells = width * height;
 
-  // Dimensions and terrain-grid shape.
-  c.check(
-    map.dimensions.width === MAP_WIDTH && map.dimensions.height === MAP_HEIGHT,
-    at("dimensions"),
-    `must be ${MAP_WIDTH}x${MAP_HEIGHT}`,
-  );
+  // Dimensions and terrain-grid shape must agree with the map's own size.
   const rows = map.logical_terrain;
   c.check(
-    rows.length === MAP_HEIGHT,
+    rows.length === height,
     at("logical_terrain"),
-    `must have ${MAP_HEIGHT} rows, found ${rows.length}`,
+    `must have ${height} rows, found ${rows.length}`,
   );
   const cellCount = rows.reduce((n, row) => n + row.length, 0);
   c.check(
-    cellCount === MAP_WIDTH * MAP_HEIGHT,
+    cellCount === expectedCells,
     at("logical_terrain"),
-    `must have ${MAP_WIDTH * MAP_HEIGHT} cells, found ${cellCount}`,
+    `must have ${expectedCells} cells, found ${cellCount}`,
   );
   for (const [i, row] of rows.entries()) {
     c.check(
-      row.length === MAP_WIDTH,
+      row.length === width,
       at(`logical_terrain[${i}]`),
-      `row must have ${MAP_WIDTH} cells, found ${row.length}`,
+      `row must have ${width} cells, found ${row.length}`,
     );
   }
 
@@ -143,6 +146,21 @@ function validateMap(c: IssueCollector, key: string, map: GameMap): void {
     at("starting_units"),
     `duplicate unit coordinates: ${unitCoordDupes.join(", ")}`,
   );
+
+  for (const p of map.properties) {
+    c.check(
+      inBounds(p.x, p.y, width, height),
+      at(`properties.${p.id}`),
+      `coordinates (${p.x}, ${p.y}) are outside ${width}x${height}`,
+    );
+  }
+  for (const u of map.starting_units) {
+    c.check(
+      inBounds(u.x, u.y, width, height),
+      at(`starting_units.${u.id}`),
+      `coordinates (${u.x}, ${u.y}) are outside ${width}x${height}`,
+    );
+  }
 
   // Exactly one non-neutral Headquarters per player.
   const hqs = map.properties.filter((p) => p.type_id === "headquarters");

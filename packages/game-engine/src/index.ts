@@ -128,6 +128,7 @@ export {
 export { createInitialMatchState } from "./setup";
 export type { InitialMatchInput, RosterEntry } from "./setup";
 export type {
+  AttackOption,
   CombatPreview,
   DamageForecast,
   EngineResult,

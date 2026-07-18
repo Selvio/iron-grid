@@ -44,42 +44,45 @@ describe("maps: the first official map (M10)", () => {
     expect(map!.status).toBe("review");
   });
 
-  it("is 180°-rotationally symmetric — terrain, properties and starting units", () => {
+  it("is the 15×10 island layout with NE Blue / SW Red starts", () => {
     const m = map!;
-    const W = m.dimensions.width;
-    const H = m.dimensions.height;
-    // Terrain mirrors under (x,y) -> (W-1-x, H-1-y).
-    for (let y = 0; y < H; y++) {
-      for (let x = 0; x < W; x++) {
-        expect(m.logical_terrain[y]![x]).toBe(
-          m.logical_terrain[H - 1 - y]![W - 1 - x],
-        );
-      }
+    expect(m.dimensions).toEqual({ width: 15, height: 10 });
+    expect(m.logical_terrain).toHaveLength(10);
+    expect(m.logical_terrain.every((row) => row.length === 15)).toBe(true);
+
+    // Sea frame — the island is surrounded by water.
+    expect(m.logical_terrain[0]!.every((t) => t === "sea")).toBe(true);
+    expect(m.logical_terrain[9]!.every((t) => t === "sea")).toBe(true);
+    for (const row of m.logical_terrain) {
+      expect(row[0]).toBe("sea");
+      expect(row[14]).toBe("sea");
     }
-    // Every property has a mirror of the same type; owned ones mirror to the
-    // opposite player, neutral to neutral.
-    const propAt = (x: number, y: number) =>
-      m.properties.find((p) => p.x === x && p.y === y);
-    const otherOwner: Record<string, string> = {
-      player_1: "player_2",
-      player_2: "player_1",
-      neutral: "neutral",
-    };
-    for (const p of m.properties) {
-      const mirror = propAt(W - 1 - p.x, H - 1 - p.y);
-      expect(mirror, `mirror of ${p.id}`).toBeDefined();
-      expect(mirror!.type_id).toBe(p.type_id);
-      expect(mirror!.initial_owner).toBe(otherOwner[p.initial_owner]);
-    }
-    // Every starting unit has a mirror of the same type owned by the other player.
-    const unitAt = (x: number, y: number) =>
-      m.starting_units.find((u) => u.x === x && u.y === y);
-    for (const u of m.starting_units) {
-      const mirror = unitAt(W - 1 - u.x, H - 1 - u.y);
-      expect(mirror, `mirror of ${u.id}`).toBeDefined();
-      expect(mirror!.type_id).toBe(u.type_id);
-      expect(mirror!.owner).toBe(otherOwner[u.owner]);
-    }
+    // Central lake enclosed by the road loop (the reference's signature).
+    expect(m.logical_terrain[2]![4]).toBe("sea"); // lake
+    expect(m.logical_terrain[2]![3]).toBe("road"); // loop left
+    expect(m.logical_terrain[1]![6]).toBe("road"); // loop top/right
+
+    const byOwner = (owner: string, type: string) =>
+      m.properties.filter(
+        (p) => p.initial_owner === owner && p.type_id === type,
+      );
+    expect(byOwner("player_1", "headquarters")).toHaveLength(1);
+    expect(byOwner("player_2", "headquarters")).toHaveLength(1);
+    expect(byOwner("player_1", "base")).toHaveLength(4);
+    expect(byOwner("player_2", "base")).toHaveLength(4);
+    expect(byOwner("neutral", "city").length).toBeGreaterThanOrEqual(8);
+
+    // HQ seats: Blue NE, Red SW.
+    const hq1 = byOwner("player_1", "headquarters")[0]!;
+    const hq2 = byOwner("player_2", "headquarters")[0]!;
+    expect(hq1.x).toBeGreaterThan(hq2.x);
+    expect(hq1.y).toBeLessThan(hq2.y);
+
+    // Balanced infantry + tank starts.
+    const units = (owner: string) =>
+      m.starting_units.filter((u) => u.owner === owner).map((u) => u.type_id);
+    expect(units("player_1").sort()).toEqual(["infantry", "tank"]);
+    expect(units("player_2").sort()).toEqual(["infantry", "tank"]);
   });
 });
 

@@ -65,11 +65,27 @@ export interface MovementRange {
   readonly reachable: readonly Coordinate[];
 }
 
-/** A legal action available to a player (refined in M2-T5). */
+/** One firing-tile → target pair a unit may attack (`attack` legal action, §12). */
+export interface AttackOption {
+  /** The tile the attacker fires from — its origin, or a move-and-fire tile. */
+  readonly from: Coordinate;
+  /** The enemy unit that can be legally hit from `from`. */
+  readonly targetUnitId: Id;
+}
+
+/**
+ * A legal action available to a player (M2-T5, extended in M10 for the
+ * battlefield action menu). `move_and_wait` and `capture` carry the tiles the
+ * unit may end its activation on in `destinations`; `attack` carries the
+ * (firing-tile, target) pairs in `attacks`. The move component's exact path is
+ * built by the caller and re-validated on submit — the enumeration only asserts
+ * that a legal path to each tile exists.
+ */
 export interface LegalAction {
   readonly type: ActionType;
   readonly unitId?: Id;
   readonly destinations?: readonly Coordinate[];
+  readonly attacks?: readonly AttackOption[];
 }
 
 /** The per-player projected read-model (`domain-model.md` §13, §18.7). */

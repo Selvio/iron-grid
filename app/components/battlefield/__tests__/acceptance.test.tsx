@@ -103,12 +103,12 @@ describe("battlefield acceptance", () => {
 
     await user.click(screen.getByLabelText("Tile 2, 1")); // select
     await user.click(screen.getByLabelText("Tile 3, 1")); // destination
-    // The confirm panel is reachable and operable by keyboard.
-    const confirm = screen.getByRole("button", { name: "Confirm" });
-    confirm.focus();
+    // The action menu is reachable and operable by keyboard.
+    const wait = screen.getByRole("button", { name: "Wait" });
+    wait.focus();
     await user.keyboard("{Enter}");
     await waitFor(() =>
-      expect(screen.queryByText("Confirm move")).not.toBeInTheDocument(),
+      expect(screen.queryByText("Actions")).not.toBeInTheDocument(),
     );
   });
 
@@ -133,7 +133,7 @@ describe("battlefield acceptance", () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1"));
     await userEvent.click(screen.getByLabelText("Tile 3, 1"));
-    await userEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
 
     // The 409 triggered a refetch of the authoritative view.
     await waitFor(() =>
@@ -146,6 +146,6 @@ describe("battlefield acceptance", () => {
       ).toBe(true),
     );
     // Selection cleared — the client did not keep a locally-applied move.
-    expect(screen.queryByText("Confirm move")).not.toBeInTheDocument();
+    expect(screen.queryByText("Actions")).not.toBeInTheDocument();
   });
 });

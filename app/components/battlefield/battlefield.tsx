@@ -7,22 +7,31 @@ import { buildPropertyRenderModel } from "@/app/lib/render/property-map";
 import { buildTerrainRenderModel } from "@/app/lib/render/terrain-map";
 import { buildUnitRenderModel } from "@/app/lib/render/unit-map";
 
-/**
- * Battlefield canvas host (M10-T1/T2).
- *
- * Mounts the Phaser game in a client-only `useEffect` (Phaser touches `window`,
- * so it never runs during SSR or in tests) and tears it down on unmount. The
- * Phaser bootstrap is dynamically imported so the canvas module stays out of the
- * server bundle and the jsdom test path. T2 feeds the terrain render model built
- * from the projected `MatchView`; later tickets add unit/property layers and the
- * interaction bridge.
- *
- * @see docs/04-development/milestones/m10-battlefield.md (M10-T2)
- */
-export function Battlefield({ matchView }: { matchView: MatchView }) {
-  const containerRef = useRef<HTMLDivElement>(null);
+import type { BattlefieldData, BattlefieldHandle } from "./create-game";
 
-  const data = useMemo(
+/**
+ * Battlefield canvas host (M10).
+ *
+ * Mounts the Phaser game **once** (client-only; Phaser touches `window`, so it
+ * never runs during SSR or in tests) and reconciles in place on every state
+ * change via `handle.syncModel` — no destroy/recreate, so the board never
+ * flickers. The scene handle is surfaced through `onSceneReady` so the controller
+ * can drive the move animation. The bootstrap is dynamically imported to keep the
+ * canvas module out of the server bundle and the jsdom test path.
+ *
+ * @see docs/04-development/milestones/m10-battlefield.md
+ */
+export function Battlefield({
+  matchView,
+  onSceneReady,
+}: {
+  matchView: MatchView;
+  onSceneReady?: (handle: BattlefieldHandle) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const handleRef = useRef<BattlefieldHandle | null>(null);
+
+  const data: BattlefieldData = useMemo(
     () => ({
       terrain: buildTerrainRenderModel(matchView.map, matchView.visibleTiles),
       properties: buildPropertyRenderModel(matchView),
@@ -33,6 +42,17 @@ export function Battlefield({ matchView }: { matchView: MatchView }) {
     [matchView],
   );
 
+  // Latest values read by the create-once effect without re-running it. Seeded
+  // from the first render (useRef) and refreshed after each render (never in
+  // render — the async create callback may fire after a later render).
+  const dataRef = useRef(data);
+  const onReadyRef = useRef(onSceneReady);
+  useEffect(() => {
+    dataRef.current = data;
+    onReadyRef.current = onSceneReady;
+  });
+
+  // Create the game ONCE; destroy only on unmount.
   useEffect(() => {
     const container = containerRef.current;
     if (container === null) return;
@@ -42,13 +62,23 @@ export function Battlefield({ matchView }: { matchView: MatchView }) {
 
     void import("./create-game").then(({ createBattlefieldGame }) => {
       if (destroyed) return;
-      game = createBattlefieldGame(container, data);
+      game = createBattlefieldGame(container, dataRef.current, (handle) => {
+        handleRef.current = handle;
+        onReadyRef.current?.(handle);
+      });
     });
 
     return () => {
       destroyed = true;
+      handleRef.current = null;
       game?.destroy(true);
     };
+  }, []);
+
+  // Reconcile in place whenever the projected view changes. No-op on mount while
+  // the scene boots async (the initial draw comes from the scene's own create()).
+  useEffect(() => {
+    handleRef.current?.syncModel(data);
   }, [data]);
 
   return (

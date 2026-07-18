@@ -38,7 +38,7 @@ describe("buildPropertyRenderModel", () => {
       ownerFaction: "blue",
       captureProgress: 0,
     });
-    expect(model[0].renderTileId).toBe("terrain_r12_c07");
+    expect(model[0].renderTileId).toBe("terrain_r14_c03");
     expect(model[1].ownerFaction).toBeNull();
   });
 

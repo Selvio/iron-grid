@@ -1,59 +1,69 @@
 # Crossfire Basin — balance rationale (M10-T10)
 
-**Map:** `official_maps.crossfire-basin` · 20×16 · `status: review`
+**Map:** `official_maps.crossfire-basin` · 15×10 · `status: review` · `version: 2.0.0`
 **Balance status:** `pending_review` — candidate + evidence produced by
 implementation; the formal **two-human balance sign-off**
 (`maps.yaml` `official_map_release_gates`) is recorded by the project owner. This
 document is that evidence, not the approval.
 
-## Fairness by construction
+## Topology
 
-The map is **180° rotationally symmetric**: tile `(x, y)` maps to `(19−x, 15−y)`,
-and every terrain feature, property and starting unit is placed as a mirror pair.
-Because the first player is selected at random (`game-specification.md` §7.2) and
-the two halves are identical under rotation, **no positional advantage can accrue
-to either start** — any line available to player 1 has an exact mirror available
-to player 2. This satisfies `game-specification.md` §7.2 (balanced for either
-starting player) structurally rather than by play-testing.
+The map is an **asymmetric island** reconstructed from the visual reference
+(central lake/basin, north channel bridge, east bay, SE peninsula). Fairness is
+by **resource and opener parity**, not 180° rotational symmetry:
 
-## Resource & position parity
+| Resource | player_1 (Blue, NE) | player_2 (Red, SW) |
+|---|---|---|
+| Headquarters | (12, 1) | (2, 5) |
+| Bases (×4) | (11,1) (13,1) (12,2) (13,2) | (1,5) (4,5) (1,6) (2,6) |
+| Owned cities | 0 | 1 at (8, 8) |
+| Starting units | infantry (10,2) + tank (11,2) | infantry (3,6) + tank (4,6) |
+| Starting funds | 0 | 0 |
 
-- **Headquarters:** one each — `hq_p1` at (2, 13), `hq_p2` at (17, 2).
-- **Bases (production):** one each — `base_p1` (5, 13), `base_p2` (14, 2).
-- **Owned cities:** two each — mirror pairs at (2, 10)/(17, 5) and (6, 13)/(13, 2).
-- **Neutral cities:** six, in three symmetric pairs — (9, 3)/(10, 12), (4, 7)/(15, 8),
-  (9, 11)/(10, 4) — equidistant from each HQ under the rotation.
-- **Starting units:** one infantry + one tank each, mirror-placed near the HQ.
-- **Terrain:** only confirmed types (plain, forest, mountain, road); a central
-  road seam and symmetric forest/mountain clusters give both sides identical
-  cover and choke geometry. No special terrain (§33.3), no sea/air/naval.
+Nine neutral cities sit on contested land: (1,3) (2,3) (9,2) (9,4) (11,4)
+(12,5) (5,8) (12,8) (13,8). The extra Red city at (8,8) offsets Blue’s slightly
+shorter HQ↔base cluster; reviewers should confirm that trade in play.
+
+**Terrain (official-map-allowed only):** `sea`, `plain`, `forest`, `mountain`,
+`road`, `city`, `base`, `headquarters`. Visual bridges are logical `road` (the
+`bridge` terrain remains asset-gated).
 
 ## Scripted openings
 
-Ten openings per start position. Player 2's openings are the 180° mirror of
-player 1's, so listing player 1's set defines both.
+Ten openings per start. Paths assume fog-off and standard infantry/tank movement.
 
-**Player 1 (HQ at 2,13):**
+**Player 1 — Blue HQ (12,1):**
 
-1. Infantry → capture the nearest neutral city (4, 7); tank holds the base lane.
-2. Tank → contest the central road seam (9, 7); infantry captures (4, 7).
-3. Infantry → toward (9, 11) neutral; tank screens the HQ approach.
-4. Build infantry from `base_p1`; existing infantry captures (4, 7).
-5. Build recon from `base_p1`; tank pushes the forest at (5, 9) for cover.
-6. Tank → flank via the west edge column toward (9, 11); infantry captures (2, 10)-adjacent.
-7. Double-capture: infantry to (4, 7), a built infantry to (9, 11).
-8. Defensive: tank to the mountain (4, 11) for defense stars; infantry captures (4, 7).
-9. Economy-first: capture two owned-adjacent cities, delay the center.
-10. Rush the center road seam with tank + built recon, contesting (9, 7)/(10, 8) early.
+1. Infantry → capture (9, 2); tank screens the north road.
+2. Infantry → (11, 4); tank holds the east road spine at (12, 3).
+3. Tank → contest the north bridge (6, 1); infantry captures (9, 2).
+4. Build infantry from a NE base; existing infantry takes (9, 4).
+5. Build recon; tank pushes south along (12, *) toward the peninsula bridge.
+6. Infantry → (12, 5); tank covers the mountain line at (10, 3)/(10, 4).
+7. Double-capture: infantry to (9, 2), built infantry to (11, 4).
+8. Defensive: tank to mountain (10, 3); infantry captures (9, 2).
+9. Economy-first: secure (9, 2) and (9, 4) before contesting the basin.
+10. Rush the SE peninsula via (12, 6)→(10, 8) for (12, 8)/(13, 8).
 
-**Player 2 (HQ at 17,2):** the mirror of each of the above under `(19−x, 15−y)`.
+**Player 2 — Red HQ (2,5):**
+
+1. Infantry → capture (1, 3); tank screens the west road at (3, 5).
+2. Infantry → (2, 3); tank holds (3, 4).
+3. Tank → north toward the bridge (4, 1)/(5, 1); infantry takes (1, 3).
+4. Build infantry; existing infantry captures (2, 3).
+5. Build recon; tank pushes the central basin edge via (4, 4).
+6. Infantry → (5, 8); tank covers mountains (4, 8)/(6, 8).
+7. Double-capture: infantry to (1, 3), built infantry to (5, 8).
+8. Defensive: tank to mountain (4, 8); infantry captures (2, 3).
+9. Economy-first: lean on (8, 8) income and take (5, 8) next.
+10. Contest the north road/bridge early with tank + built recon.
 
 ## Reviewer checklist (for the owner's sign-off)
 
-- [ ] Symmetry verified (author-enforced by construction; not machine-checked by
-      `validateIntegrity`, though the M10-T10 tests assert it — see below).
+- [ ] Island silhouette, lake, bay, roads and property colors match the reference.
 - [ ] No terrain/property/unit references unresolved (enforced by `validateIntegrity`).
-- [ ] Opening variety adequate for both starts (the ten above + mirrors).
+- [ ] Opening variety adequate for both starts (the ten above).
+- [ ] Owned-city asymmetry (Red +1) is acceptable or compensated.
 - [ ] Two human reviewers approve balance → then flip `status: published` and
       `balance.status: approved`.
 
