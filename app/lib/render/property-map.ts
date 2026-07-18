@@ -40,6 +40,11 @@ export interface PropertySprite {
   readonly renderTileId: string;
   /** The owning faction, or null when the property is neutral. */
   readonly ownerFaction: FactionId | null;
+  /**
+   * Faction of the unit currently capturing, or null when uncontested.
+   * Used so mid-capture (ownership not yet flipped) still shows a faction tint.
+   */
+  readonly capturingFaction: FactionId | null;
   /** Capture progress in [0, 1]; 0 when uncontested. */
   readonly captureProgress: number;
 }
@@ -51,6 +56,18 @@ function factionByPlayer(view: MatchView): Record<string, FactionId> {
     table[view.opponent.playerId] = view.opponent.factionId as FactionId;
   }
   return table;
+}
+
+/** Resolve the capturer's faction from `capturingUnitId` → unit owner → faction. */
+function capturingFactionFor(
+  view: MatchView,
+  capturingUnitId: string | null,
+  factions: Record<string, FactionId>,
+): FactionId | null {
+  if (capturingUnitId == null) return null;
+  const unit = view.units.find((u) => u.id === capturingUnitId);
+  if (unit === undefined) return null;
+  return factions[unit.ownerPlayerId] ?? null;
 }
 
 export function buildPropertyRenderModel(view: MatchView): PropertySprite[] {
@@ -65,6 +82,11 @@ export function buildPropertyRenderModel(view: MatchView): PropertySprite[] {
       property.ownerPlayerId === null
         ? null
         : (factions[property.ownerPlayerId] ?? null),
+    capturingFaction: capturingFactionFor(
+      view,
+      property.capturingUnitId,
+      factions,
+    ),
     captureProgress:
       (MAX_CAPTURE_POINTS - property.capturePointsRemaining) /
       MAX_CAPTURE_POINTS,

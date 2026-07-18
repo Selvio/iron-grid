@@ -109,19 +109,39 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
           this.tilesetFrameIndex(property.renderTileId),
         )
         .setOrigin(0, 0);
-      if (property.ownerFaction !== null) {
-        building.setTint(FACTION_TINT[property.ownerFaction]);
+      // An in-progress capture remains untinted (the building's white artwork).
+      // The faction-colored progress bar communicates who is capturing it.
+      const tintFaction =
+        property.captureProgress > 0 ? null : property.ownerFaction;
+      if (tintFaction !== null) {
+        building.setTint(FACTION_TINT[tintFaction]);
       }
       this.dynamicObjects.push(building);
       if (property.captureProgress > 0) {
+        const barColor =
+          property.capturingFaction !== null
+            ? FACTION_TINT[property.capturingFaction]
+            : 0xffffff;
+        // Track under the fill so partial progress reads clearly on the tile.
         this.dynamicObjects.push(
           this.add
             .rectangle(
               worldX + 2,
-              worldY + TERRAIN_TILE_PX - 4,
+              worldY + TERRAIN_TILE_PX - 5,
+              TERRAIN_TILE_PX - 4,
+              4,
+              0x1a1f2a,
+            )
+            .setOrigin(0, 0),
+        );
+        this.dynamicObjects.push(
+          this.add
+            .rectangle(
+              worldX + 2,
+              worldY + TERRAIN_TILE_PX - 5,
               (TERRAIN_TILE_PX - 4) * property.captureProgress,
-              3,
-              0xffffff,
+              4,
+              barColor,
             )
             .setOrigin(0, 0),
         );

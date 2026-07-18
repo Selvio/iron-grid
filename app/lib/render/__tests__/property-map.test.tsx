@@ -3,11 +3,12 @@ import { describe, expect, it } from "vitest";
 import type { MatchView } from "@/app/lib/api-client";
 import { buildPropertyRenderModel } from "../property-map";
 
-function view(properties: unknown[]): MatchView {
+function view(properties: unknown[], units: unknown[] = []): MatchView {
   return {
     you: { playerId: "me", factionId: "blue" },
     opponent: { playerId: "them", factionId: "red" },
     properties,
+    units,
   } as unknown as MatchView;
 }
 
@@ -51,10 +52,33 @@ describe("buildPropertyRenderModel", () => {
           position: { x: 0, y: 0 },
           ownerPlayerId: "them",
           capturePointsRemaining: 5, // 15 of 20 captured
+          capturingUnitId: null,
         },
       ]),
     );
     expect(property.ownerFaction).toBe("red");
     expect(property.captureProgress).toBeCloseTo(0.75);
+    expect(property.capturingFaction).toBeNull();
+  });
+
+  it("resolves capturingFaction while ownership is still neutral", () => {
+    const [property] = buildPropertyRenderModel(
+      view(
+        [
+          {
+            id: "c1",
+            typeId: "city",
+            position: { x: 0, y: 0 },
+            ownerPlayerId: null,
+            capturePointsRemaining: 10,
+            capturingUnitId: "inf1",
+          },
+        ],
+        [{ id: "inf1", ownerPlayerId: "me", position: { x: 0, y: 0 } }],
+      ),
+    );
+    expect(property.ownerFaction).toBeNull();
+    expect(property.capturingFaction).toBe("blue");
+    expect(property.captureProgress).toBeCloseTo(0.5);
   });
 });
