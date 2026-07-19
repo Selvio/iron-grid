@@ -62,8 +62,10 @@ art: an attack is a lunge toward the defender plus a flash on the target, and a
 kill plays the pack's explosion.
 
 **5. The pack's audio comes with it.** The same source ships the game's sound
-effects and music, and its Java code records where each clip plays, so the
-mapping is transcribed rather than invented (`assets-inventory.md` §8). Playback
+effects, and its Java code records where each clip plays, so the mapping is
+transcribed rather than invented (`assets-inventory.md` §8). Its looping match
+music is left behind: a track a player cannot turn down on its own is one they
+turn off along with the effects that carry information. Playback
 sits behind `app/lib/audio/`, not Phaser's sound manager, because the menus live
 in React and would otherwise be mute; muting is stored per browser, since sound
 is a property of the device and not of the account.

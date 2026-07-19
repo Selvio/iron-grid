@@ -48,7 +48,7 @@ public/game-assets/
 ├── buildings/colored_buildings.png
 ├── ui/things.png
 ├── fx/{death,missile,attack}.png
-└── audio/*.m4a       18 effects + the match music (§8)
+└── audio/*.m4a       19 sound effects (§8)
 ```
 
 The four faction directories are **pixel-identical in layout** — only the
@@ -177,7 +177,7 @@ global stings, and a `selected` / `attack` / `death` clip per unit renderer in
 `view/render/units/**`). That mapping is transcribed rather than guessed.
 
 Transcoded to AAC on import, which every current browser plays and which turns
-38 MB into 2.6 MB:
+38 MB into 850 KB:
 
 ```text
 afconvert -f m4af -d aac -b 96000 <in>.wav public/game-assets/audio/<id>.m4a
@@ -201,7 +201,6 @@ afconvert -f m4af -d aac -b 96000 <in>.wav public/game-assets/audio/<id>.m4a
 | Unit destroyed | `song016.wav` | `explosion` |
 | New day | `song204/207/208/218.wav` (random) | `new_day_1..4` |
 | Menu confirmation | `song124.wav` | `ui_confirm` |
-| Match music (loop) | `main.wav` | `music_main` |
 
 Selection follows the chassis (`units.yaml movement.type`) and attacking follows
 the armament, which is the split the source project used — so the rocket
@@ -209,8 +208,9 @@ launcher, on tyres, answers like the recon while still firing a cannon.
 
 Deliberately **not** imported: `SoldierLaughe.wav`, the source project's
 artillery selection — a cackling soldier reads as a bug on a vehicle, and our
-artillery is tracked, so it sounds like one; `123.wav`, `car-engine.mp3` and
-`gunfire.mp3`
+artillery is tracked, so it sounds like one; `main.wav`, the looping match
+music, which the mute switch could only silence together with the effects that
+actually tell the player something; `123.wav`, `car-engine.mp3` and `gunfire.mp3`
 (unused by the source project too); `screaming.wav`, which it played for the
 death of *every* unit — a human scream for a destroyed tank does not fit, so the
 explosion it defined but never fired is used instead; and `song022`/`song057`,

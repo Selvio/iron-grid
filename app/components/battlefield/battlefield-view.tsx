@@ -30,7 +30,6 @@ import {
   type DestinationOptions,
 } from "@/app/lib/preview/actions";
 import { playNewDay, playSfx } from "@/app/lib/audio/sfx";
-import { startMusic, stopMusic } from "@/app/lib/audio/music";
 import { toggleMuted } from "@/app/lib/audio/settings";
 import { soundsFor } from "@/app/lib/audio/unit-sounds";
 import { computePath } from "@/app/lib/preview/path";
@@ -131,14 +130,6 @@ export function BattlefieldView({
     setAnnouncement(message);
   }
   const artScale = tilePx / TERRAIN_TILE_PX;
-
-  // The match has a soundtrack for as long as the board is on screen. The first
-  // attempt is usually refused — browsers want a gesture first — so the toggle
-  // and the next interaction retry it; leaving the match stops it.
-  useEffect(() => {
-    startMusic();
-    return () => stopMusic();
-  }, []);
 
   // A transient Advance-Wars turn banner whenever the day or active player flips.
   useEffect(() => {

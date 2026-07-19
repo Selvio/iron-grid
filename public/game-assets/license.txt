@@ -13,9 +13,9 @@ placeholder assets while the game's own art and audio are produced.
   buildings/  colored_buildings.png — property art in 5 ownership colors
   ui/         things.png — HUD stat icons
   fx/         death / missile / attack effects
-  audio/      unit select / attack sounds, explosion, new-day stings,
-              a UI blip and the menu music, transcoded to AAC from the
-              source project's WAVs:
+  audio/      unit select / attack sounds, explosion, new-day stings
+              and a UI blip, transcoded to AAC from the source
+              project's WAVs:
                 afconvert -f m4af -d aac -b 96000 <in>.wav <out>.m4a
 
 Rips credited by the source sheets:
