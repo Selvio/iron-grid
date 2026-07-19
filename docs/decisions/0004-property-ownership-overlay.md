@@ -1,6 +1,6 @@
 # 0004 — Property art: ownership + capture overlay
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0005](0005-advance-wars-asset-pack.md)
 **Date:** 2026-07-17
 **Resolves blocker:** `game-specification.md` §33.4 (property art — City / Base /
 Airport / Port / HQ ownership, neutral and capture-state visuals) for the M10

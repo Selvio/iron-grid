@@ -1,6 +1,6 @@
 # 0003 — Battlefield sprite-row mapping: visual approval
 
-**Status:** Accepted
+**Status:** Superseded by [ADR-0005](0005-advance-wars-asset-pack.md)
 **Date:** 2026-07-17
 **Resolves blocker:** `game-specification.md` §9.5 (unit sprite-row mapping —
 "implementation-blocking until visual approval is explicitly recorded") for the 19

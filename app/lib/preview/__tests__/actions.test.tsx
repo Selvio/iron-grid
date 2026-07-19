@@ -341,6 +341,7 @@ describe("previewProduction", () => {
       weapon1: "Machine Gun",
       weapon2: null,
       mobility: "Foot",
+      mobilityKey: "hud_mobility_foot",
       domain: "ground",
     });
   });

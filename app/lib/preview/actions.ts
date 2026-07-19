@@ -99,6 +99,8 @@ export interface UnitStats {
   readonly weapon2: string | null;
   /** Movement class label — "Foot", "Treads", "Air"… */
   readonly mobility: string;
+  /** The pack's own word-label sprite for that class, or null when it has none. */
+  readonly mobilityKey: string | null;
   /** Which domain badge lights up. */
   readonly domain: "ground" | "air" | "naval";
 }
@@ -127,6 +129,16 @@ const MOBILITY_LABEL: Readonly<Record<string, string>> = {
   transport_ship: "Ship",
 };
 
+/** The same classes as the art pack's own HUD word labels (`things.png`). */
+const MOBILITY_SPRITE: Readonly<Record<string, string>> = {
+  foot: "hud_mobility_foot",
+  mech: "hud_mobility_mech",
+  tires: "hud_mobility_tires",
+  treads: "hud_mobility_treads",
+  ship: "hud_mobility_ship",
+  transport_ship: "hud_mobility_transport",
+};
+
 /** The intel read-out for a unit type, defaulting anything the data omits. */
 function unitStats(gameData: GameData, unitTypeId: string): UnitStats {
   const def = gameData.units[unitTypeId] as
@@ -153,6 +165,7 @@ function unitStats(gameData: GameData, unitTypeId: string): UnitStats {
     weapon1: weaponName(def?.combat?.primary_weapon_id),
     weapon2: weaponName(def?.combat?.secondary_weapon_id),
     mobility: MOBILITY_LABEL[movementType] ?? movementType,
+    mobilityKey: MOBILITY_SPRITE[movementType] ?? null,
     domain: category === "air" || category === "naval" ? category : "ground",
   };
 }

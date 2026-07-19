@@ -25,14 +25,19 @@ Its core battlefield systems reproduce the behavior and strategic feel of *Advan
 - Original branding
 - Original commanders
 - Four factions derived from the available blue, green, red and yellow unit palettes
-- The Pangea Wars asset pack
+- Placeholder battlefield art, pending original assets (ADR-0005)
 - A modern web application shell
 - Persistent asynchronous turns
 - Server-authoritative validation
 - Event-based turn replay
 - Email notifications
 
-Iron Grid is not a campaign remake and does not reproduce Nintendo characters, maps, story, dialogue, names, UI or copyrighted art.
+Iron Grid is not a campaign remake and does not reproduce Nintendo characters, maps, story, dialogue, names or UI.
+
+> **Art status.** The battlefield currently renders with placeholder sprites
+> ripped from the original games (ADR-0005). They are development-only and must
+> be replaced with original or licensed art before any public release; nothing
+> user-facing may ship them.
 
 ## 1.2 Core design rule
 
@@ -671,31 +676,16 @@ The following baseline values are the expected AW2-style values to be encoded in
 
 ## 9.5 Sprite mapping
 
-The approved proposed mappings from `assets-inventory.md` are:
+Each unit binds to a **sprite family** in the generated atlas
+(`app/lib/render/atlas.generated.ts`, built by `pnpm atlas`), named by
+`units.yaml rendering.sprite_key`. The families equal the unit ids — `infantry`,
+`tank`, `medium_tank` … — and the submarine carries two, one per visual state
+(§19.5). The art pack has no sprite grid, so no row or column index appears
+anywhere in the data or the renderer.
 
-| Unit | Row |
-|---|---:|
-| Infantry | 00 |
-| Mech | 02 |
-| Recon | 08 |
-| APC | 06 |
-| Tank | 12 |
-| Medium Tank | 14 |
-| Neotank | 16 |
-| Artillery | 10 |
-| Rockets | 21 |
-| Anti-Air | 17 |
-| Missiles | 19 |
-| Fighter | 25 |
-| Bomber | 26 |
-| Battle Copter | 29 |
-| Transport Copter | 30 |
-| Battleship | 32 |
-| Cruiser | 33 |
-| Lander | 34 |
-| Submarine | 39/40 |
-
-These remain implementation-blocking until visual approval is explicitly recorded.
+Approved by [ADR-0005](../decisions/0005-advance-wars-asset-pack.md); coverage is
+reviewed on `/dev/atlas`. Known gap: **Neotank** has no art in the current pack
+and borrows the Medium Tank's frames.
 
 ---
 
@@ -1301,7 +1291,8 @@ Cruisers are the primary intended detector/counter.
 
 ## 19.5 Sprite state
 
-Rows 39 and 40 represent visual states of one Submarine unit, not separate unit types.
+Surfaced and submerged are two visual states of one Submarine unit, not separate
+unit types: `rendering.sprite_keys.{surfaced,submerged}`.
 
 ---
 
@@ -1857,7 +1848,7 @@ Do not implement:
 - Commander skills
 - Veterancy
 - Dual Strike-exclusive units
-- Additional Pangea Wars sprite rows
+- Additional sprite variants beyond the 19-unit roster
 - Communication Towers
 - Black Hole campaign structures
 - Dynamic faction bonuses

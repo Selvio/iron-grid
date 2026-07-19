@@ -36,7 +36,7 @@ ships (`roadmap.md` §5; `frontend.md` §3–§7).
 Two owner decisions shape this milestone and are recorded here:
 
 - **Real art now.** The §9.5 sprite-row mapping is already data-backed
-  (`units.yaml rendering.sprite_row`/`row_id`, `game-specification.md` §9.5,
+  (`units.yaml rendering.sprite_key`, `game-specification.md` §9.5,
   `assets-inventory.md` §6) and the `game-assets/` pack (Aleksandr Makarov /
   @IKnowKingRabbit — attribution required, `game-assets/license.txt`) matches the
   spec dimensions exactly. M10 **records the §9.5 visual-approval** it was awaiting
@@ -119,7 +119,7 @@ runs on the `setup.ts` test fixture map. No battlefield UI exists.
   (`select→range→destination→preview→confirm→submit→animate`) as a pure reducer;
   (b) the **preview wiring** — a `MatchView → engine-state` adapter plus the
   `calculate*` calls; (c) the **render mapping** (`deriveRenderData`: unit →
-  `sprite_row` + `animation_columns` frame coords, `logicalTerrain` → `renderTileId`,
+  `sprite_key` → atlas frame rectangles, `logicalTerrain` → `renderTileId`,
   faction → sheet, acted/greyed §10.5, submarine surfaced/submerged §19.5). The
   Phaser `Scene` only consumes those outputs to draw/tween/animate; it holds no game
   logic and is **not** unit-tested against a WebGL context (jsdom has none) — pixel
@@ -210,7 +210,7 @@ runs on the `setup.ts` test fixture map. No battlefield UI exists.
 ## M10-T3 · Unit sprites, faction palette & unit states
 - **Goal:** place `MatchView.units` with the real sprites, correct faction sheet and
   visual state (`game-specification.md` §9.5, §10.5, §19.5).
-- **Scope:** each unit → its `sprite_row` + idle frame via `animation_columns`;
+- **Scope:** each unit → its `sprite_key` + idle frame from the atlas;
   faction → sheet from `commanders.yaml faction.unit_sprite_sheet` resolved via
   `MatchView.you/opponent.factionId`; shadow by `size_class`; **acted/greyed**
   (§10.5) and **submarine surfaced/submerged** (§19.5) driven by projected fields,
@@ -492,8 +492,8 @@ M10 is complete when, from a clean checkout:
   limits + MVP scope), §11 (stable IDs), §12 (required follow-ups).
 - `architecture.md` — §4 (layers/dependency table; app imports engine, engine never
   imports app), §5 (public engine functions), §10 (tech mapping; Phaser to add).
-- Data: `units.yaml` (`conventions.animation_columns`/`asset_frame`/
-  `faction_sprite_sheets`; per-unit `rendering.sprite_row`/`row_id`), `terrain.yaml`
+- Data: `units.yaml` (`conventions.sprite_atlas`/`animations`/
+  `faction_sprite_sheets`; per-unit `rendering.sprite_key`), `terrain.yaml`
   (`conventions.tile_grid`; per-terrain `rendering.asset_status`/`official_map_allowed`),
   `maps.yaml` (`render_layer_schema`, `official_map_release_gates`,
   `publication_state`, `official_maps`), `properties.yaml` (ownership states +

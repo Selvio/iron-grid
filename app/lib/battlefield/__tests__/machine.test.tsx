@@ -184,6 +184,7 @@ describe("interactionReducer", () => {
           weapon1: "M Gun",
           weapon2: null,
           mobility: "Foot",
+          mobilityKey: "hud_mobility_foot",
           domain: "ground" as const,
         },
       },

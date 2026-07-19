@@ -108,6 +108,9 @@ As ADRs are added, list them here:
 |---|---|---|---|
 | [0001](0001-frontend-ui-and-tooling-stack.md) | Frontend UI and developer-tooling stack | Accepted | Open test-runner choice (`testing.md` §12); UI/form/tooling library selection |
 | [0002](0002-code-formatter-prettier.md) | Code formatter: Prettier | Accepted | Formatter left unspecified by ADR-0001 |
+| [0003](0003-battlefield-sprite-mapping-approval.md) | Battlefield sprite-row mapping: visual approval | Superseded by 0005 | `game-specification.md` §9.5 |
+| [0004](0004-property-ownership-overlay.md) | Property art: ownership + capture overlay | Superseded by 0005 | `game-specification.md` §33.4 |
+| [0005](0005-advance-wars-asset-pack.md) | Battlefield art: the Advance Wars pack and a generated sprite atlas | Accepted | `game-specification.md` §9.5, §33.4 |
 
 ---
 

@@ -52,7 +52,7 @@
     "Aleksandr",
     "capturable",
     "Chokepoints",
-    "Ibérica",
+    "Ib\u00e9rica",
     "lifecycles",
     "matchups",
     "neondatabase",
@@ -72,7 +72,13 @@
     "transactionally",
     "traversability",
     "unpayable",
-    "veterancy"
+    "veterancy",
+    "Phileas",
+    "Fragg",
+    "Rogultgot",
+    "Peaupote",
+    "ingame",
+    "pngjs"
   ],
   "ignorePaths": ["node_modules/**", ".next/**", "pnpm-lock.yaml"]
 }

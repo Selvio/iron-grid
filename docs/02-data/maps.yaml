@@ -86,7 +86,7 @@ conventions:
     capturing_unit_default: null
   render_binding:
     logical_terrain_separate_from_render_tiles: true
-    render_tile_id_pattern: "terrain_r{row}_c{column}"
+    render_tile_id_pattern: "terrain_{terrain}_{position}"
   map_versioning:
     semantic_version_required: true
     published_versions_immutable: true

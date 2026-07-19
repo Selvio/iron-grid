@@ -44,14 +44,14 @@ source_references:
       - fog_of_war
       - production
       - repair
-  - id: "pangea-assets-inventory"
+  - id: "assets-inventory"
     type: "project-reference"
     path: "docs/01-specification/assets-inventory.md"
     covers:
-      - sprite_rows
+      - sprite_keys
       - faction_sheets
-      - animation_columns
-      - shadows
+      - animations
+      - effects
 
 conventions:
   coordinate_system: "orthogonal-grid"

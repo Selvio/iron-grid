@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowRight, Eye, Fuel, Plane, Ship, Truck } from "lucide-react";
+import { ArrowRight, Eye, Plane, Ship, Truck } from "lucide-react";
 
 import type { ProductionOption, UnitStats } from "@/app/lib/preview/actions";
 
-import { PixelSprite } from "./pixel-sprite";
+import { AtlasSprite, PixelSprite } from "./pixel-sprite";
 import { formatFunds } from "@/app/lib/format";
 
 /**
@@ -84,9 +84,12 @@ function WeaponSlot({
 function DomainBadge({
   domain,
   mobility,
+  mobilityKey,
 }: {
   domain: UnitStats["domain"];
   mobility: string;
+  /** The pack's own word label for the movement class, when it has one. */
+  mobilityKey: string | null;
 }) {
   const { label, Icon, header, body, text } = {
     ground: {
@@ -123,7 +126,11 @@ function DomainBadge({
         className={`flex items-center justify-center gap-2 px-1 py-2.5 font-display text-[13px] font-extrabold ${body} ${text}`}
       >
         <Icon className="size-4" aria-hidden="true" />
-        {mobility}
+        {mobilityKey === null ? (
+          mobility
+        ) : (
+          <AtlasSprite atlasKey={mobilityKey} scale={1} />
+        )}
       </div>
     </div>
   );
@@ -244,7 +251,7 @@ export function BuildMenu({
                   value={stats.vision}
                 />
                 <StatRow
-                  icon={<Fuel className="size-5" />}
+                  icon={<AtlasSprite atlasKey="hud_fuel" scale={2} />}
                   label="Gas"
                   value={stats.gas}
                 />
@@ -261,7 +268,11 @@ export function BuildMenu({
             </div>
 
             <div className="mt-4">
-              <DomainBadge domain={stats.domain} mobility={stats.mobility} />
+              <DomainBadge
+                domain={stats.domain}
+                mobility={stats.mobility}
+                mobilityKey={stats.mobilityKey}
+              />
             </div>
           </div>
 
