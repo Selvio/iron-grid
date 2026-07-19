@@ -169,9 +169,9 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   }
 
   /**
-   * Draws property buildings in their owner's colors plus the capture bar.
-   * Buildings are taller than a tile (an HQ is nearly two), so they are anchored
-   * to the tile's bottom edge and allowed to overhang upward.
+   * Draws property buildings in their owner's colors. Buildings are taller than
+   * a tile (an HQ is nearly two), so they are anchored to the tile's bottom edge
+   * and allowed to overhang upward.
    */
   private drawProperties(): void {
     for (const property of this.model.properties) {
@@ -181,30 +181,70 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       this.dynamicObjects.push(
         this.add.image(worldX, worldY, key, frame).setOrigin(0, 1),
       );
-      if (property.captureProgress > 0) {
-        const barColor =
-          property.capturingFaction !== null
-            ? FACTION_COLOR[property.capturingFaction]
-            : 0xffffff;
-        const barY = worldY - 3;
-        // Track under the fill so partial progress reads clearly on the tile.
-        this.dynamicObjects.push(
-          this.add
-            .rectangle(worldX + 1, barY, TERRAIN_TILE_PX - 2, 3, 0x1a1f2a)
-            .setOrigin(0, 0),
-        );
-        this.dynamicObjects.push(
-          this.add
-            .rectangle(
-              worldX + 1,
-              barY,
-              (TERRAIN_TILE_PX - 2) * property.captureProgress,
-              3,
-              barColor,
-            )
-            .setOrigin(0, 0),
-        );
-      }
+    }
+  }
+
+  /**
+   * The capture read-out for a property being taken: how many capture points
+   * still stand between it and its new owner, over a bar of how far the capture
+   * has come, in the capturing army's color.
+   *
+   * It floats in a tag just **above** the tile and is drawn **after** the units.
+   * A 16 px tile is fully covered by the unit doing the capturing, so anything
+   * drawn inside it either hides behind the sprite (the earlier bar) or lands on
+   * the unit's face; overflowing upward is how the art already handles tall
+   * buildings and how Advance Wars draws its HP numbers.
+   */
+  private drawCaptureIndicators(): void {
+    const TAG_HEIGHT = 9;
+    const BAR_HEIGHT = 2;
+    for (const property of this.model.properties) {
+      if (property.captureProgress <= 0) continue;
+      const color =
+        property.capturingFaction !== null
+          ? FACTION_COLOR[property.capturingFaction]
+          : 0xffffff;
+      const tagX = property.x * TERRAIN_TILE_PX + 1;
+      // A property on the top row has no room above it; hang the tag below.
+      const tagY =
+        property.y === 0
+          ? TERRAIN_TILE_PX
+          : property.y * TERRAIN_TILE_PX - TAG_HEIGHT;
+      const tagWidth = TERRAIN_TILE_PX - 2;
+
+      this.dynamicObjects.push(
+        this.add
+          .rectangle(tagX, tagY, tagWidth, TAG_HEIGHT, 0x0d1117)
+          .setOrigin(0, 0)
+          .setStrokeStyle(1, color),
+      );
+      this.dynamicObjects.push(
+        this.add
+          .rectangle(
+            tagX,
+            tagY + TAG_HEIGHT - BAR_HEIGHT,
+            Math.max(1, tagWidth * property.captureProgress),
+            BAR_HEIGHT,
+            color,
+          )
+          .setOrigin(0, 0),
+      );
+      this.dynamicObjects.push(
+        this.add
+          .text(
+            tagX + tagWidth / 2,
+            tagY + 1,
+            String(property.capturePointsRemaining),
+            {
+              fontFamily: "monospace",
+              fontSize: "8px",
+              fontStyle: "bold",
+              color: "#ffffff",
+            },
+          )
+          .setOrigin(0.5, 0)
+          .setResolution(4),
+      );
     }
   }
 
@@ -356,6 +396,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     this.model = data;
     this.drawProperties();
     this.drawUnits();
+    this.drawCaptureIndicators(); // above the unit standing on the property
   }
 
   async playAnimation(steps: readonly AnimationStep[]): Promise<void> {

@@ -130,5 +130,67 @@ for (const unit of map.starting_units as {
   }
 }
 
+/**
+ * `CAPTURE="x,y,pointsRemaining"` also draws an infantry standing on that tile
+ * with the capture read-out over it, to check the indicator stays legible under
+ * the unit that is doing the capturing.
+ */
+const captureDemo = process.env.CAPTURE;
+if (captureDemo !== undefined) {
+  const [cx, cy, remaining] = captureDemo.split(",").map(Number);
+  const entry = ATLAS.unit_infantry_idle_0;
+  const src = sheet(entry.file.replace("{faction}", "red"));
+  const unitX = Math.round((cx! * TILE + (TILE - entry.w) / 2) * zoom);
+  const unitY = Math.round(((cy! + 1) * TILE - entry.h) * zoom);
+  for (let y = 0; y < entry.h * zoom; y++) {
+    for (let x = 0; x < entry.w * zoom; x++) {
+      const si =
+        ((entry.y + Math.floor(y / zoom)) * src.width +
+          entry.x +
+          Math.floor(x / zoom)) *
+        4;
+      if (src.data[si + 3]! <= 8) continue;
+      const di = ((unitY + y) * dst.width + unitX + x) * 4;
+      dst.data[di] = src.data[si]!;
+      dst.data[di + 1] = src.data[si + 1]!;
+      dst.data[di + 2] = src.data[si + 2]!;
+      dst.data[di + 3] = 255;
+    }
+  }
+
+  const fill = (
+    px: number,
+    py: number,
+    w: number,
+    h: number,
+    rgb: [number, number, number],
+  ): void => {
+    for (let y = 0; y < h * zoom; y++) {
+      for (let x = 0; x < w * zoom; x++) {
+        const di = ((py * zoom + y) * dst.width + px * zoom + x) * 4;
+        dst.data[di] = rgb[0];
+        dst.data[di + 1] = rgb[1];
+        dst.data[di + 2] = rgb[2];
+        dst.data[di + 3] = 255;
+      }
+    }
+  };
+  // Mirrors the scene's capture tag: a plate floating above the tile, its
+  // bottom edge filled to the capture's progress. (The number is text, which
+  // this raw compositor cannot draw — check it in the app.)
+  const progress = (20 - remaining!) / 20;
+  const tagY = cy! * TILE - 9;
+  fill(cx! * TILE, tagY - 1, TILE, 11, [242, 86, 91]);
+  fill(cx! * TILE + 1, tagY, TILE - 2, 9, [13, 17, 23]);
+  fill(
+    cx! * TILE + 1,
+    tagY + 7,
+    Math.max(1, Math.round((TILE - 2) * progress)),
+    2,
+    [242, 86, 91],
+  );
+  console.log(`capture demo at ${cx},${cy} (${remaining} points left)`);
+}
+
 writeFileSync(out, PNG.sync.write(dst));
 console.log(`${mapId} ${width}×${height} → ${out}`);
