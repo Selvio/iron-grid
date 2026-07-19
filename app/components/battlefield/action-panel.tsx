@@ -1,6 +1,6 @@
 "use client";
 
-import { displayHp, type Coordinate } from "game-engine";
+import type { Coordinate } from "game-engine";
 import { useEffect } from "react";
 
 import type { InteractionState } from "@/app/lib/battlefield/machine";
@@ -14,6 +14,7 @@ import {
 } from "@/app/components/ui/card";
 
 import { ActionMenu } from "./action-menu";
+import { CombatPreviewPanel, type CombatAttacker } from "./combat-preview";
 import { BuildMenu } from "./build-menu";
 import { PixelSprite } from "./pixel-sprite";
 
@@ -62,15 +63,6 @@ export interface ActionPanelHandlers {
 }
 
 /**
- * A combat forecast as an Advance-Wars damage percentage — the preview is in
- * true-HP points against a 100-HP unit, so the number already reads as a percent.
- * Collapses to a single value when luck adds no spread.
- */
-function damageRange(min: number, max: number): string {
-  return min === max ? `${max}%` : `${min}–${max}%`;
-}
-
-/**
  * The post-move menu takes focus as soon as it opens, so Enter commits without
  * a hunt. The menu only appears in response to a deliberate choice of
  * destination, so taking focus is what the player just asked for.
@@ -109,6 +101,7 @@ export function ActionPanel({
   handlers,
   unitOrigin = null,
   unitName,
+  attacker = null,
   funds = 0,
 }: {
   state: InteractionState;
@@ -117,6 +110,8 @@ export function ActionPanel({
   unitOrigin?: Coordinate | null;
   /** The selected unit's display name, for the menu's title bar. */
   unitName?: string;
+  /** The selected unit as the attacker, for the combat forecast. */
+  attacker?: CombatAttacker | null;
   /** The viewer's funds — shown in the build popup's roster header. */
   funds?: number;
 }) {
@@ -143,6 +138,20 @@ export function ActionPanel({
         unitName={unitName}
         handlers={handlers}
         onKeyDown={onMenuKeyDown}
+      />
+    );
+  }
+
+  if (state.kind === "combat-preview") {
+    return (
+      <CombatPreviewPanel
+        attacker={attacker}
+        defender={state.defender}
+        minDamage={state.preview.minDamage}
+        maxDamage={state.preview.maxDamage}
+        counter={state.preview.counter ?? null}
+        onConfirm={handlers.onConfirmAttack}
+        onCancel={handlers.onCancel}
       />
     );
   }
@@ -194,83 +203,22 @@ export function ActionPanel({
     );
   }
 
-  if (state.kind !== "select-target" && state.kind !== "combat-preview") {
-    return null;
-  }
-
-  const title = state.kind === "combat-preview" ? "Combat" : "Choose target";
+  if (state.kind !== "select-target") return null;
 
   return (
     <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
       <CardHeader>
-        <CardTitle>{title}</CardTitle>
-        <CardDescription>
-          {state.kind === "select-target"
-            ? "Select an enemy to attack"
-            : `To (${state.destination.x}, ${state.destination.y}) · no undo`}
-        </CardDescription>
+        <CardTitle>Choose target</CardTitle>
+        <CardDescription>Select an enemy to attack</CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        {state.kind === "combat-preview" && (
-          <dl className="font-mono text-sm">
-            {state.defender && (
-              <>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Target</dt>
-                  <dd className="font-sans">{state.defender.displayName}</dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">HP</dt>
-                  <dd>
-                    {displayHp(state.defender.trueHp)} →{" "}
-                    {displayHp(
-                      Math.max(
-                        0,
-                        state.defender.trueHp - state.preview.maxDamage,
-                      ),
-                    )}
-                  </dd>
-                </div>
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Def</dt>
-                  <dd>{"★".repeat(state.defender.stars) || "0"}</dd>
-                </div>
-              </>
-            )}
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Damage</dt>
-              <dd>
-                {damageRange(state.preview.minDamage, state.preview.maxDamage)}
-              </dd>
-            </div>
-            <div className="flex justify-between">
-              <dt className="text-muted-foreground">Counter</dt>
-              <dd>
-                {state.preview.counter
-                  ? damageRange(
-                      state.preview.counter.minDamage,
-                      state.preview.counter.maxDamage,
-                    )
-                  : "none"}
-              </dd>
-            </div>
-          </dl>
-        )}
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            className="flex-1"
-            onClick={handlers.onCancel}
-          >
-            Cancel
-          </Button>
-          {state.kind === "combat-preview" && (
-            <Button className="flex-1" onClick={handlers.onConfirmAttack}>
-              Attack
-            </Button>
-          )}
-        </div>
+      <CardContent>
+        <Button
+          variant="outline"
+          className="w-full"
+          onClick={handlers.onCancel}
+        >
+          Cancel
+        </Button>
       </CardContent>
     </Card>
   );

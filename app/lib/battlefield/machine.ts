@@ -1,9 +1,11 @@
+import type { FactionId } from "@/app/components/faction-badge";
 import type { CombatPreview, Coordinate } from "game-engine";
 
 import type {
   DestinationOptions,
   ProductionOption,
   UnitMenu,
+  UnitSprite,
   UnloadCargo,
 } from "@/app/lib/preview/actions";
 
@@ -20,6 +22,12 @@ export interface CombatDefender {
   readonly trueHp: number;
   /** Terrain defense stars at the defender's tile (0 for air units). */
   readonly stars: number;
+  /** Owning faction, for the forecast's colours (null when unknown). */
+  readonly faction: FactionId | null;
+  /** The defender's portrait in the forecast. */
+  readonly sprite: UnitSprite | null;
+  /** The terrain it is standing on, which is where its stars come from. */
+  readonly terrainName: string | null;
 }
 
 /**

@@ -428,15 +428,14 @@ describe("BattlefieldView · combat", () => {
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
     await userEvent.click(screen.getByRole("button", { name: "Attack" })); // menu
     // A single target jumps straight to the forecast; confirm with Attack.
-    expect(screen.getByText("Combat")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /combat/i })).toBeInTheDocument();
     // The chosen target keeps its reticle and the forecast reads as a percentage.
     expect(
       screen.getByLabelText("Tile 3, 1").querySelector("[data-reticle]"),
     ).not.toBeNull();
-    expect(screen.getAllByText(/%$/).length).toBeGreaterThan(0);
-    // The forecast shows the defender's HP transition and terrain defense.
-    expect(screen.getByText("Target")).toBeInTheDocument();
-    expect(screen.getByText(/10 →/)).toBeInTheDocument();
+    // The forecast shows what the defender stands to lose and what it hits back.
+    expect(screen.getByText(/HP 10 →/)).toBeInTheDocument();
+    expect(screen.getByText(/^Counter/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));
 
     await waitFor(() => {
@@ -515,7 +514,7 @@ describe("BattlefieldView · combat", () => {
     // Choose the western enemy specifically.
     await userEvent.click(screen.getByLabelText("Tile 1, 1"));
 
-    expect(screen.getByText("Combat")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /combat/i })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));
 
     await waitFor(() => {
@@ -551,7 +550,7 @@ describe("BattlefieldView · combat", () => {
     expect(screen.getByLabelText("Tile 3, 1")).toHaveFocus();
 
     await user.keyboard("{Enter}");
-    expect(screen.getByText("Combat")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /combat/i })).toBeInTheDocument();
   });
 
   it("captures an enemy property in place", async () => {

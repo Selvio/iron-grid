@@ -212,8 +212,8 @@ describe("ActionPanel", () => {
       <ActionPanel state={state} handlers={handlers({ onConfirmAttack })} />,
     );
 
-    expect(screen.getByText("4–6%")).toBeInTheDocument();
-    expect(screen.getByText("1–2%")).toBeInTheDocument();
+    expect(screen.getByText(/range 4–6%/)).toBeInTheDocument();
+    expect(screen.getByText(/Counter −1–2%/)).toBeInTheDocument();
     expect(screen.getByText(/no undo/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));

@@ -5,6 +5,7 @@ import type { Coordinate } from "game-engine";
 import { Crosshair, Flag, Minus, Plus } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
+import type { FactionId } from "@/app/components/faction-badge";
 import {
   ApiError,
   apiClient,
@@ -306,10 +307,23 @@ export function BattlefieldView({
       def?.category === "air"
         ? 0
         : ((terrainId ? gameData.terrain[terrainId]?.defense_stars : 0) ?? 0);
+    const factions: Record<string, FactionId | undefined> = {
+      ...(view.you
+        ? { [view.you.playerId]: view.you.factionId as FactionId }
+        : {}),
+      ...(view.opponent
+        ? { [view.opponent.playerId]: view.opponent.factionId as FactionId }
+        : {}),
+    };
     return {
       displayName: def?.display_name ?? target.typeId,
       trueHp: target.trueHp,
       stars,
+      faction: factions[target.ownerPlayerId] ?? null,
+      sprite: unitSprite(view, gameData, target.typeId),
+      terrainName: terrainId
+        ? (gameData.terrain[terrainId]?.display_name ?? null)
+        : null,
     };
   }
 
@@ -749,6 +763,18 @@ export function BattlefieldView({
       <ActionPanel
         state={state}
         unitOrigin={selectedUnit?.position ?? null}
+        attacker={
+          selectedUnit
+            ? {
+                displayName:
+                  gameData.units[selectedUnit.typeId]?.display_name ??
+                  selectedUnit.typeId,
+                trueHp: selectedUnit.trueHp,
+                faction: (view.you?.factionId as FactionId | undefined) ?? null,
+                sprite: unitSprite(view, gameData, selectedUnit.typeId),
+              }
+            : null
+        }
         unitName={
           selectedUnit
             ? (gameData.units[selectedUnit.typeId]?.display_name ??
