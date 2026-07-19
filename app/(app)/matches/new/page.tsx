@@ -15,10 +15,10 @@ import { requireSessionUser } from "@/app/lib/session";
  * blocked, §33) until M10, so today the form renders its explicit no-maps state;
  * it comes to life the moment the first map lands.
  *
- * Each option carries its `logical_terrain` so the form can draw a thumbnail of
- * the chosen map (M9-T10). The grid is small (a few hundred short strings) and
- * static per deploy, and the client cannot `loadGameData` itself — the same
- * RSC-prop route the play screen uses for game data.
+ * Each option carries its size so the form can label and preview the chosen map
+ * (M9-T10). The thumbnail art itself is a pre-built PNG (`pnpm map-thumbs`), so
+ * only the map's identity has to cross the RSC boundary — the client cannot
+ * `loadGameData` itself.
  *
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T5, M9-T10)
  */
@@ -30,7 +30,6 @@ export default async function NewMatchPage() {
     label: `${formatMapName(map.id)} · ${map.dimensions.width}×${map.dimensions.height}`,
     width: map.dimensions.width,
     height: map.dimensions.height,
-    terrain: map.logical_terrain,
   }));
 
   return (

@@ -63,7 +63,6 @@ export default async function DashboardPage() {
         id: map.id,
         width: map.dimensions.width,
         height: map.dimensions.height,
-        terrain: map.logical_terrain,
       },
     ]),
   );

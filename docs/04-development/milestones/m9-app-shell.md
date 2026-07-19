@@ -362,8 +362,43 @@ exports only `POST` — so the dashboard has nothing to list against (see M9-T4)
   with one cell per tile in row-major order; an unknown terrain id still draws.
 - **Dependencies:** M9-T5, M9-T9.
 
+## M9-T11 · Thumbnails drawn with the real sprites (follow-up)
+- **Goal:** the preview shows the **board**, not an impression of it. M9-T10's flat
+  terrain swatches were a stand-in; the art pack can draw the real thing.
+- **Scope:**
+  - **`scripts/atlas/_composite.ts`** — the off-screen compositor extracted from the
+    `_board.ts` dev helper (which now uses it; verified byte-identical output in both
+    its plain and `CAPTURE` modes). It runs the **same pure render model the Phaser
+    scene uses** — `buildTerrainRenderModel` autotiles, `buildingTileId` property art
+    — and blits atlas rectangles into a PNG via `pngjs`.
+  - **`pnpm map-thumbs`** (`scripts/build-map-thumbnails.ts`) — composites every
+    official map to `public/map-thumbnails/<id>.png` at zoom 2, transparent
+    background, **properties in slot colors, starting units omitted** (a thumbnail
+    previews the map; the armies belong to a match's state).
+  - **`MapThumbnail`** becomes one `<img>`: no runtime compositing, no per-cell DOM.
+    `pixelated` by default; the dashboard's 48px tile opts out (~3px per tile, where
+    nearest-neighbour reads as noise). `terrain-swatch.ts` and the CSS-grid renderer
+    are **deleted** — superseded, and `MapPreview` no longer ships `logical_terrain`
+    across the RSC boundary.
+  - **Staleness guard** — a `manifest.json` records each PNG's size and a digest of
+    its map inputs plus `atlas.generated.ts`. A new **`assets`** Vitest project
+    (`scripts/__tests__/`) compares it against live game data, so a map edit or a
+    re-cut atlas without `pnpm map-thumbs` fails CI instead of shipping a stale board.
+    Generated-and-committed matches the `atlas.generated.ts` convention.
+- **Files:** `scripts/atlas/_composite.ts`, `scripts/atlas/_board.ts`,
+  `scripts/build-map-thumbnails.ts`, `scripts/map-thumbnails.shared.ts`,
+  `scripts/__tests__/map-thumbnails.test.ts`, `public/map-thumbnails/*`,
+  `app/components/map-thumbnail.tsx`, `app/components/dashboard-list.tsx`,
+  `app/(app)/**/page.tsx`, `package.json`, `vitest.config.ts`.
+- **Acceptance:** `pnpm map-thumbs` emits a PNG per official map and a manifest;
+  `_board.ts` output is unchanged; the create form and the dashboard render the
+  generated image with the map's name and size as its alt text; the guard fails with
+  an actionable message when a map, the atlas, or the map list moves ahead of the
+  build.
+- **Dependencies:** M9-T10, M10-T1 (the atlas), M10-T2/T9 (the render model).
+
 **Ordering:** M9-T1 → M9-T2 → M9-T3 → (M9-T4 ∥ M9-T5 ∥ M9-T6 ∥ M9-T7) → M9-T8 →
-M9-T9 → M9-T10.
+M9-T9 → M9-T10 → M9-T11.
 
 ---
 

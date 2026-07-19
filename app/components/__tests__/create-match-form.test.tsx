@@ -4,26 +4,13 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CreateMatchForm, type MapOption } from "../create-match-form";
 
-/** A tiny 2×2 layout — enough to prove the thumbnail draws the right map. */
-function mapOption(id: string, terrain: string[][]): MapOption {
-  return {
-    id,
-    label: `${id} · ${terrain[0].length}×${terrain.length}`,
-    width: terrain[0].length,
-    height: terrain.length,
-    terrain,
-  };
+function mapOption(id: string, width: number, height: number): MapOption {
+  return { id, label: `${id} · ${width}×${height}`, width, height };
 }
 
 const MAPS: MapOption[] = [
-  mapOption("map-1", [
-    ["plain", "plain"],
-    ["sea", "sea"],
-  ]),
-  mapOption("map-2", [
-    ["forest", "road"],
-    ["road", "city"],
-  ]),
+  mapOption("map-1", 15, 10),
+  mapOption("map-2", 20, 16),
 ];
 
 function mockFetch(status: number, body: unknown) {
@@ -92,12 +79,12 @@ describe("CreateMatchForm", () => {
   it("previews the default map and follows the selection", async () => {
     render(<CreateMatchForm maps={MAPS} />);
     expect(
-      screen.getByRole("img", { name: /Map 1 map preview, 2×2/i }),
+      screen.getByRole("img", { name: /Map 1 map preview, 15×10/i }),
     ).toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText("Map"), "map-2");
     expect(
-      screen.getByRole("img", { name: /Map 2 map preview, 2×2/i }),
+      screen.getByRole("img", { name: /Map 2 map preview, 20×16/i }),
     ).toBeInTheDocument();
     expect(
       screen.queryByRole("img", { name: /Map 1 map preview/i }),

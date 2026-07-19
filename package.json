@@ -21,6 +21,7 @@
     "db:studio": "drizzle-kit studio",
     "prepare": "husky",
     "atlas": "tsx scripts/build-atlas.ts",
+    "map-thumbs": "tsx scripts/build-map-thumbnails.ts",
     "seed:match": "tsx --env-file=.env scripts/seed-practice-match.ts"
   },
   "dependencies": {

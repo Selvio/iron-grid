@@ -1,55 +1,57 @@
-import { terrainSwatch } from "@/app/lib/render/terrain-swatch";
 import { formatMapName } from "@/app/lib/format";
 import { cn } from "@/app/lib/utils";
 
 /**
- * A map's logical terrain as a flat DOM thumbnail (M9-T10).
+ * A map's real board art, pre-rendered (M9-T10, re-based on sprites in M9-T11).
  *
- * One `<span>` per cell in a CSS grid, colored by `terrainSwatch`. No canvas,
- * no atlas, no asset load — the board's real art is Phaser's job (`frontend.md`
- * §3–§4); this is the small preview the create form and the dashboard row show
- * so a map is recognizable before you open it.
+ * The image is built by `pnpm map-thumbs`, which composites the map through the
+ * **same pure render model the Phaser scene uses** (`scripts/atlas/_composite.ts`
+ * → `buildTerrainRenderModel` / `buildingTileId`). So this is the board's own
+ * autotiles and building art, not an approximation of them — at the cost of one
+ * `<img>` and no runtime work.
  *
- * It is a single `role="img"` with a label naming the map and its size, so the
- * grid's hundreds of cells never reach assistive tech as noise.
+ * `pixelated` keeps the art crisp where there is room for it (the create form).
+ * The dashboard's 48px tile leaves ~3px per tile, where nearest-neighbour reads
+ * as noise and smooth downscaling reads as a map, so it opts out.
  *
- * @see docs/04-development/milestones/m9-app-shell.md (M9-T10)
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T11)
  */
 
-/** A map's identity and layout — everything a thumbnail needs. */
+/** A map's identity and size — everything a thumbnail needs. */
 export interface MapPreview {
   readonly id: string;
+  /** Width in tiles. */
   readonly width: number;
+  /** Height in tiles. */
   readonly height: number;
-  /** `logical_terrain`, row-major: `terrain[y][x]` is a terrain id. */
-  readonly terrain: readonly (readonly string[])[];
+}
+
+/** The public path of a map's generated thumbnail. */
+export function mapThumbnailSrc(mapId: string): string {
+  return `/map-thumbnails/${mapId}.png`;
 }
 
 export function MapThumbnail({
   map,
   className,
+  pixelated = true,
 }: {
   map: MapPreview;
   className?: string;
+  /** Nearest-neighbour scaling; turn off below roughly 8px per tile. */
+  pixelated?: boolean;
 }) {
   return (
-    <span
-      role="img"
-      aria-label={`${formatMapName(map.id)} map preview, ${map.width}×${map.height}`}
-      className={cn("grid overflow-hidden", className)}
-      style={{
-        gridTemplateColumns: `repeat(${map.width}, 1fr)`,
-        aspectRatio: `${map.width} / ${map.height}`,
-      }}
-    >
-      {map.terrain.flatMap((row, y) =>
-        row.map((terrainId, x) => (
-          <span
-            key={`${x},${y}`}
-            style={{ backgroundColor: terrainSwatch(terrainId) }}
-          />
-        )),
-      )}
-    </span>
+    // A static, already-sized sprite composite: next/image's loader would only
+    // re-encode it, and smoothing is exactly what we control per use site.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={mapThumbnailSrc(map.id)}
+      alt={`${formatMapName(map.id)} map preview, ${map.width}×${map.height}`}
+      width={map.width}
+      height={map.height}
+      className={cn("block h-auto w-full object-contain", className)}
+      style={pixelated ? { imageRendering: "pixelated" } : undefined}
+    />
   );
 }

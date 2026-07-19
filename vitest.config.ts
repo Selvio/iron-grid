@@ -33,6 +33,15 @@ export default defineConfig({
         },
       },
       {
+        // Generated-asset guards: the build scripts' outputs must not go stale.
+        test: {
+          name: "assets",
+          root: "./scripts",
+          include: ["**/*.test.ts"],
+          environment: "node",
+        },
+      },
+      {
         test: {
           name: "game-engine",
           root: "./packages/game-engine",

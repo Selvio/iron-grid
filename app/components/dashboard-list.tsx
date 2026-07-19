@@ -142,7 +142,8 @@ function MatchRow({
         {preview === undefined ? (
           <MapIcon className="size-5" aria-hidden="true" />
         ) : (
-          <MapThumbnail map={preview} className="w-full" />
+          // 48px over a 15×10 board is ~3px per tile: smooth, not pixelated.
+          <MapThumbnail map={preview} pixelated={false} />
         )}
       </span>
 
