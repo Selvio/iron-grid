@@ -5,6 +5,7 @@ import type { GameData } from "game-data";
 import { applyAction } from "./apply";
 import type { ProduceAction } from "./actions";
 import { calculateLegalActions } from "./legal-actions";
+import { producibleUnitsAt } from "./production";
 import type {
   Coordinate,
   MatchMeta,
@@ -291,5 +292,42 @@ describe("production", () => {
     if (!result.valid) {
       expect(result.errors.map((e) => e.code)).toContain("insufficient_funds");
     }
+  });
+});
+
+describe("producibleUnitsAt", () => {
+  const gd = makeGameData();
+  const p1 = (s: MatchState) => s.players.find((p) => p.playerId === "p1")!;
+
+  it("lists the affordable, enabled roster (excludes unaffordable + disabled)", () => {
+    const base = property("b", "base", "p1");
+    const s = state([base], [], 5000); // infantry 1000 ✓, tank 7000 ✗
+    expect(producibleUnitsAt(s, gd, base, p1(s))).toEqual(["infantry"]);
+  });
+
+  it("adds pricier units once they are affordable", () => {
+    const base = property("b", "base", "p1");
+    const s = state([base], [], 9000);
+    // disabled_unit stays excluded (enabled_in_mvp false).
+    expect(producibleUnitsAt(s, gd, base, p1(s))).toEqual(["infantry", "tank"]);
+  });
+
+  it("returns [] for an occupied tile, an enemy base, a city, or no funds", () => {
+    const base = property("b", "base", "p1");
+    const occupied = state([base], [unit("u", { x: 0, y: 0 })], 9000);
+    expect(producibleUnitsAt(occupied, gd, base, p1(occupied))).toEqual([]);
+
+    const enemy = property("e", "base", "p2");
+    const enemyState = state([enemy], [], 9000);
+    expect(producibleUnitsAt(enemyState, gd, enemy, p1(enemyState))).toEqual(
+      [],
+    );
+
+    const city = property("c", "city", "p1");
+    const cityState = state([city], [], 9000);
+    expect(producibleUnitsAt(cityState, gd, city, p1(cityState))).toEqual([]);
+
+    const broke = state([base], [], 0);
+    expect(producibleUnitsAt(broke, gd, base, p1(broke))).toEqual([]);
   });
 });

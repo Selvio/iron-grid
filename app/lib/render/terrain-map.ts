@@ -10,6 +10,8 @@ import type { MapView } from "@/app/server/actions/read";
  * Coast overlays use the cliff water-channel set at cols 2–5, rows 0–3
  * (`assets-inventory.md` §4.2) indexed by an orthogonal land-neighbor mask.
  * Roads use the thin asphalt pair at row 12 plus a junction heuristic.
+ * Forest and mountain use the atlas E–W strip (standalone / west / mid / east)
+ * on a single silhouette row — not a full 4×4 blob mask.
  *
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T2)
  */
@@ -23,8 +25,10 @@ export const FILL_TILE = {
 /** Fallback single-tile ids for terrains without neighbor logic. */
 export const BASE_TERRAIN_TILE: Record<string, string> = {
   plain: FILL_TILE.plain,
-  forest: "terrain_r06_c08",
-  mountain: "terrain_r02_c07",
+  /** Soft standalone canopy (`terrain.yaml` variants; not dense fill). */
+  forest: "terrain_r04_c06",
+  /** Soft standalone peak. */
+  mountain: "terrain_r00_c06",
   road: "terrain_r12_c00",
   river: "terrain_r06_c02",
   sea: FILL_TILE.sea,
@@ -63,31 +67,40 @@ const COAST_BY_MASK: Record<number, string> = {
   [N | E | S | W]: "terrain_r03_c05",
 };
 
-/** Forest 4×4 region (cols 6–9, rows 4–7) — edge vs fill variants. */
-const FOREST_FILL = "terrain_r06_c08";
-const FOREST_BY_MASK: Partial<Record<number, string>> = {
-  [N]: "terrain_r04_c08",
-  [S]: "terrain_r07_c08",
-  [W]: "terrain_r06_c06",
-  [E]: "terrain_r06_c09",
-  [N | W]: "terrain_r04_c06",
-  [N | E]: "terrain_r04_c09",
-  [S | W]: "terrain_r07_c06",
-  [S | E]: "terrain_r07_c09",
-};
+/**
+ * Forest / mountain horizontal strips (`terrain.yaml`: autotile_required false
+ * for full blob, but the atlas row is a 4-cell E–W strip):
+ * ```
+ *   c06 standalone (soft all sides)
+ *   c07 west / left end   (open east)
+ *   c08 middle            (open east+west)
+ *   c09 east / right end  (open west)
+ * ```
+ * Forest uses row 4; mountain uses row 0. N/S neighbors do not change the cell —
+ * each stamp is a complete vertical silhouette.
+ */
+const FOREST_STRIP_ROW = 4;
+const MOUNTAIN_STRIP_ROW = 0;
 
-/** Mountain 4×4 region (cols 6–9, rows 0–3). */
-const MOUNTAIN_FILL = "terrain_r02_c07";
-const MOUNTAIN_BY_MASK: Partial<Record<number, string>> = {
-  [N]: "terrain_r00_c07",
-  [S]: "terrain_r03_c07",
-  [W]: "terrain_r02_c06",
-  [E]: "terrain_r02_c09",
-  [N | W]: "terrain_r00_c06",
-  [N | E]: "terrain_r00_c09",
-  [S | W]: "terrain_r03_c06",
-  [S | E]: "terrain_r03_c09",
-};
+function stripCellId(row: number, col: number): string {
+  return `terrain_r${String(row).padStart(2, "0")}_c${String(col).padStart(2, "0")}`;
+}
+
+/** Pick standalone / west / mid / east from E–W same-terrain neighbors. */
+function overlayFromHorizontalStrip(
+  map: MapView,
+  x: number,
+  y: number,
+  row: number,
+  isSame: (terrainId: string | undefined) => boolean,
+): string {
+  const hasE = isSame(terrainAt(map, x + 1, y));
+  const hasW = isSame(terrainAt(map, x - 1, y));
+  if (!hasE && !hasW) return stripCellId(row, 6); // standalone
+  if (hasE && !hasW) return stripCellId(row, 7); // west end
+  if (hasE && hasW) return stripCellId(row, 8); // middle
+  return stripCellId(row, 9); // east end (hasW && !hasE)
+}
 
 const WATER_TERRAIN = new Set(["sea", "shoal", "river"]);
 const LAND_TERRAIN = new Set([
@@ -192,8 +205,7 @@ export function roadRenderTile(map: MapView, x: number, y: number): string {
 }
 
 export function forestOverlayTile(map: MapView, x: number, y: number): string {
-  const mask = neighborMask(map, x, y, isForest);
-  return FOREST_BY_MASK[mask] ?? FOREST_FILL;
+  return overlayFromHorizontalStrip(map, x, y, FOREST_STRIP_ROW, isForest);
 }
 
 export function mountainOverlayTile(
@@ -201,8 +213,7 @@ export function mountainOverlayTile(
   x: number,
   y: number,
 ): string {
-  const mask = neighborMask(map, x, y, isMountain);
-  return MOUNTAIN_BY_MASK[mask] ?? MOUNTAIN_FILL;
+  return overlayFromHorizontalStrip(map, x, y, MOUNTAIN_STRIP_ROW, isMountain);
 }
 
 /** Build the bottom→top layer stack for one logical cell. */

@@ -37,18 +37,40 @@ const PLAIN = {
 const UNIT_DEFS = {
   tank: {
     category: "ground",
+    cost: 7000,
+    enabled_in_mvp: true,
     movement: { type: "treads", points: 6, can_move_and_attack: true },
     combat: { type: "direct", min_range: 1, max_range: 1 },
     capabilities: { can_capture: false },
     logistics: { primary_ammo_per_attack: 1 },
   },
+  apc: {
+    category: "ground",
+    cost: 5000,
+    enabled_in_mvp: true,
+    movement: { type: "treads", points: 6 },
+    capabilities: { can_supply: true, can_transport: true },
+    transport: { capacity: 1, allowed_cargo: ["infantry"] },
+  },
+  submarine: {
+    category: "naval",
+    cost: 20000,
+    enabled_in_mvp: true,
+    movement: { type: "ship", points: 5 },
+    combat: { type: "direct", min_range: 1, max_range: 1 },
+    capabilities: { can_dive: true },
+  },
   infantry: {
     category: "ground",
+    cost: 1000,
+    enabled_in_mvp: true,
     movement: {
       type: "foot",
       points: 3,
       can_move_and_attack: true,
       can_move_and_capture: true,
+      can_move_and_join: true,
+      can_move_and_load: true,
     },
     combat: { type: "direct", min_range: 1, max_range: 1 },
     capabilities: { can_capture: true },
@@ -84,8 +106,24 @@ function makeGameData(grid: readonly string[][]): GameData {
     units: UNIT_DEFS,
     terrain: { plain: { movement_costs: PLAIN } },
     properties: {
-      city: { capturable: true, max_capture_points: 20 },
-      headquarters: { capturable: true, max_capture_points: 20 },
+      city: {
+        capturable: true,
+        max_capture_points: 20,
+        production: { category: "none", allowed_unit_ids: [] },
+      },
+      headquarters: {
+        capturable: true,
+        max_capture_points: 20,
+        production: { category: "none", allowed_unit_ids: [] },
+      },
+      base: {
+        capturable: true,
+        max_capture_points: 20,
+        production: {
+          category: "ground",
+          allowed_unit_ids: ["infantry", "tank"],
+        },
+      },
     },
     damageChart: DAMAGE_CHART,
     maps: {
@@ -136,13 +174,13 @@ function unit(
   };
 }
 
-function player(playerId: string): PlayerState {
+function player(playerId: string, funds = 0): PlayerState {
   return {
     playerId,
     userId: `u_${playerId}`,
     factionId: "blue",
     commanderId: "commander_blue",
-    funds: 0,
+    funds,
     powerMeter: 0,
     ready: true,
     resigned: false,
@@ -175,10 +213,11 @@ function state(
   units: readonly UnitState[],
   patch: Partial<MatchMeta> = {},
   properties: readonly PropertyState[] = [],
+  p1Funds = 0,
 ): MatchState {
   return {
     match: match(patch),
-    players: [player("p1"), player("p2")],
+    players: [player("p1", p1Funds), player("p2")],
     units,
     properties,
     terrainObjects: [],
@@ -311,5 +350,184 @@ describe("calculateLegalActions", () => {
     );
     const actions = calculateLegalActions(s, "p1", gd);
     expect(actions.some((x) => x.type === "capture")).toBe(false);
+  });
+
+  it("offers a produce per owned base with the affordable, enabled roster", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state(
+      [],
+      {},
+      [property("b", "base", { x: 1, y: 0 }, "p1")],
+      5000,
+    );
+    const actions = calculateLegalActions(s, "p1", gd);
+
+    const produce = actions.find((x) => x.type === "produce");
+    expect(produce?.propertyId).toBe("b");
+    // Funds 5000 afford infantry (1000) but not tank (7000).
+    expect(produce?.producibleUnitTypeIds).toEqual(["infantry"]);
+    // produce is emitted after unit actions, before end_turn.
+    expect(actions.at(-1)).toEqual({ type: "end_turn" });
+    expect(actions.at(-2)?.type).toBe("produce");
+  });
+
+  it("offers the full affordable roster when funds allow", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state(
+      [],
+      {},
+      [property("b", "base", { x: 0, y: 0 }, "p1")],
+      9000,
+    );
+    const produce = calculateLegalActions(s, "p1", gd).find(
+      (x) => x.type === "produce",
+    );
+    expect(produce?.producibleUnitTypeIds).toEqual(["infantry", "tank"]);
+  });
+
+  it("omits produce when the player cannot afford anything", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state([], {}, [property("b", "base", { x: 0, y: 0 }, "p1")], 500);
+    expect(
+      calculateLegalActions(s, "p1", gd).some((x) => x.type === "produce"),
+    ).toBe(false);
+  });
+
+  it("omits produce for an occupied base, an enemy base, or a non-producing property", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state(
+      [unit("u", "p1", { x: 0, y: 0 }, { typeId: "tank", ammo: 0 })],
+      {},
+      [
+        property("occupied", "base", { x: 0, y: 0 }, "p1"), // tile has a unit
+        property("enemy", "base", { x: 1, y: 0 }, "p2"), // not owned
+        property("city", "city", { x: 2, y: 0 }, "p1"), // produces nothing
+      ],
+      99000,
+    );
+    expect(
+      calculateLegalActions(s, "p1", gd).some((x) => x.type === "produce"),
+    ).toBe(false);
+  });
+
+  const forUnit = (s: MatchState, gd: GameData, unitId: string, type: string) =>
+    calculateLegalActions(s, "p1", gd).find(
+      (a) => a.unitId === unitId && a.type === type,
+    );
+
+  it("offers supply for an APC adjacent to an ally", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state([
+      unit("apc", "p1", { x: 1, y: 0 }, { typeId: "apc", ammo: 0 }),
+      unit("ally", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 }),
+    ]);
+    const supply = forUnit(s, gd, "apc", "supply");
+    expect(supply?.destinations).toContainEqual({ x: 1, y: 0 });
+    // A lone APC with no adjacent ally offers no supply.
+    const alone = state([unit("apc", "p1", { x: 1, y: 0 }, { typeId: "apc" })]);
+    expect(forUnit(alone, gd, "apc", "supply")).toBeUndefined();
+  });
+
+  it("offers join onto a friendly same-type unit", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state([
+      unit("s", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 }),
+      unit("t", "p1", { x: 1, y: 0 }, { typeId: "infantry", ammo: 0 }),
+    ]);
+    // The source can merge onto the ally's (occupied) tile.
+    expect(forUnit(s, gd, "s", "join")?.destinations).toContainEqual({
+      x: 1,
+      y: 0,
+    });
+    // No join onto a different type.
+    const mixed = state([
+      unit("s", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 }),
+      unit("t", "p1", { x: 1, y: 0 }, { typeId: "tank", ammo: 0 }),
+    ]);
+    expect(forUnit(mixed, gd, "s", "join")).toBeUndefined();
+  });
+
+  it("offers load onto a friendly transport with spare capacity", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state([
+      unit("inf", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 }),
+      unit("apc", "p1", { x: 1, y: 0 }, { typeId: "apc", ammo: 0 }),
+    ]);
+    expect(forUnit(s, gd, "inf", "load")?.destinations).toContainEqual({
+      x: 1,
+      y: 0,
+    });
+    // A full transport offers no load.
+    const full = state([
+      unit("inf", "p1", { x: 0, y: 0 }, { typeId: "infantry", ammo: 0 }),
+      unit(
+        "apc",
+        "p1",
+        { x: 1, y: 0 },
+        {
+          typeId: "apc",
+          ammo: 0,
+          cargoUnitIds: ["x"],
+        },
+      ),
+    ]);
+    expect(forUnit(full, gd, "inf", "load")).toBeUndefined();
+  });
+
+  it("offers unload for a loaded transport with an adjacent drop tile", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const s = state([
+      unit(
+        "apc",
+        "p1",
+        { x: 1, y: 0 },
+        {
+          typeId: "apc",
+          ammo: 0,
+          cargoUnitIds: ["inf"],
+        },
+      ),
+      unit("inf", "p1", null, { typeId: "infantry", ammo: 0 }), // loaded cargo
+    ]);
+    expect(forUnit(s, gd, "apc", "unload")?.destinations).toContainEqual({
+      x: 1,
+      y: 0,
+    });
+    // An empty transport offers no unload.
+    const empty = state([unit("apc", "p1", { x: 1, y: 0 }, { typeId: "apc" })]);
+    expect(forUnit(empty, gd, "apc", "unload")).toBeUndefined();
+  });
+
+  it("offers dive for a surfaced submarine and surface for a submerged one", () => {
+    const gd = makeGameData(PLAIN_1x3);
+    const surfaced = state([
+      unit(
+        "sub",
+        "p1",
+        { x: 0, y: 0 },
+        {
+          typeId: "submarine",
+          ammo: 0,
+          specialState: "surfaced",
+        },
+      ),
+    ]);
+    expect(forUnit(surfaced, gd, "sub", "dive")).toBeDefined();
+    expect(forUnit(surfaced, gd, "sub", "surface")).toBeUndefined();
+
+    const submerged = state([
+      unit(
+        "sub",
+        "p1",
+        { x: 0, y: 0 },
+        {
+          typeId: "submarine",
+          ammo: 0,
+          specialState: "submerged",
+        },
+      ),
+    ]);
+    expect(forUnit(submerged, gd, "sub", "surface")).toBeDefined();
+    expect(forUnit(submerged, gd, "sub", "dive")).toBeUndefined();
   });
 });

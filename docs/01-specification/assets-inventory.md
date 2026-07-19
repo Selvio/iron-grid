@@ -357,24 +357,24 @@ Preferred APC row: **06** because its cargo/supply silhouette is the clearest.
 
 | Row | Visual description | Proposed mapping | Confidence | MVP |
 |---:|---|---|---|---|
-| 09 | Small turreted armored vehicle | Tank | Medium–High | Yes |
+| 09 | Compact wheeled gun vehicle with crew | Extra scout/light vehicle | Medium | No |
 | 10 | Long-barrel mobile gun | Artillery | High | Yes |
 | 11 | Heavy long-barrel armored vehicle | Rockets or heavy artillery candidate | Medium | Conditional |
-| 12 | Compact tracked turret vehicle | Tank alternate / Medium Tank candidate | Medium | Conditional |
-| 13 | Twin/AA-style turret vehicle | Anti-Air | High | Yes |
+| 12 | Compact tracked turret vehicle | Tank | High | Yes |
+| 13 | Tracked turret vehicle with crew | Extra armored vehicle | Medium | No |
 | 14 | Large heavy tank | Medium Tank | High | Yes |
-| 15 | Missile/radar-style tracked vehicle | Missiles | High | Yes |
+| 15 | Open-top tracked vehicle with crew | Extra armored vehicle | Medium | No |
 | 16 | Futuristic/heavy rounded tank | Neotank | High | Yes |
 
 ### 5.5 Rows 17–23: artillery, missile and specialist ground units
 
 | Row | Visual description | Proposed mapping | Confidence | MVP |
 |---:|---|---|---|---|
-| 17 | Forked/twin forward gun platform | Extra tank destroyer | Medium | No |
+| 17 | Twin upward-barrel AA turret vehicle | Anti-Air | High | Yes |
 | 18 | Compact gun platform | Artillery alternate | Medium | No |
-| 19 | Multi-launch rocket platform | Rockets | High | Yes |
+| 19 | Wheeled missile-rack launcher | Missiles | High | Yes |
 | 20 | Heavy multi-barrel/rocket vehicle | Extra heavy rockets | Medium | No |
-| 21 | Box launcher / large missile vehicle | Missiles alternate | Medium | No |
+| 21 | Wheeled box/rocket-pod launcher | Rockets | High | Yes |
 | 22 | Wheeled cannon/recon hybrid | Extra wheeled artillery | Medium | No |
 | 23 | Covered tracked mound/launcher | Extra specialist vehicle | Low–Medium | No |
 
@@ -434,13 +434,13 @@ This is the recommended minimal mapping that uses only visually supported assets
 | Mech | 02 |
 | Recon | 08 |
 | APC | 06 |
-| Tank | 09 |
+| Tank | 12 |
 | Medium Tank | 14 |
 | Neotank | 16 |
 | Artillery | 10 |
-| Rockets | 19 |
-| Anti-Air | 13 |
-| Missiles | 15 |
+| Rockets | 21 |
+| Anti-Air | 17 |
+| Missiles | 19 |
 | Fighter | 25 |
 | Bomber | 26 |
 | Battle Copter | 29 |
@@ -453,7 +453,7 @@ This is the recommended minimal mapping that uses only visually supported assets
 Rows excluded from MVP:
 
 ```text
-01, 03, 04, 05, 07, 11, 12, 17, 18, 20, 21, 22, 23, 24,
+01, 03, 04, 05, 07, 09, 11, 13, 15, 18, 20, 22, 23, 24,
 27, 28, 31, 35, 36, 37, 38
 ```
 

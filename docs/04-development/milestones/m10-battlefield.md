@@ -274,6 +274,32 @@ runs on the `setup.ts` test fixture map. No battlefield UI exists.
 > unit-tested over combat-capable fixtures. The move-component path is still built
 > client-side (`computePath`) and re-validated on submit — the enumeration only
 > asserts a legal path to each tile exists.
+>
+> **Amendment (post-M10, unit production):** `calculateLegalActions` now also emits
+> `produce` — the first **property-based** action (per owned base/airport/port,
+> outside the idle-unit loop) — via a pure `producibleUnitsAt` predicate that mirrors
+> `validateProduce` (owned + produces + empty tile + affordable, enabled roster).
+> `LegalAction` gained `propertyId` + `producibleUnitTypeIds`. On the client, clicking
+> an owned production property opens an Advance-Wars **Build menu** (`previewProduction`
+> + the `production-menu` reducer state + the panel) listing the property's enabled
+> roster with prices; **unaffordable units are shown greyed** while the strict engine
+> enumeration lists only the affordable set. Choosing a unit submits
+> `{ type: "produce", propertyId, unitTypeId }` — the client **never** sends
+> `newUnitId`; the server assigns it in `envelope.ts` `parseAction` (§6.4). Wired and
+> unit-tested end to end.
+
+> **Amendment (post-M10, logistics + state actions & UX polish):** the remaining
+> engine-resolved actions were enumerated in `calculateLegalActions` and wired into
+> the menu via pure predicates mirroring their validators — `supply`
+> (`canSupplyFrom`), `join` (`joinTargetAt`), `load` (`loadTransportAt`), `unload`
+> (`unloadDropsFrom`), `dive`/`surface` (`canChangeStateTo`). Join/Load end on a
+> friendly-occupied tile, enumerated via a new `movementReach` that returns reachable
+> friendly tiles alongside empty ones; dive/surface act in place (no `path`); Unload
+> adds a cargo-picker → drop-tile sub-flow (`unload-cargo`/`unload-drop` states). The
+> battlefield also gained Advance-Wars UX: a **terrain + defense** read-out on hover,
+> the **move-path arrow**, a richer **combat forecast** (defender HP before→after +
+> defense stars), a **turn-change banner**, and a **minimap**. Still deferred: CO
+> powers, missile/silo, weather, day-limit score, sound, and **fog** — see §6.
 
 ## M10-T7 · Submit & reconcile
 - **Goal:** submit the confirmed action and reconcile authoritatively
@@ -376,8 +402,10 @@ M10 is complete when, from a clean checkout:
    the live controller** and unit-tested over combat-capable fixtures (see the
    §M10-T6 amendment). Live combat needs real weapons/damage tables, which the
    **practice/hotseat** match supplies (real `crossfire-basin` game data).
-4. Committing a **move / capture / attack** **submits** through `POST …/actions`
-   with `expectedStateVersion` + `idempotencyKey`; the client **refetches** the
+4. Committing a **move / capture / attack / produce** **submits** through
+   `POST …/actions` with `expectedStateVersion` + `idempotencyKey` (produce sends
+   only `propertyId` + `unitTypeId`; the server assigns `newUnitId`); the client
+   **refetches** the
    projected view, and a **stale submit** is a typed conflict that triggers a
    refetch, never a local re-apply (`frontend.md` §9). The **animation** builder
    (`buildAnimationPlan` / `submittedMovePlan` / `submittedAttackPlan` + the scene's
@@ -412,15 +440,16 @@ M10 is complete when, from a clean checkout:
 - **The two-human balance sign-off** — M10 authors a symmetric candidate map + the
   balance evidence; the formal `official_map_release_gates` human review is recorded
   by the owner, not fabricated here.
-- **Live combat targeting & submit** — ~~deferred to M12~~ **delivered** by the
-  §M10-T6 amendment: `calculateLegalActions` now enumerates `attack`/`capture`, the
-  action menu is selectable, and the choose-target → forecast → submit `attack` path
-  is wired and unit-tested over combat-capable fixtures. It became runnable once the
-  **practice/hotseat** seed loaded real `crossfire-basin` weapons/damage tables. What
-  remains deferred is the **full action surface** (produce / supply / load / unload /
-  join / dive / surface / power / missile): those are neither enumerated by
-  `calculateLegalActions` nor offered by the menu yet, and land with their own UI in
-  a later pass.
+- **Live action targeting & submit** — ~~deferred to M12~~ **delivered** by the
+  §M10-T6 amendments: `calculateLegalActions` now enumerates `attack`/`capture` (per
+  unit) and `produce` (per owned production property), the action + build menus are
+  selectable, and the choose-target → forecast → submit `attack`, `capture`, and
+  `produce` paths are wired and unit-tested over combat/production-capable fixtures.
+  It became runnable once the **practice/hotseat** seed loaded real `crossfire-basin`
+  weapons/damage/economy tables. A later amendment (see §M10-T7) added the logistics /
+  state actions — **supply, join, load, unload, dive, surface** — likewise enumerated
+  and wired. What remains deferred is only **activate_power** (CO powers, design-gated)
+  and **launch_missile** (silo mechanics + art, not implemented in the engine).
 - **The live event-fetch → animation bridge** — `buildAnimationPlan` and the scene's
   `playAnimation` are built and unit-tested, but the runtime seam
   (submit → `getEvents` → plan → `playAnimation`) is **not wired**; `BattlefieldView`
@@ -432,9 +461,13 @@ M10 is complete when, from a clean checkout:
   per-tile board **ownership insignia** (§27.4; ADR-0004) are verified/authored in
   the **M12** visual pass. M10 tests the pure logic only.
 - **The 30 acceptance scenarios, security pass & deploy** — **M12**.
-- **Fog-on matches** — still blocked at create (M7 guard); the renderer draws the
-  fog overlay from the projection, but no live fog-on match is created until that
-  boundary is lifted.
+- **Fog-on matches** — still blocked at create (M7 guard). The **match view** is
+  already per-player projected (`projectStateForPlayer`) and the renderer draws the
+  fog overlay, but the commit pipeline still writes **`player_events` unprojected**
+  (`app/server/actions/commit.ts` — interim), so `GET …/events` would leak the
+  opponent's hidden moves under fog. Lifting the create gate requires the per-player
+  **event-visibility projection** first (a real anti-leak layer + tests), not just a
+  flag flip — so fog stays deferred.
 
 ---
 

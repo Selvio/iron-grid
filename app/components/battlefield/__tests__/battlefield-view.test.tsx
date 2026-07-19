@@ -130,12 +130,34 @@ describe("BattlefieldView", () => {
 
     expect(screen.getByText("Actions")).toBeInTheDocument();
     expect(screen.getByText(/no undo/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Wait" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
 
     // Cancel steps back to the selected-unit state (range still shown).
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(screen.queryByText("Actions")).not.toBeInTheDocument();
     expect(screen.getByText("Tank")).toBeInTheDocument();
+  });
+
+  it("confirms Move when re-clicking the chosen destination tile", async () => {
+    const fetchMock = stubFetch(view());
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // open menu
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+
+    // Re-click the same destination — commits move_and_wait (no Move button).
+    await userEvent.click(screen.getByLabelText("Tile 3, 1"));
+
+    await waitFor(() => {
+      const submit = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/actions"),
+      );
+      expect(submit).toBeDefined();
+      expect(
+        JSON.parse((submit![1] as RequestInit).body as string),
+      ).toMatchObject({ type: "move_and_wait", unitId: "u1" });
+    });
   });
 
   it("ends the turn, submitting an end_turn action then refetching", async () => {
@@ -161,7 +183,7 @@ describe("BattlefieldView", () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
     await userEvent.click(screen.getByLabelText("Tile 3, 1")); // reachable dest
-    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => expect(scene.playAnimation).toHaveBeenCalledOnce());
     expect(scene.playAnimation).toHaveBeenCalledWith([
@@ -195,19 +217,19 @@ describe("BattlefieldView", () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1"));
     await userEvent.click(screen.getByLabelText("Tile 3, 1"));
-    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => expect(scene.playAnimation).toHaveBeenCalledOnce());
     expect(scene.playAnimation).toHaveBeenCalledWith([]); // no walk
   });
 
-  it("submits move_and_wait on Wait, then refetches the authoritative view", async () => {
+  it("submits move_and_wait on Move, then refetches the authoritative view", async () => {
     const fetchMock = stubFetch(view());
 
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
     await userEvent.click(screen.getByLabelText("Tile 3, 1")); // reachable dest
-    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
 
     await waitFor(() => {
       const submit = fetchMock.mock.calls.find((c) =>
@@ -250,6 +272,9 @@ function combatGameData(): GameData {
     units: {
       tank: {
         category: "ground",
+        cost: 7000,
+        enabled_in_mvp: true,
+        display_name: "Tank",
         movement: move,
         combat,
         capabilities: { can_capture: false },
@@ -258,19 +283,55 @@ function combatGameData(): GameData {
       },
       infantry: {
         category: "ground",
+        cost: 1000,
+        enabled_in_mvp: true,
+        display_name: "Infantry",
         movement: {
           ...move,
           type: "foot",
           points: 3,
           can_move_and_capture: true,
+          can_move_and_join: true,
+          can_move_and_load: true,
         },
         combat,
         capabilities: { can_capture: true },
         logistics: { primary_ammo_per_attack: 0 },
         rendering: { sprite_row: 0, row_id: "unit_r00" },
       },
+      apc: {
+        category: "ground",
+        cost: 5000,
+        enabled_in_mvp: true,
+        display_name: "APC",
+        movement: { ...move },
+        capabilities: { can_supply: true, can_transport: true },
+        transport: { capacity: 1, allowed_cargo: ["infantry"] },
+        rendering: { sprite_row: 3, row_id: "unit_r03" },
+      },
+      submarine: {
+        category: "naval",
+        cost: 20000,
+        enabled_in_mvp: true,
+        display_name: "Submarine",
+        movement: { type: "ship", points: 5 },
+        combat,
+        capabilities: { can_dive: true },
+        logistics: { primary_ammo_per_attack: 1 },
+        rendering: { sprite_row: 20, row_id: "unit_r20" },
+      },
     },
-    properties: { city: { capturable: true, max_capture_points: 20 } },
+    properties: {
+      city: { capturable: true, max_capture_points: 20 },
+      base: {
+        capturable: true,
+        max_capture_points: 20,
+        production: {
+          category: "ground",
+          allowed_unit_ids: ["infantry", "tank"],
+        },
+      },
+    },
     damageChart: {
       attackers: {
         tank: {
@@ -286,6 +347,9 @@ function combatGameData(): GameData {
     },
     terrain: {
       plain: {
+        display_name: "Plain",
+        defense_stars: 1,
+        group: "land",
         movement_costs: {
           foot: 1,
           mech: 1,
@@ -326,6 +390,14 @@ describe("BattlefieldView · combat", () => {
     await userEvent.click(screen.getByRole("button", { name: "Attack" })); // menu
     // A single target jumps straight to the forecast; confirm with Attack.
     expect(screen.getByText("Combat")).toBeInTheDocument();
+    // The chosen target keeps its reticle and the forecast reads as a percentage.
+    expect(
+      screen.getByLabelText("Tile 3, 1").querySelector("[data-reticle]"),
+    ).not.toBeNull();
+    expect(screen.getAllByText(/%$/).length).toBeGreaterThan(0);
+    // The forecast shows the defender's HP transition and terrain defense.
+    expect(screen.getByText("Target")).toBeInTheDocument();
+    expect(screen.getByText(/10 →/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));
 
     await waitFor(() => {
@@ -363,6 +435,39 @@ describe("BattlefieldView · combat", () => {
     expect(screen.getByText("Choose target")).toBeInTheDocument();
     expect(screen.getByLabelText("Tile 3, 1").className).toMatch(/destructive/);
     expect(screen.getByLabelText("Tile 1, 1").className).toMatch(/destructive/);
+    // Both attackable enemies show a reticle to pick from.
+    expect(
+      screen.getByLabelText("Tile 3, 1").querySelector("[data-reticle]"),
+    ).not.toBeNull();
+    expect(
+      screen.getByLabelText("Tile 1, 1").querySelector("[data-reticle]"),
+    ).not.toBeNull();
+  });
+
+  it("picks one of several targets by clicking its reticle → forecast → attack", async () => {
+    const west = { ...ENEMY_TANK, id: "e2", position: { x: 1, y: 1 } };
+    const v = view([MY_TANK, ENEMY_TANK, west]);
+    const fetchMock = stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
+    await userEvent.click(screen.getByRole("button", { name: "Attack" }));
+    // Choose the western enemy specifically.
+    await userEvent.click(screen.getByLabelText("Tile 1, 1"));
+
+    expect(screen.getByText("Combat")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Attack" }));
+
+    await waitFor(() => {
+      const submit = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/actions"),
+      );
+      expect(submit).toBeDefined();
+      expect(
+        JSON.parse((submit![1] as RequestInit).body as string),
+      ).toMatchObject({ type: "attack", unitId: "u1", targetUnitId: "e2" });
+    });
   });
 
   it("captures an enemy property in place", async () => {
@@ -403,5 +508,173 @@ describe("BattlefieldView · combat", () => {
         expectedStateVersion: 4,
       });
     });
+  });
+});
+
+describe("BattlefieldView · production", () => {
+  const BASE = {
+    id: "b1",
+    typeId: "base",
+    position: { x: 2, y: 2 },
+    ownerPlayerId: "me",
+    capturePointsRemaining: 20,
+    capturingUnitId: null,
+  };
+
+  it("opens the build menu on an owned base and submits produce (no client newUnitId)", async () => {
+    const v = view([], [BASE]);
+    const fetchMock = stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 2")); // click the base
+    expect(screen.getByText("Build")).toBeInTheDocument();
+    // Funds 1000 (fixture) afford infantry but not the tank.
+    expect(screen.getByRole("button", { name: /Tank/ })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /Infantry/ }));
+
+    await waitFor(() => {
+      const submit = fetchMock.mock.calls.find((c) =>
+        String(c[0]).includes("/actions"),
+      );
+      expect(submit).toBeDefined();
+      const body = JSON.parse((submit![1] as RequestInit).body as string);
+      expect(body).toMatchObject({
+        type: "produce",
+        propertyId: "b1",
+        unitTypeId: "infantry",
+        expectedStateVersion: 4,
+      });
+      // The server assigns the new unit id — the client must not send one.
+      expect(body).not.toHaveProperty("newUnitId");
+    });
+  });
+
+  it("does not open the build menu on an enemy base", async () => {
+    const enemyBase = { ...BASE, ownerPlayerId: "foe" };
+    const v = view([], [enemyBase]);
+    stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 2"));
+    expect(screen.queryByText("Build")).not.toBeInTheDocument();
+  });
+});
+
+describe("BattlefieldView · logistics", () => {
+  function submitBody(fetchMock: ReturnType<typeof stubFetch>) {
+    const call = fetchMock.mock.calls.find((c) =>
+      String(c[0]).includes("/actions"),
+    );
+    return call
+      ? JSON.parse((call[1] as RequestInit).body as string)
+      : undefined;
+  }
+
+  it("loads infantry onto an adjacent friendly transport", async () => {
+    const inf = { ...TANK, id: "inf", typeId: "infantry", fuel: 99 };
+    const apc = {
+      ...TANK,
+      id: "apc",
+      typeId: "apc",
+      ammo: 0,
+      fuel: 60,
+      position: { x: 3, y: 1 },
+    };
+    const v = view([inf, apc]);
+    const fetchMock = stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select infantry
+    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // the APC tile
+    await userEvent.click(screen.getByRole("button", { name: "Load" }));
+
+    await waitFor(() =>
+      expect(submitBody(fetchMock)).toMatchObject({
+        type: "load",
+        unitId: "inf",
+      }),
+    );
+  });
+
+  it("dives a surfaced submarine in place", async () => {
+    const sub = {
+      ...TANK,
+      id: "sub",
+      typeId: "submarine",
+      fuel: 60,
+      position: { x: 2, y: 1 },
+      specialState: "surfaced",
+    };
+    const v = view([sub]);
+    const fetchMock = stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select sub
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
+    await userEvent.click(screen.getByRole("button", { name: "Dive" }));
+
+    await waitFor(() => {
+      const body = submitBody(fetchMock);
+      expect(body).toMatchObject({ type: "dive", unitId: "sub" });
+      // Dive carries no move component.
+      expect(body).not.toHaveProperty("path");
+    });
+  });
+
+  it("shows the terrain name + defense under the cursor", async () => {
+    const v = view();
+    stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.hover(screen.getByLabelText("Tile 0, 0"));
+    expect(screen.getByText("Plain")).toBeInTheDocument();
+    expect(screen.getByText(/^Def/)).toBeInTheDocument();
+  });
+
+  it("draws the move-path arrow to a hovered reachable tile", async () => {
+    const v = view([{ ...TANK, fuel: 6 }]);
+    stubFetch(v);
+    const { container } = render(
+      <BattlefieldView matchView={v} gameData={combatGameData()} />,
+    );
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.hover(screen.getByLabelText("Tile 3, 1")); // reachable tile
+    expect(container.querySelector("[data-path]")).not.toBeNull();
+  });
+
+  it("unloads a single cargo unit onto an adjacent tile", async () => {
+    const apc = {
+      ...TANK,
+      id: "apc",
+      typeId: "apc",
+      ammo: 0,
+      fuel: 60,
+      position: { x: 2, y: 1 },
+      cargoUnitIds: ["inf"],
+    };
+    const cargo = {
+      ...TANK,
+      id: "inf",
+      typeId: "infantry",
+      position: null,
+    };
+    const v = view([apc, cargo]);
+    const fetchMock = stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select APC
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
+    await userEvent.click(screen.getByRole("button", { name: "Unload" }));
+    // Single cargo → straight to drop-tile selection; drop to the north.
+    await userEvent.click(screen.getByLabelText("Tile 2, 0"));
+
+    await waitFor(() =>
+      expect(submitBody(fetchMock)).toMatchObject({
+        type: "unload",
+        unitId: "apc",
+        unloads: [{ cargoUnitId: "inf", to: { x: 2, y: 0 } }],
+      }),
+    );
   });
 });

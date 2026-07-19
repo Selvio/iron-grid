@@ -22,18 +22,35 @@ const MENU: UnitMenu = {
   ],
   captureDestinations: [{ x: 2, y: 1 }],
   attacks: [{ from: { x: 1, y: 1 }, targetUnitId: "e1" }],
+  supplyDestinations: [],
+  joinDestinations: [],
+  loadDestinations: [],
+  unloadDestinations: [],
+  diveDestinations: [],
+  surfaceDestinations: [],
 };
 
-const WAIT_ONLY: DestinationOptions = {
+/** A full DestinationOptions with everything off, overridden by `p`. */
+function opts(p: Partial<DestinationOptions> = {}): DestinationOptions {
+  return {
+    canWait: false,
+    canCapture: false,
+    attackTargets: [],
+    canSupply: false,
+    canJoin: false,
+    canLoad: false,
+    canUnload: false,
+    canDive: false,
+    canSurface: false,
+    ...p,
+  };
+}
+
+const WAIT_ONLY: DestinationOptions = opts({ canWait: true });
+const ATTACKABLE: DestinationOptions = opts({
   canWait: true,
-  canCapture: false,
-  attackTargets: [],
-};
-const ATTACKABLE: DestinationOptions = {
-  canWait: true,
-  canCapture: false,
   attackTargets: ["e1", "e2"],
-};
+});
 
 function selected(): InteractionState {
   return interactionReducer(INITIAL_INTERACTION, {
@@ -148,5 +165,77 @@ describe("interactionReducer", () => {
     expect(interactionReducer(selected(), { type: "deselect" })).toEqual({
       kind: "idle",
     });
+  });
+
+  it("opens the production menu from idle and cancels back", () => {
+    const property = { id: "b1", position: { x: 2, y: 3 } };
+    const options = [
+      {
+        unitTypeId: "infantry",
+        displayName: "Infantry",
+        cost: 1000,
+        affordable: true,
+        sprite: null,
+      },
+    ];
+    const menu = interactionReducer(INITIAL_INTERACTION, {
+      type: "open-production",
+      property,
+      options,
+    });
+    expect(menu).toMatchObject({ kind: "production-menu", property, options });
+    // cancel and deselect both return to idle.
+    expect(interactionReducer(menu, { type: "cancel" })).toEqual(
+      INITIAL_INTERACTION,
+    );
+    expect(interactionReducer(menu, { type: "deselect" })).toEqual(
+      INITIAL_INTERACTION,
+    );
+  });
+
+  it("does not open the production menu when a unit is already selected", () => {
+    const s = selected();
+    expect(
+      interactionReducer(s, {
+        type: "open-production",
+        property: { id: "b1", position: { x: 0, y: 0 } },
+        options: [],
+      }),
+    ).toBe(s);
+  });
+
+  it("walks the unload flow: menu → cargo picker → drop → cancel back", () => {
+    const menu = menuAt({ x: 2, y: 1 }, opts({ canUnload: true }));
+    const cargo = [
+      { unitId: "inf1", displayName: "Infantry", sprite: null },
+      { unitId: "mech1", displayName: "Mech", sprite: null },
+    ];
+    const picker = interactionReducer(menu, { type: "open-unload", cargo });
+    expect(picker).toMatchObject({ kind: "unload-cargo", cargo });
+
+    const drop = interactionReducer(picker, {
+      type: "choose-cargo",
+      cargoUnitId: "mech1",
+      dropTiles: [{ x: 3, y: 1 }],
+    });
+    expect(drop).toMatchObject({
+      kind: "unload-drop",
+      cargoUnitId: "mech1",
+      dropTiles: [{ x: 3, y: 1 }],
+    });
+    // cancel steps drop → action-menu (not all the way out).
+    expect(interactionReducer(drop, { type: "cancel" })).toMatchObject({
+      kind: "action-menu",
+    });
+  });
+
+  it("allows a direct menu → drop jump for a single cargo unit", () => {
+    const menu = menuAt({ x: 2, y: 1 }, opts({ canUnload: true }));
+    const drop = interactionReducer(menu, {
+      type: "choose-cargo",
+      cargoUnitId: "inf1",
+      dropTiles: [{ x: 3, y: 1 }],
+    });
+    expect(drop).toMatchObject({ kind: "unload-drop", cargoUnitId: "inf1" });
   });
 });

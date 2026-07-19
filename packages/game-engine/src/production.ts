@@ -27,7 +27,40 @@ import {
 } from "./board";
 import type { EngineResult, ValidationError, ValidationResult } from "./engine";
 import type { Event } from "./events";
-import type { MatchState, UnitState } from "./state";
+import type {
+  MatchState,
+  PlayerState,
+  PropertyState,
+  UnitState,
+} from "./state";
+
+/**
+ * The unit type ids `player` may build **now** at their `property` — the roster +
+ * occupancy + affordability core of `validateProduce`, minus the envelope /
+ * server-assigned `newUnitId`. Returns `[]` when the property is not the player's,
+ * does not produce, is occupied, or nothing enabled is affordable. Pure; used to
+ * enumerate `produce` legal actions (§6.4) and to drive the build menu.
+ */
+export function producibleUnitsAt(
+  state: MatchState,
+  gameData: GameData,
+  property: PropertyState,
+  player: PlayerState,
+): readonly string[] {
+  if (property.ownerPlayerId !== player.playerId) return [];
+  const production = gameData.properties[property.typeId]?.production;
+  if (production === undefined || production.category === "none") return [];
+  // The property tile must be empty to place a produced unit (§6.4).
+  if (unitAt(state, property.position) !== undefined) return [];
+  return production.allowed_unit_ids.filter((unitTypeId) => {
+    const unitDef = gameData.units[unitTypeId];
+    return (
+      unitDef !== undefined &&
+      unitDef.enabled_in_mvp &&
+      player.funds >= unitDef.cost
+    );
+  });
+}
 
 /** Validate a `produce` (turn/ownership, category, roster, occupancy, funds; §6.4). */
 export function validateProduce(

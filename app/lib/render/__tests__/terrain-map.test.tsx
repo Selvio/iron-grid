@@ -33,8 +33,8 @@ function view(logicalTerrain: string[][]): MapView {
 
 describe("renderTileFor", () => {
   it("maps forest and mountain to their inventory atlas regions", () => {
-    expect(renderTileFor("forest")).toBe("terrain_r06_c08");
-    expect(renderTileFor("mountain")).toBe("terrain_r02_c07");
+    expect(renderTileFor("forest")).toBe("terrain_r04_c06");
+    expect(renderTileFor("mountain")).toBe("terrain_r00_c06");
   });
 
   it("uses the opaque grass cell for plains (not the transparent r00_c00)", () => {
@@ -104,22 +104,26 @@ describe("roadRenderTile", () => {
 });
 
 describe("forest and mountain overlays", () => {
-  it("picks fill tiles for isolated cells and edge variants for neighbors", () => {
-    const forests = view([
-      ["plain", "forest", "plain"],
-      ["forest", "forest", "forest"],
-      ["plain", "forest", "plain"],
-    ]);
-    expect(forestOverlayTile(forests, 1, 1)).toBe(BASE_TERRAIN_TILE.forest);
-    expect(forestOverlayTile(forests, 1, 0)).toBe("terrain_r07_c08"); // S neighbor
+  it("picks E–W strip cells: standalone, west, mid, east", () => {
+    // Isolated → soft standalone c06.
+    expect(forestOverlayTile(view([["forest"]]), 0, 0)).toBe("terrain_r04_c06");
 
-    const mountains = view([
-      ["plain", "mountain", "plain"],
-      ["plain", "mountain", "plain"],
-      ["plain", "plain", "plain"],
-    ]);
-    expect(mountainOverlayTile(mountains, 1, 0)).toBe("terrain_r03_c07"); // S
-    expect(mountainOverlayTile(mountains, 1, 1)).toBe("terrain_r00_c07"); // N
+    const row = view([["forest", "forest", "forest"]]);
+    expect(forestOverlayTile(row, 0, 0)).toBe("terrain_r04_c07"); // west
+    expect(forestOverlayTile(row, 1, 0)).toBe("terrain_r04_c08"); // mid
+    expect(forestOverlayTile(row, 2, 0)).toBe("terrain_r04_c09"); // east
+
+    // Vertical neighbors alone still use standalone (strip is E–W only).
+    const col = view([["forest"], ["forest"]]);
+    expect(forestOverlayTile(col, 0, 0)).toBe("terrain_r04_c06");
+    expect(forestOverlayTile(col, 0, 1)).toBe("terrain_r04_c06");
+
+    const mountains = view([["mountain", "mountain"]]);
+    expect(mountainOverlayTile(mountains, 0, 0)).toBe("terrain_r00_c07");
+    expect(mountainOverlayTile(mountains, 1, 0)).toBe("terrain_r00_c09");
+    expect(mountainOverlayTile(view([["mountain"]]), 0, 0)).toBe(
+      "terrain_r00_c06",
+    );
   });
 });
 
@@ -157,7 +161,7 @@ describe("buildTerrainRenderModel", () => {
       x: 1,
       y: 0,
       terrainId: "forest",
-      renderTileId: "terrain_r06_c08",
+      renderTileId: "terrain_r04_c06", // isolated → soft standalone
     });
     expect(cells[1]!.layers[0]).toBe(FILL_TILE.plain);
     // row-major: index 3 is (x:0, y:1).

@@ -2,7 +2,7 @@
 
 import type { GameData } from "game-data";
 import type { Coordinate } from "game-engine";
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
   ApiError,
@@ -13,11 +13,17 @@ import {
 import {
   INITIAL_INTERACTION,
   interactionReducer,
+  type CombatDefender,
 } from "@/app/lib/battlefield/machine";
 import {
   actionsAtDestination,
   previewCombat,
+  previewProduction,
   previewUnitMenu,
+  productionTargetAt,
+  unloadCargo,
+  unloadDropTiles,
+  type DestinationOptions,
 } from "@/app/lib/preview/actions";
 import { computePath } from "@/app/lib/preview/path";
 import {
@@ -32,8 +38,24 @@ import { Button } from "@/app/components/ui/button";
 import { ActionPanel } from "./action-panel";
 import { Battlefield } from "./battlefield";
 import type { BattlefieldHandle } from "./create-game";
-import { Hud, type HudUnit } from "./hud/hud";
+import { Hud, type HudTerrain, type HudUnit } from "./hud/hud";
 import { InteractionOverlay, TILE_DISPLAY_PX } from "./interaction-overlay";
+import { Minimap } from "./minimap";
+
+/** Whether a chosen tile offers any legal action for the selected unit. */
+function anyAction(o: DestinationOptions): boolean {
+  return (
+    o.canWait ||
+    o.canCapture ||
+    o.attackTargets.length > 0 ||
+    o.canSupply ||
+    o.canJoin ||
+    o.canLoad ||
+    o.canUnload ||
+    o.canDive ||
+    o.canSurface
+  );
+}
 
 /**
  * Battlefield interaction controller (M10-T5/T6/T7).
@@ -60,8 +82,25 @@ export function BattlefieldView({
   const [view, setView] = useState(matchView);
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
   const [busy, setBusy] = useState(false);
+  const [hovered, setHovered] = useState<Coordinate | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
   const sceneRef = useRef<BattlefieldHandle | null>(null);
+  const turnKeyRef = useRef(
+    `${matchView.currentDay}:${matchView.activePlayerId}`,
+  );
   const isMyTurn = view.activePlayerId === view.viewerPlayerId;
+
+  // A transient Advance-Wars turn banner whenever the day or active player flips.
+  useEffect(() => {
+    const key = `${view.currentDay}:${view.activePlayerId}`;
+    if (key === turnKeyRef.current) return;
+    turnKeyRef.current = key;
+    setBanner(
+      `Day ${view.currentDay} · ${isMyTurn ? "Your turn" : "Opponent's turn"}`,
+    );
+    const timer = setTimeout(() => setBanner(null), 2200);
+    return () => clearTimeout(timer);
+  }, [view.currentDay, view.activePlayerId, isMyTurn]);
 
   function ownSelectableAt(x: number, y: number) {
     const unit = view.units.find(
@@ -76,11 +115,30 @@ export function BattlefieldView({
   }
 
   function select(unitId: string): void {
+    const menu = previewUnitMenu(view, unitId, gameData);
     dispatch({
       type: "select",
       unitId,
-      menu: previewUnitMenu(view, unitId, gameData),
+      menu,
     });
+  }
+
+  /** The defender's HP + terrain-defense stats for the combat forecast panel. */
+  function combatDefender(targetUnitId: string): CombatDefender | undefined {
+    const target = view.units.find((u) => u.id === targetUnitId);
+    if (target === undefined || target.position === null) return undefined;
+    const def = gameData.units[target.typeId];
+    const terrainId =
+      view.map.logicalTerrain[target.position.y]?.[target.position.x];
+    const stars =
+      def?.category === "air"
+        ? 0
+        : ((terrainId ? gameData.terrain[terrainId]?.defense_stars : 0) ?? 0);
+    return {
+      displayName: def?.display_name ?? target.typeId,
+      trueHp: target.trueHp,
+      stars,
+    };
   }
 
   function handleTileClick(x: number, y: number): void {
@@ -88,19 +146,15 @@ export function BattlefieldView({
     const own = ownSelectableAt(x, y);
 
     if (state.kind === "unit-selected") {
-      // Clicking a *different* own unit re-selects it; clicking the selected
-      // unit's own tile falls through and opens its in-place action menu.
-      if (own !== undefined && own.id !== state.unitId) return select(own.id);
       const destination = { x, y };
       const options = actionsAtDestination(state.menu, destination);
-      if (
-        options.canWait ||
-        options.canCapture ||
-        options.attackTargets.length > 0
-      ) {
+      // A legal action at this tile (incl. join/load onto a friendly) wins over
+      // re-selecting; only a click with no legal action re-selects or clears.
+      if (anyAction(options)) {
         dispatch({ type: "choose-destination", destination, options });
         return;
       }
+      if (own !== undefined && own.id !== state.unitId) return select(own.id);
       dispatch({ type: "deselect" });
       return;
     }
@@ -118,14 +172,56 @@ export function BattlefieldView({
           type: "choose-target",
           targetUnitId: target.id,
           preview: previewCombat(view, state.unitId, target.id, gameData),
+          defender: combatDefender(target.id),
         });
       }
       return; // a non-target click is ignored; use Cancel to step back
     }
 
-    // idle (and the menu/preview states, which are driven by the panel buttons).
+    if (state.kind === "unload-drop") {
+      if (state.dropTiles.some((t) => t.x === x && t.y === y)) {
+        submitUnload(x, y);
+      }
+      return; // a non-drop click is ignored; use Cancel to step back
+    }
+
+    // Post-move menu: re-clicking the chosen tile confirms the move. Another
+    // legal tile re-picks; anything else cancels back to the range preview.
+    if (state.kind === "action-menu") {
+      const onDestination =
+        state.destination.x === x && state.destination.y === y;
+      if (onDestination && state.options.canWait) {
+        submitWait();
+        return;
+      }
+      const destination = { x, y };
+      const options = actionsAtDestination(state.menu, destination);
+      if (anyAction(options)) {
+        dispatch({ type: "choose-destination", destination, options });
+        return;
+      }
+      if (own !== undefined) return select(own.id);
+      dispatch({ type: "cancel" });
+      return;
+    }
+
+    // idle (and combat-preview / unload-cargo, which are panel-driven).
     if (own !== undefined) return select(own.id);
-    if (state.kind === "idle") dispatch({ type: "deselect" });
+    if (state.kind === "idle") {
+      // An owned, empty production property opens the build menu (§6.4).
+      const property = isMyTurn
+        ? productionTargetAt(view, gameData, x, y)
+        : null;
+      if (property !== null) {
+        dispatch({
+          type: "open-production",
+          property: { id: property.id, position: property.position },
+          options: previewProduction(view, gameData, property),
+        });
+        return;
+      }
+      dispatch({ type: "deselect" });
+    }
   }
 
   /** Refetch the authoritative projected view (reconcile, never re-apply). */
@@ -201,6 +297,7 @@ export function BattlefieldView({
         type: "choose-target",
         targetUnitId,
         preview: previewCombat(view, state.unitId, targetUnitId, gameData),
+        defender: combatDefender(targetUnitId),
       });
       return;
     }
@@ -226,6 +323,98 @@ export function BattlefieldView({
     );
   }
 
+  function submitProduce(unitTypeId: string): void {
+    if (state.kind !== "production-menu") return;
+    // The server assigns the new unit's id — the client sends only the property
+    // and the unit type (§6.4). No animation; the unit appears on refetch.
+    void runSubmit(
+      {
+        type: "produce",
+        propertyId: state.property.id,
+        unitTypeId,
+        ...envelope(),
+      },
+      [],
+    );
+  }
+
+  /** Submit a move-then-act logistics action (supply/join/load) from the menu. */
+  function submitMoveAction(type: "supply" | "join" | "load"): void {
+    if (state.kind !== "action-menu") return;
+    const path = pathTo(state.unitId, state.destination);
+    if (path === null) return void dispatch({ type: "deselect" });
+    void runSubmit(
+      { type, unitId: state.unitId, path, ...envelope() },
+      submittedMovePlan(state.unitId, path, {
+        reducedMotion: prefersReducedMotion(),
+      }),
+    );
+  }
+
+  /** Submit an in-place dive/surface (no move component). */
+  function submitStateChange(type: "dive" | "surface"): void {
+    if (state.kind !== "action-menu") return;
+    void runSubmit({ type, unitId: state.unitId, ...envelope() }, []);
+  }
+
+  /** Open the unload flow: skip the cargo picker when a single unit is aboard. */
+  function beginUnload(): void {
+    if (state.kind !== "action-menu") return;
+    const cargo = unloadCargo(view, gameData, state.unitId);
+    if (cargo.length === 0) return;
+    if (cargo.length === 1) {
+      const cargoUnitId = cargo[0]!.unitId;
+      dispatch({
+        type: "choose-cargo",
+        cargoUnitId,
+        dropTiles: unloadDropTiles(
+          view,
+          gameData,
+          state.unitId,
+          state.destination,
+          cargoUnitId,
+        ),
+      });
+      return;
+    }
+    dispatch({ type: "open-unload", cargo });
+  }
+
+  /** Pick which cargo to drop, from the multi-cargo picker. */
+  function chooseCargo(cargoUnitId: string): void {
+    if (state.kind !== "unload-cargo") return;
+    dispatch({
+      type: "choose-cargo",
+      cargoUnitId,
+      dropTiles: unloadDropTiles(
+        view,
+        gameData,
+        state.unitId,
+        state.destination,
+        cargoUnitId,
+      ),
+    });
+  }
+
+  /** Submit the unload once a drop tile is clicked on the board. */
+  function submitUnload(x: number, y: number): void {
+    if (state.kind !== "unload-drop") return;
+    const path = pathTo(state.unitId, state.destination);
+    if (path === null) return void dispatch({ type: "deselect" });
+    void runSubmit(
+      {
+        type: "unload",
+        unitId: state.unitId,
+        path,
+        unloads: [{ cargoUnitId: state.cargoUnitId, to: { x, y } }],
+        ...envelope(),
+      },
+      submittedMovePlan(state.unitId, path, {
+        reducedMotion: prefersReducedMotion(),
+      }),
+    );
+  }
+
   async function endTurn(): Promise<void> {
     if (busy) return;
     setBusy(true);
@@ -242,8 +431,9 @@ export function BattlefieldView({
     }
   }
 
+  // The production menu is property-based — it carries no selected unit or range.
   const selectedUnit =
-    state.kind !== "idle"
+    "unitId" in state
       ? (view.units.find((u) => u.id === state.unitId) ?? null)
       : null;
   const hudUnit: HudUnit | null = selectedUnit
@@ -255,12 +445,45 @@ export function BattlefieldView({
         ammo: selectedUnit.ammo,
       }
     : null;
-  const reachable = state.kind === "idle" ? [] : state.menu.moveDestinations;
+  // The move range (blue) during selection; the drop tiles while placing cargo.
+  const reachable =
+    state.kind === "unload-drop"
+      ? state.dropTiles
+      : "menu" in state
+        ? state.menu.moveDestinations
+        : [];
+  const tileOf = (unitId: string): Coordinate | null =>
+    view.units.find((u) => u.id === unitId)?.position ?? null;
+  // Attackable enemies are highlighted red while picking; the chosen target keeps
+  // the reticle through the damage forecast so the aim stays clear.
   const targetTiles =
     state.kind === "select-target"
-      ? view.units
-          .filter((u) => u.position !== null && state.targets.includes(u.id))
-          .map((u) => u.position!)
+      ? state.targets.map(tileOf).filter((t): t is Coordinate => t !== null)
+      : [];
+  const reticleTiles =
+    state.kind === "select-target"
+      ? targetTiles
+      : state.kind === "combat-preview"
+        ? [tileOf(state.targetUnitId)].filter(
+            (t): t is Coordinate => t !== null,
+          )
+        : [];
+
+  // Advance-Wars terrain read-out for the tile under the cursor.
+  const terrainId = hovered && view.map.logicalTerrain[hovered.y]?.[hovered.x];
+  const terrainDef = terrainId ? gameData.terrain[terrainId] : undefined;
+  const hudTerrain: HudTerrain | null = terrainDef
+    ? { name: terrainDef.display_name, defenseStars: terrainDef.defense_stars }
+    : null;
+
+  // The move-path arrow to the reachable tile under the cursor, while selecting.
+  const hoverPath =
+    state.kind === "unit-selected" &&
+    hovered &&
+    state.menu.moveDestinations.some(
+      (c) => c.x === hovered.x && c.y === hovered.y,
+    )
+      ? (computePath(view, state.unitId, hovered, gameData) ?? [])
       : [];
 
   return (
@@ -286,18 +509,30 @@ export function BattlefieldView({
             height={view.map.height}
             reachable={reachable}
             targets={targetTiles}
+            reticles={reticleTiles}
+            path={hoverPath}
             onTileClick={handleTileClick}
+            onTileHover={(x, y) => setHovered({ x, y })}
           />
         </div>
       </div>
-      <Hud matchView={view} selectedUnit={hudUnit} />
+      <Hud matchView={view} selectedUnit={hudUnit} terrain={hudTerrain} />
       <ActionPanel
         state={state}
+        unitOrigin={selectedUnit?.position ?? null}
         handlers={{
           onWait: submitWait,
           onCapture: submitCapture,
           onAttack: beginAttack,
           onConfirmAttack: submitAttack,
+          onProduce: submitProduce,
+          onSupply: () => submitMoveAction("supply"),
+          onJoin: () => submitMoveAction("join"),
+          onLoad: () => submitMoveAction("load"),
+          onDive: () => submitStateChange("dive"),
+          onSurface: () => submitStateChange("surface"),
+          onUnload: beginUnload,
+          onChooseCargo: chooseCargo,
           onCancel: () => dispatch({ type: "cancel" }),
         }}
       />
@@ -309,6 +544,17 @@ export function BattlefieldView({
         >
           End turn
         </Button>
+      )}
+      <Minimap view={view} gameData={gameData} />
+      {banner && (
+        <div
+          role="status"
+          className="pointer-events-none absolute inset-x-0 top-24 flex justify-center"
+        >
+          <span className="rounded-full border border-border bg-card/95 px-6 py-2 text-lg font-semibold shadow-lg backdrop-blur">
+            {banner}
+          </span>
+        </div>
       )}
     </div>
   );

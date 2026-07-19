@@ -104,7 +104,7 @@ describe("battlefield acceptance", () => {
     await user.click(screen.getByLabelText("Tile 2, 1")); // select
     await user.click(screen.getByLabelText("Tile 3, 1")); // destination
     // The action menu is reachable and operable by keyboard.
-    const wait = screen.getByRole("button", { name: "Wait" });
+    const wait = screen.getByRole("button", { name: "Move" });
     wait.focus();
     await user.keyboard("{Enter}");
     await waitFor(() =>
@@ -133,7 +133,7 @@ describe("battlefield acceptance", () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1"));
     await userEvent.click(screen.getByLabelText("Tile 3, 1"));
-    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
 
     // The 409 triggered a refetch of the authoritative view.
     await waitFor(() =>

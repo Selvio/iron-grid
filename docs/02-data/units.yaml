@@ -607,8 +607,8 @@ units:
       cost_per_displayed_hp_percent: 10
     special_states: []
     rendering:
-      sprite_row: 9
-      row_id: "unit_r09"
+      sprite_row: 12
+      row_id: "unit_r12"
       shadow: null
       size_class: "medium"
       animation_profile: "ground_vehicle"
@@ -684,8 +684,8 @@ units:
       cost_per_displayed_hp_percent: 10
     special_states: []
     rendering:
-      sprite_row: 13
-      row_id: "unit_r13"
+      sprite_row: 17
+      row_id: "unit_r17"
       shadow: null
       size_class: "medium"
       animation_profile: "ground_vehicle"
@@ -918,8 +918,8 @@ units:
       cost_per_displayed_hp_percent: 10
     special_states: []
     rendering:
-      sprite_row: 15
-      row_id: "unit_r15"
+      sprite_row: 19
+      row_id: "unit_r19"
       shadow: null
       size_class: "large"
       animation_profile: "ground_vehicle"
@@ -1088,8 +1088,8 @@ units:
       cost_per_displayed_hp_percent: 10
     special_states: []
     rendering:
-      sprite_row: 19
-      row_id: "unit_r19"
+      sprite_row: 21
+      row_id: "unit_r21"
       shadow: null
       size_class: "large"
       animation_profile: "ground_vehicle"
@@ -1708,13 +1708,13 @@ cross_unit_constraints:
       - 2
       - 6
       - 8
-      - 9
       - 10
-      - 13
+      - 12
       - 14
-      - 15
       - 16
+      - 17
       - 19
+      - 21
       - 25
       - 26
       - 29

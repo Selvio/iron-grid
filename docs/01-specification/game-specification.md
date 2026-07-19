@@ -679,13 +679,13 @@ The approved proposed mappings from `assets-inventory.md` are:
 | Mech | 02 |
 | Recon | 08 |
 | APC | 06 |
-| Tank | 09 |
+| Tank | 12 |
 | Medium Tank | 14 |
 | Neotank | 16 |
 | Artillery | 10 |
-| Rockets | 19 |
-| Anti-Air | 13 |
-| Missiles | 15 |
+| Rockets | 21 |
+| Anti-Air | 17 |
+| Missiles | 19 |
 | Fighter | 25 |
 | Bomber | 26 |
 | Battle Copter | 29 |

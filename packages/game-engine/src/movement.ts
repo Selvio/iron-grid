@@ -120,25 +120,37 @@ function resolveContext(
   return { unit, def, map };
 }
 
+/** A unit's reachable tiles split by occupancy (`movementReach`). */
+export interface MovementReach {
+  /** Unoccupied tiles the unit may end on (a normal move destination). */
+  readonly reachable: readonly Coordinate[];
+  /** Friendly-occupied tiles reachable as a step endpoint (Join/Load targets). */
+  readonly friendlyTiles: readonly Coordinate[];
+}
+
+const byBoardOrder = (a: Coordinate, b: Coordinate): number =>
+  a.y - b.y || a.x - b.x;
+
 /**
- * The tiles a unit can legally move to and end on this activation.
+ * The tiles a unit can reach this activation, split into unoccupied end tiles
+ * (`reachable`) and friendly-occupied tiles reachable as a step endpoint
+ * (`friendlyTiles`, the Join/Load exception — §15, §16).
  *
  * A Dijkstra over terrain cost with a second per-label budget on tile count
  * (fuel): a tile enters the search only when both `cumulativeCost <= points` and
- * `tiles <= fuel` hold, so the range shrinks as soon as fuel drops below the
- * movement points. Friendly-occupied tiles are traversed but excluded from the
- * result; enemy-occupied and impassable tiles are never entered. The unit's own
- * tile is not a destination (staying put is `Wait`, enumerated separately).
+ * `tiles <= fuel` hold. Enemy-occupied and impassable tiles are never entered;
+ * friendly-occupied tiles are traversed and also collected as endpoints. The
+ * unit's own tile is not a destination (staying put is `Wait`).
  */
-export function calculateMovementRange(
+export function movementReach(
   state: MatchState,
   unitId: Id,
   gameData: GameData,
-): MovementRange {
+): MovementReach {
   const { unit, def, map } = resolveContext(state, unitId, gameData);
   // Loaded cargo (no board position) has no movement range.
   if (unit === undefined || unit.position === null) {
-    return { unitId, reachable: [] };
+    return { reachable: [], friendlyTiles: [] };
   }
 
   const movementType = def.movement.type;
@@ -159,6 +171,7 @@ export function calculateMovementRange(
   // existing one is at least as cheap on both axes.
   const frontier = new Map<string, { cost: number; tiles: number }[]>();
   const reachable = new Map<string, Coordinate>();
+  const friendlyTiles = new Map<string, Coordinate>();
 
   const dominated = (k: string, cost: number, tiles: number): boolean =>
     (frontier.get(k) ?? []).some((l) => l.cost <= cost && l.tiles <= tiles);
@@ -203,14 +216,32 @@ export function calculateMovementRange(
       record(k, newCost, newTiles);
       queue.push({ coord: next, cost: newCost, tiles: newTiles });
 
-      // A tile is a valid destination only when nothing occupies it — the unit
-      // may pass through a friendly but not end on it (Join/Load are M3).
+      // A friendly-occupied tile is passed through but is a valid endpoint only
+      // for Join/Load; an unoccupied tile is a normal move destination.
       if (occupant === undefined) reachable.set(k, next);
+      else friendlyTiles.set(k, next);
     }
   }
 
-  const list = [...reachable.values()].sort((a, b) => a.y - b.y || a.x - b.x);
-  return { unitId, reachable: list };
+  return {
+    reachable: [...reachable.values()].sort(byBoardOrder),
+    friendlyTiles: [...friendlyTiles.values()].sort(byBoardOrder),
+  };
+}
+
+/**
+ * The unoccupied tiles a unit can legally move to and end on this activation
+ * (the normal move destinations). Thin wrapper over `movementReach`.
+ */
+export function calculateMovementRange(
+  state: MatchState,
+  unitId: Id,
+  gameData: GameData,
+): MovementRange {
+  return {
+    unitId,
+    reachable: movementReach(state, unitId, gameData).reachable,
+  };
 }
 
 /**

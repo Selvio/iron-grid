@@ -93,6 +93,22 @@ export function validateSupply(
   return done();
 }
 
+/**
+ * Whether `unit` could legally supply from end-tile `tile` — the capability +
+ * adjacency core of `validateSupply`, minus the move-path legality the caller
+ * establishes (`tile` is the origin or a proven-reachable tile). Pure; used to
+ * enumerate `supply` legal actions (§14.5).
+ */
+export function canSupplyFrom(
+  state: MatchState,
+  unit: UnitState,
+  def: GameData["units"][string],
+  tile: Coordinate,
+): boolean {
+  if (!def.capabilities?.can_supply) return false;
+  return adjacentAllies(state, tile, unit.id, unit.ownerPlayerId).length > 0;
+}
+
 /** Apply a validated `supply`: optional move, then refill every adjacent ally. */
 export function applySupply(
   state: MatchState,

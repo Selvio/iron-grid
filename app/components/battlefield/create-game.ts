@@ -26,6 +26,20 @@ const FACTION_TINT: Record<FactionId, number> = {
 };
 
 /**
+ * Soften a faction color slightly toward white so HARD_LIGHT ownership washes
+ * stay close to `--faction-*` without reading neon.
+ */
+function ownershipTint(faction: FactionId): number {
+  const hex = FACTION_TINT[faction];
+  const amount = 0.18;
+  const mix = (c: number) => Math.round(c + (255 - c) * amount);
+  const r = mix((hex >> 16) & 0xff);
+  const g = mix((hex >> 8) & 0xff);
+  const b = mix(hex & 0xff);
+  return (r << 16) | (g << 8) | b;
+}
+
+/**
  * The Phaser bootstrap — a thin imperative shell over the pure render/interaction
  * modules (M10). The game is created ONCE and persists: `create()` draws the
  * static terrain + camera, then `syncModel()` (re)draws the dynamic unit/property
@@ -113,8 +127,12 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       // The faction-colored progress bar communicates who is capturing it.
       const tintFaction =
         property.captureProgress > 0 ? null : property.ownerFaction;
+      // Default MULTIPLY crushes dark factory art (base r14_c00). Phaser 4
+      // HARD_LIGHT keeps shading; ownershipTint softens chroma slightly.
       if (tintFaction !== null) {
-        building.setTint(FACTION_TINT[tintFaction]);
+        building
+          .setTint(ownershipTint(tintFaction))
+          .setTintMode(Phaser.TintModes.HARD_LIGHT);
       }
       this.dynamicObjects.push(building);
       if (property.captureProgress > 0) {
@@ -179,7 +197,34 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       this.unitSprites.set(unit.unitId, sprite);
       this.unitModels.set(unit.unitId, unit);
       this.dynamicObjects.push(sprite);
+      this.drawHpBadge(unit);
     }
+  }
+
+  /**
+   * The Advance-Wars HP number, drawn in the tile's bottom-right corner only when
+   * the unit is damaged (display HP below 10, §27.4). Full-health units show
+   * nothing; the number reads white with a dark outline for legibility.
+   */
+  private drawHpBadge(unit: UnitSprite): void {
+    if (unit.displayHp >= 10) return;
+    const label = this.add
+      .text(
+        (unit.x + 1) * TERRAIN_TILE_PX,
+        (unit.y + 1) * TERRAIN_TILE_PX,
+        String(unit.displayHp),
+        {
+          fontFamily: "monospace",
+          fontSize: "11px",
+          fontStyle: "bold",
+          color: "#ffffff",
+          stroke: "#0b0e14",
+          strokeThickness: 3,
+        },
+      )
+      .setOrigin(1, 1)
+      .setResolution(3);
+    this.dynamicObjects.push(label);
   }
 
   create(): void {

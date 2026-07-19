@@ -1,3 +1,5 @@
+import { displayHp } from "game-engine";
+
 import type { FactionId } from "@/app/components/faction-badge";
 import type { MatchView } from "@/app/lib/api-client";
 
@@ -28,6 +30,8 @@ export interface UnitSprite {
   readonly greyed: boolean;
   /** A dived submarine (§19.5) — rendered translucent by the scene. */
   readonly submerged: boolean;
+  /** Display HP on the 0–10 scale; the scene shows it only below 10 (§27.4). */
+  readonly displayHp: number;
 }
 
 function factionByPlayer(view: MatchView): Record<string, FactionId> {
@@ -65,6 +69,7 @@ export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
       shadow: meta.isAir,
       greyed: unit.ownerPlayerId === view.viewerPlayerId && unit.hasActed,
       submerged,
+      displayHp: displayHp(unit.trueHp),
     });
   }
 

@@ -1,8 +1,14 @@
 import { describe, expect, it } from "vitest";
 
+import type { GameData } from "game-data";
 import type { MatchView } from "@/app/lib/api-client";
 import { fixtureGameData } from "@/app/server/lifecycle/__tests__/fixtures";
-import { actionsAtDestination, previewUnitMenu } from "../actions";
+import {
+  actionsAtDestination,
+  previewProduction,
+  previewUnitMenu,
+  productionTargetAt,
+} from "../actions";
 
 function plainRows(w: number, h: number): string[][] {
   return Array.from({ length: h }, () =>
@@ -69,6 +75,12 @@ describe("previewUnitMenu", () => {
       moveDestinations: [],
       captureDestinations: [],
       attacks: [],
+      supplyDestinations: [],
+      joinDestinations: [],
+      loadDestinations: [],
+      unloadDestinations: [],
+      diveDestinations: [],
+      surfaceDestinations: [],
     });
   });
 });
@@ -85,6 +97,12 @@ describe("actionsAtDestination", () => {
       { from: { x: 1, y: 0 }, targetUnitId: "e2" },
       { from: { x: 0, y: 0 }, targetUnitId: "e3" },
     ],
+    supplyDestinations: [{ x: 0, y: 0 }],
+    joinDestinations: [{ x: 1, y: 0 }],
+    loadDestinations: [],
+    unloadDestinations: [],
+    diveDestinations: [],
+    surfaceDestinations: [],
   };
 
   it("reports the actions legal from a chosen tile", () => {
@@ -92,14 +110,26 @@ describe("actionsAtDestination", () => {
       canWait: true,
       canCapture: true,
       attackTargets: ["e1", "e2"],
+      canSupply: false,
+      canJoin: true,
+      canLoad: false,
+      canUnload: false,
+      canDive: false,
+      canSurface: false,
     });
   });
 
-  it("reports only wait/attack at a non-capturable tile", () => {
+  it("reports wait/attack/supply at a non-capturable tile", () => {
     expect(actionsAtDestination(menu, { x: 0, y: 0 })).toEqual({
       canWait: true,
       canCapture: false,
       attackTargets: ["e3"],
+      canSupply: true,
+      canJoin: false,
+      canLoad: false,
+      canUnload: false,
+      canDive: false,
+      canSurface: false,
     });
   });
 
@@ -108,6 +138,130 @@ describe("actionsAtDestination", () => {
       canWait: false,
       canCapture: false,
       attackTargets: [],
+      canSupply: false,
+      canJoin: false,
+      canLoad: false,
+      canUnload: false,
+      canDive: false,
+      canSurface: false,
     });
+  });
+});
+
+// --- Production (build menu) ---------------------------------------------------
+
+function productionGameData(): GameData {
+  return {
+    units: {
+      infantry: {
+        enabled_in_mvp: true,
+        cost: 1000,
+        display_name: "Infantry",
+        rendering: { sprite_row: 0 },
+      },
+      tank: {
+        enabled_in_mvp: true,
+        cost: 7000,
+        display_name: "Tank",
+        rendering: { sprite_row: 9 },
+      },
+      wip: { enabled_in_mvp: false, cost: 500, display_name: "WIP" },
+    },
+    properties: {
+      base: {
+        production: {
+          category: "ground",
+          allowed_unit_ids: ["infantry", "tank", "wip"],
+        },
+      },
+      city: { production: { category: "none", allowed_unit_ids: [] } },
+    },
+  } as unknown as GameData;
+}
+
+function productionView(units: unknown[] = []): MatchView {
+  return {
+    ...VIEW,
+    units,
+    properties: [
+      {
+        id: "b1",
+        typeId: "base",
+        position: { x: 1, y: 1 },
+        ownerPlayerId: "me",
+      },
+      {
+        id: "c1",
+        typeId: "city",
+        position: { x: 2, y: 2 },
+        ownerPlayerId: "me",
+      },
+      {
+        id: "e1",
+        typeId: "base",
+        position: { x: 3, y: 3 },
+        ownerPlayerId: "foe",
+      },
+    ],
+    you: { ...VIEW.you, funds: 5000 },
+  } as unknown as MatchView;
+}
+
+describe("productionTargetAt", () => {
+  const gd = productionGameData();
+
+  it("returns an owned, empty production property", () => {
+    expect(productionTargetAt(productionView(), gd, 1, 1)).toMatchObject({
+      id: "b1",
+    });
+  });
+
+  it("returns null for a non-producing property, an enemy base, or empty ground", () => {
+    const v = productionView();
+    expect(productionTargetAt(v, gd, 2, 2)).toBeNull(); // city (category none)
+    expect(productionTargetAt(v, gd, 3, 3)).toBeNull(); // enemy base
+    expect(productionTargetAt(v, gd, 0, 0)).toBeNull(); // no property
+  });
+
+  it("returns null when a unit occupies the base tile", () => {
+    const occupied = productionView([
+      { id: "u1", ownerPlayerId: "me", position: { x: 1, y: 1 } },
+    ]);
+    expect(productionTargetAt(occupied, gd, 1, 1)).toBeNull();
+  });
+});
+
+describe("previewProduction", () => {
+  it("lists the enabled roster with cost + affordability, excluding disabled units", () => {
+    const gd = productionGameData();
+    const v = productionView();
+    const base = v.properties.find((p) => p.id === "b1")!;
+    const options = previewProduction(v, gd, base);
+
+    expect(options.map((o) => o.unitTypeId)).toEqual(["infantry", "tank"]);
+    expect(options[0]).toMatchObject({
+      displayName: "Infantry",
+      affordable: true,
+    });
+    expect(options[1]).toMatchObject({
+      displayName: "Tank",
+      affordable: false,
+    });
+  });
+
+  it("attaches the viewer-faction idle sprite for the menu icon", () => {
+    const gd = productionGameData();
+    const v = productionView(); // viewer faction is blue (from VIEW)
+    const base = v.properties.find((p) => p.id === "b1")!;
+    const [infantry, tank] = previewProduction(v, gd, base);
+
+    // Infantry is sprite row 0 → idle frame at y = header (16); tank row 9.
+    expect(infantry?.sprite).toEqual({
+      sheetUrl: "/game-assets/units/blue-units-sprite-sheet.png",
+      frameX: 0,
+      frameY: 16,
+      frameSize: 32,
+    });
+    expect(tank?.sprite?.frameY).toBe(16 + 9 * 32);
   });
 });

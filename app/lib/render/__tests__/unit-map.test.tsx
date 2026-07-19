@@ -22,6 +22,7 @@ const base = {
   hasActed: false,
   specialState: null,
   position: { x: 0, y: 0 },
+  trueHp: 100,
 };
 
 describe("buildUnitRenderModel", () => {
@@ -108,5 +109,23 @@ describe("buildUnitRenderModel", () => {
       ]),
     );
     expect(sprites).toHaveLength(0);
+  });
+
+  it("carries the display HP (0–10) for the on-canvas badge", () => {
+    const [full, hurt] = buildUnitRenderModel(
+      view([
+        { ...base, id: "a", typeId: "tank", ownerPlayerId: "me", trueHp: 100 },
+        {
+          ...base,
+          id: "b",
+          typeId: "tank",
+          ownerPlayerId: "them",
+          position: { x: 1, y: 0 },
+          trueHp: 61, // ceil(61/10) = 7 → shown; full stays 10 → hidden
+        },
+      ]),
+    );
+    expect(full!.displayHp).toBe(10);
+    expect(hurt!.displayHp).toBe(7);
   });
 });

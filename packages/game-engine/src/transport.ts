@@ -19,7 +19,7 @@ import { replaceUnit, unitAt, unitById } from "./board";
 import type { EngineResult, ValidationError, ValidationResult } from "./engine";
 import type { Event } from "./events";
 import { terrainMovementCost, validateMovementPath } from "./movement";
-import type { Coordinate, MatchState } from "./state";
+import type { Coordinate, MatchState, UnitState } from "./state";
 
 /** Orthogonal (Manhattan) distance between two tiles. */
 function distance(a: Coordinate, b: Coordinate): number {
@@ -201,6 +201,81 @@ export function validateUnload(
   }
 
   return done();
+}
+
+/** The four orthogonally adjacent tiles of `c`. */
+function neighbors(c: Coordinate): Coordinate[] {
+  return [
+    { x: c.x + 1, y: c.y },
+    { x: c.x - 1, y: c.y },
+    { x: c.x, y: c.y + 1 },
+    { x: c.x, y: c.y - 1 },
+  ];
+}
+
+/**
+ * Whether `cargo` could legally load onto the transport occupying `tile` — the
+ * capability + capacity + cargo-type core of `validateLoad`, minus the move-path
+ * legality the caller establishes (`tile` is a proven-reachable friendly tile).
+ * Pure; used to enumerate `load` legal actions (§16.2).
+ */
+export function loadTransportAt(
+  state: MatchState,
+  gameData: GameData,
+  cargo: UnitState,
+  cargoDef: GameData["units"][string],
+  tile: Coordinate,
+): boolean {
+  if (!cargoDef.movement?.can_move_and_load || cargo.cargoUnitIds.length > 0) {
+    return false;
+  }
+  const transport = unitAt(state, tile);
+  const transportDef =
+    transport === undefined ? undefined : gameData.units[transport.typeId];
+  return (
+    transport !== undefined &&
+    transportDef !== undefined &&
+    transport.id !== cargo.id &&
+    transport.ownerPlayerId === cargo.ownerPlayerId &&
+    !!transportDef.capabilities?.can_transport &&
+    transportDef.transport !== undefined &&
+    transport.cargoUnitIds.length < transportDef.transport.capacity &&
+    transportDef.transport.allowed_cargo.includes(cargo.typeId)
+  );
+}
+
+/**
+ * Whether `transport` could legally unload from end-tile `tile` — i.e. it carries
+ * cargo and at least one cargo unit has an adjacent, empty, terrain-legal drop
+ * tile (mirrors `validateUnload`, minus the move path). Pure; used to enumerate
+ * `unload` legal actions (§16.3).
+ */
+export function unloadDropsFrom(
+  state: MatchState,
+  gameData: GameData,
+  transport: UnitState,
+  tile: Coordinate,
+): boolean {
+  if (transport.cargoUnitIds.length === 0) return false;
+  return transport.cargoUnitIds.some((cargoId) => {
+    const cargo = unitById(state, cargoId);
+    const cargoDef =
+      cargo === undefined ? undefined : gameData.units[cargo.typeId];
+    if (cargo === undefined || cargoDef === undefined) return false;
+    return neighbors(tile).some((n) => {
+      const occupant = unitAt(state, n);
+      const traversable =
+        terrainMovementCost(
+          gameData,
+          state.match.mapId,
+          n,
+          cargoDef.movement.type,
+        ) !== null;
+      return (
+        traversable && (occupant === undefined || occupant.id === transport.id)
+      );
+    });
+  });
 }
 
 /** Apply a validated `unload`: optional move, then place each cargo on its tile. */

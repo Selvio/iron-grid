@@ -77,7 +77,10 @@ export interface AttackOption {
  * A legal action available to a player (M2-T5, extended in M10 for the
  * battlefield action menu). `move_and_wait` and `capture` carry the tiles the
  * unit may end its activation on in `destinations`; `attack` carries the
- * (firing-tile, target) pairs in `attacks`. The move component's exact path is
+ * (firing-tile, target) pairs in `attacks`. `produce` — the only **property-based**
+ * action — carries the owned production `propertyId` and the affordable, enabled
+ * `producibleUnitTypeIds` buildable there (the server assigns the new unit's id at
+ * submit time, so the enumeration omits it). The move component's exact path is
  * built by the caller and re-validated on submit — the enumeration only asserts
  * that a legal path to each tile exists.
  */
@@ -86,6 +89,8 @@ export interface LegalAction {
   readonly unitId?: Id;
   readonly destinations?: readonly Coordinate[];
   readonly attacks?: readonly AttackOption[];
+  readonly propertyId?: Id;
+  readonly producibleUnitTypeIds?: readonly string[];
 }
 
 /** The per-player projected read-model (`domain-model.md` §13, §18.7). */

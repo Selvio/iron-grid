@@ -100,6 +100,31 @@ export function validateJoin(
 }
 
 /**
+ * Whether `source` could legally join the unit occupying `tile` — the capability
+ * + same-type-target core of `validateJoin`, minus the move-path legality the
+ * caller establishes (`tile` is a proven-reachable friendly tile). Pure; used to
+ * enumerate `join` legal actions (§15.1).
+ */
+export function joinTargetAt(
+  state: MatchState,
+  source: UnitState,
+  def: GameData["units"][string],
+  tile: Coordinate,
+): boolean {
+  if (!def.movement?.can_move_and_join || source.cargoUnitIds.length > 0) {
+    return false;
+  }
+  const target = unitAt(state, tile);
+  return (
+    target !== undefined &&
+    target.id !== source.id &&
+    target.ownerPlayerId === source.ownerPlayerId &&
+    target.typeId === source.typeId &&
+    target.cargoUnitIds.length === 0
+  );
+}
+
+/**
  * Apply a validated `join`: combine HP/fuel/ammo into the destination (up to the
  * maxima), refund excess HP, mark it acted, and remove the source.
  */

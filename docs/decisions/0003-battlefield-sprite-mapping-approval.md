@@ -32,9 +32,10 @@ and of rendering the **7 confirmed terrains** with the real `game-assets/` art.
 M10 renders these from the real atlases via the stable-ID mapping.
 
 Approved unit rows (`units.yaml rendering.sprite_row`): infantry 0, mech 2, apc 6,
-recon 8, tank 9, artillery 10, anti_air 13, medium_tank 14, missiles 15, neotank
-16, rockets 19, fighter 25, bomber 26, battle_copter 29, transport_copter 30,
+recon 8, artillery 10, tank 12, medium_tank 14, neotank 16, anti_air 17, missiles
+19, rockets 21, fighter 25, bomber 26, battle_copter 29, transport_copter 30,
 battleship 32, cruiser 33, lander 34, submarine 40 surfaced / 39 submerged.
+(Anti-Air 13→17; Missiles 15→19; Rockets 19→21; Tank 9→12 for tracked turret art.)
 
 Approved terrains (`terrain.yaml` `asset_status: confirmed`, `official_map_allowed:
 true`): plain, road, river, forest, mountain, sea, shoal.

@@ -18,7 +18,20 @@ import type { DiveAction, SurfaceAction } from "./actions";
 import { replaceUnit, unitById } from "./board";
 import type { EngineResult, ValidationError, ValidationResult } from "./engine";
 import type { Event } from "./events";
-import type { MatchState, SpecialState } from "./state";
+import type { MatchState, SpecialState, UnitState } from "./state";
+
+/**
+ * Whether `unit` could legally change to `target` state — the capability + not-
+ * already-there core of `validateDive`/`validateSurface`. Pure; used to enumerate
+ * `dive`/`surface` legal actions (§19.2).
+ */
+export function canChangeStateTo(
+  unit: UnitState,
+  def: GameData["units"][string],
+  target: SpecialState,
+): boolean {
+  return Boolean(def.capabilities?.can_dive) && unit.specialState !== target;
+}
 
 /** Validate a state change to `target` for the diver `unitId` (§19.2). */
 function validateStateChange(

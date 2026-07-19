@@ -30,6 +30,12 @@ export interface HudUnit {
   readonly ammo: number;
 }
 
+/** The terrain under the cursor (name + defense stars), Advance-Wars style. */
+export interface HudTerrain {
+  readonly name: string;
+  readonly defenseStars: number;
+}
+
 function factionOf(view: MatchView, playerId: string): FactionId | null {
   if (view.you?.playerId === playerId) return view.you.factionId as FactionId;
   if (view.opponent?.playerId === playerId) {
@@ -48,10 +54,12 @@ function titleCase(id: string): string {
 export function Hud({
   matchView,
   selectedUnit = null,
+  terrain = null,
   nowMs,
 }: {
   matchView: MatchView;
   selectedUnit?: HudUnit | null;
+  terrain?: HudTerrain | null;
   nowMs?: number;
 }) {
   const [now, setNow] = useState<number | null>(nowMs ?? null);
@@ -92,6 +100,15 @@ export function Hud({
       {matchView.you && (
         <div className="pointer-events-auto self-start rounded-lg border border-border bg-card/90 px-4 py-2 font-mono text-sm backdrop-blur">
           {formatFunds(matchView.you.funds)}
+        </div>
+      )}
+
+      {terrain && (
+        <div className="pointer-events-auto self-start rounded-lg border border-border bg-card/90 px-4 py-2 text-sm backdrop-blur">
+          <span className="font-medium">{terrain.name}</span>
+          <span className="ml-3 font-mono text-muted-foreground">
+            Def {"★".repeat(terrain.defenseStars) || "0"}
+          </span>
         </div>
       )}
 

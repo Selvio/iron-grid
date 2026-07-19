@@ -1,6 +1,26 @@
 import type { CombatPreview, Coordinate } from "game-engine";
 
-import type { DestinationOptions, UnitMenu } from "@/app/lib/preview/actions";
+import type {
+  DestinationOptions,
+  ProductionOption,
+  UnitMenu,
+  UnloadCargo,
+} from "@/app/lib/preview/actions";
+
+/** A production property addressed in the build menu (id + board position). */
+export interface ProductionTarget {
+  readonly id: string;
+  readonly position: Coordinate;
+}
+
+/** The defender's stats shown alongside the combat forecast (HP bar + terrain). */
+export interface CombatDefender {
+  readonly displayName: string;
+  /** True HP (0–100) before the attack — the panel derives the display HP. */
+  readonly trueHp: number;
+  /** Terrain defense stars at the defender's tile (0 for air units). */
+  readonly stars: number;
+}
 
 /**
  * Battlefield interaction state machine (M10-T5/T6, extended for the selectable
@@ -48,6 +68,31 @@ export type InteractionState =
       readonly options: DestinationOptions;
       readonly targetUnitId: string;
       readonly preview: CombatPreview;
+      readonly defender?: CombatDefender;
+    }
+  | {
+      readonly kind: "production-menu";
+      readonly property: ProductionTarget;
+      readonly options: readonly ProductionOption[];
+    }
+  | {
+      readonly kind: "unload-cargo";
+      readonly unitId: string;
+      readonly menu: UnitMenu;
+      readonly destination: Coordinate;
+      readonly options: DestinationOptions;
+      /** The cargo units the transport may drop (choose one). */
+      readonly cargo: readonly UnloadCargo[];
+    }
+  | {
+      readonly kind: "unload-drop";
+      readonly unitId: string;
+      readonly menu: UnitMenu;
+      readonly destination: Coordinate;
+      readonly options: DestinationOptions;
+      readonly cargoUnitId: string;
+      /** Adjacent legal tiles to drop the chosen cargo on (highlight + click). */
+      readonly dropTiles: readonly Coordinate[];
     };
 
 export type InteractionEvent =
@@ -66,6 +111,18 @@ export type InteractionEvent =
       readonly type: "choose-target";
       readonly targetUnitId: string;
       readonly preview: CombatPreview;
+      readonly defender?: CombatDefender;
+    }
+  | {
+      readonly type: "open-production";
+      readonly property: ProductionTarget;
+      readonly options: readonly ProductionOption[];
+    }
+  | { readonly type: "open-unload"; readonly cargo: readonly UnloadCargo[] }
+  | {
+      readonly type: "choose-cargo";
+      readonly cargoUnitId: string;
+      readonly dropTiles: readonly Coordinate[];
     }
   | { readonly type: "cancel" }
   | { readonly type: "deselect" };
@@ -116,12 +173,53 @@ export function interactionReducer(
         options: state.options,
         targetUnitId: event.targetUnitId,
         preview: event.preview,
+        defender: event.defender,
+      };
+
+    case "open-production":
+      // A property-based menu opened from idle (no unit selection involved).
+      if (state.kind !== "idle") return state;
+      return {
+        kind: "production-menu",
+        property: event.property,
+        options: event.options,
+      };
+
+    case "open-unload":
+      if (state.kind !== "action-menu") return state;
+      return {
+        kind: "unload-cargo",
+        unitId: state.unitId,
+        menu: state.menu,
+        destination: state.destination,
+        options: state.options,
+        cargo: event.cargo,
+      };
+
+    case "choose-cargo":
+      // Reachable from the action menu (single cargo) and the cargo picker.
+      if (state.kind !== "action-menu" && state.kind !== "unload-cargo") {
+        return state;
+      }
+      return {
+        kind: "unload-drop",
+        unitId: state.unitId,
+        menu: state.menu,
+        destination: state.destination,
+        options: state.options,
+        cargoUnitId: event.cargoUnitId,
+        dropTiles: event.dropTiles,
       };
 
     case "cancel":
-      // combat-preview and select-target both step back to the action menu; the
-      // action menu steps back to the selected unit; a selected unit clears.
-      if (state.kind === "combat-preview" || state.kind === "select-target") {
+      // Sub-flows step back to the action menu; the action menu steps back to the
+      // selected unit; a selected unit or the production menu clears.
+      if (
+        state.kind === "combat-preview" ||
+        state.kind === "select-target" ||
+        state.kind === "unload-cargo" ||
+        state.kind === "unload-drop"
+      ) {
         return {
           kind: "action-menu",
           unitId: state.unitId,
@@ -137,7 +235,9 @@ export function interactionReducer(
           menu: state.menu,
         };
       }
-      if (state.kind === "unit-selected") return INITIAL_INTERACTION;
+      if (state.kind === "unit-selected" || state.kind === "production-menu") {
+        return INITIAL_INTERACTION;
+      }
       return state;
 
     case "deselect":

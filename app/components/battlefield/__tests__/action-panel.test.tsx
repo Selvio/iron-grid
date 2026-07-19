@@ -3,14 +3,36 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import type { InteractionState } from "@/app/lib/battlefield/machine";
-import type { UnitMenu } from "@/app/lib/preview/actions";
+import type { DestinationOptions, UnitMenu } from "@/app/lib/preview/actions";
 import { ActionPanel, type ActionPanelHandlers } from "../action-panel";
 
 const MENU: UnitMenu = {
   moveDestinations: [{ x: 3, y: 2 }],
   captureDestinations: [],
   attacks: [],
+  supplyDestinations: [],
+  joinDestinations: [],
+  loadDestinations: [],
+  unloadDestinations: [],
+  diveDestinations: [],
+  surfaceDestinations: [],
 };
+
+/** A full DestinationOptions with everything off, overridden by `p`. */
+function opts(p: Partial<DestinationOptions> = {}): DestinationOptions {
+  return {
+    canWait: false,
+    canCapture: false,
+    attackTargets: [],
+    canSupply: false,
+    canJoin: false,
+    canLoad: false,
+    canUnload: false,
+    canDive: false,
+    canSurface: false,
+    ...p,
+  };
+}
 
 function handlers(
   overrides: Partial<ActionPanelHandlers> = {},
@@ -20,6 +42,14 @@ function handlers(
     onCapture: vi.fn(),
     onAttack: vi.fn(),
     onConfirmAttack: vi.fn(),
+    onProduce: vi.fn(),
+    onSupply: vi.fn(),
+    onJoin: vi.fn(),
+    onLoad: vi.fn(),
+    onUnload: vi.fn(),
+    onDive: vi.fn(),
+    onSurface: vi.fn(),
+    onChooseCargo: vi.fn(),
     onCancel: vi.fn(),
     ...overrides,
   };
@@ -39,19 +69,50 @@ describe("ActionPanel", () => {
       unitId: "u1",
       menu: MENU,
       destination: { x: 3, y: 2 },
-      options: { canWait: true, canCapture: true, attackTargets: ["e1"] },
+      options: opts({ canWait: true, canCapture: true, attackTargets: ["e1"] }),
     };
     const onWait = vi.fn();
     const onAttack = vi.fn();
     render(
-      <ActionPanel state={state} handlers={handlers({ onWait, onAttack })} />,
+      <ActionPanel
+        state={state}
+        unitOrigin={{ x: 1, y: 2 }}
+        handlers={handlers({ onWait, onAttack })}
+      />,
     );
 
     expect(screen.getByText(/no undo/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Wait" }));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
     expect(onWait).toHaveBeenCalledOnce();
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));
     expect(onAttack).toHaveBeenCalledOnce();
+  });
+
+  it("labels the commit button Move when relocating and Wait when staying", () => {
+    const relocating: InteractionState = {
+      kind: "action-menu",
+      unitId: "u1",
+      menu: MENU,
+      destination: { x: 3, y: 2 },
+      options: opts({ canWait: true }),
+    };
+    const { rerender } = render(
+      <ActionPanel
+        state={relocating}
+        unitOrigin={{ x: 1, y: 2 }}
+        handlers={handlers()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
+
+    rerender(
+      <ActionPanel
+        state={relocating}
+        unitOrigin={{ x: 3, y: 2 }}
+        handlers={handlers()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Wait" })).toBeInTheDocument();
   });
 
   it("hides actions that are not legal at the destination", () => {
@@ -60,10 +121,16 @@ describe("ActionPanel", () => {
       unitId: "u1",
       menu: MENU,
       destination: { x: 3, y: 2 },
-      options: { canWait: true, canCapture: false, attackTargets: [] },
+      options: opts({ canWait: true }),
     };
-    render(<ActionPanel state={state} handlers={handlers()} />);
-    expect(screen.getByRole("button", { name: "Wait" })).toBeInTheDocument();
+    render(
+      <ActionPanel
+        state={state}
+        unitOrigin={{ x: 0, y: 0 }}
+        handlers={handlers()}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
     expect(
       screen.queryByRole("button", { name: "Capture" }),
     ).not.toBeInTheDocument();
@@ -78,7 +145,7 @@ describe("ActionPanel", () => {
       unitId: "u1",
       menu: MENU,
       destination: { x: 3, y: 2 },
-      options: { canWait: true, canCapture: false, attackTargets: ["e1"] },
+      options: opts({ canWait: true, attackTargets: ["e1"] }),
       targetUnitId: "e1",
       preview: {
         attackerUnitId: "u1",
@@ -93,11 +160,105 @@ describe("ActionPanel", () => {
       <ActionPanel state={state} handlers={handlers({ onConfirmAttack })} />,
     );
 
-    expect(screen.getByText("4–6")).toBeInTheDocument();
-    expect(screen.getByText("1–2")).toBeInTheDocument();
+    expect(screen.getByText("4–6%")).toBeInTheDocument();
+    expect(screen.getByText("1–2%")).toBeInTheDocument();
     expect(screen.getByText(/no undo/i)).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("button", { name: "Attack" }));
     expect(onConfirmAttack).toHaveBeenCalledOnce();
+  });
+
+  it("renders the build menu, greys unaffordable units, and produces on click", async () => {
+    const state: InteractionState = {
+      kind: "production-menu",
+      property: { id: "b1", position: { x: 2, y: 3 } },
+      options: [
+        {
+          unitTypeId: "infantry",
+          displayName: "Infantry",
+          cost: 1000,
+          affordable: true,
+          sprite: {
+            sheetUrl: "/game-assets/units/blue-units-sprite-sheet.png",
+            frameX: 0,
+            frameY: 16,
+            frameSize: 32,
+          },
+        },
+        {
+          unitTypeId: "neotank",
+          displayName: "Neotank",
+          cost: 22000,
+          affordable: false,
+          sprite: null,
+        },
+      ],
+    };
+    const onProduce = vi.fn();
+    render(<ActionPanel state={state} handlers={handlers({ onProduce })} />);
+
+    expect(screen.getByText("Build")).toBeInTheDocument();
+    expect(screen.getByText("1,000 G")).toBeInTheDocument();
+
+    // The affordable unit renders its sprite icon; the disabled one has none.
+    const infantry = screen.getByRole("button", { name: /Infantry/ });
+    expect(
+      infantry.querySelector('[style*="background-image"]'),
+    ).not.toBeNull();
+
+    const neotank = screen.getByRole("button", { name: /Neotank/ });
+    expect(neotank).toBeDisabled();
+
+    await userEvent.click(infantry);
+    expect(onProduce).toHaveBeenCalledWith("infantry");
+  });
+
+  it("shows logistics buttons only when legal and fires their handlers", async () => {
+    const state: InteractionState = {
+      kind: "action-menu",
+      unitId: "apc",
+      menu: MENU,
+      destination: { x: 3, y: 2 },
+      options: opts({ canWait: true, canLoad: true, canSupply: true }),
+    };
+    const onLoad = vi.fn();
+    const onSupply = vi.fn();
+    render(
+      <ActionPanel
+        state={state}
+        unitOrigin={{ x: 3, y: 2 }}
+        handlers={handlers({ onLoad, onSupply })}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Join" }),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Load" }));
+    expect(onLoad).toHaveBeenCalledOnce();
+    await userEvent.click(screen.getByRole("button", { name: "Supply" }));
+    expect(onSupply).toHaveBeenCalledOnce();
+  });
+
+  it("renders the unload cargo picker and chooses a cargo", async () => {
+    const state: InteractionState = {
+      kind: "unload-cargo",
+      unitId: "apc",
+      menu: MENU,
+      destination: { x: 3, y: 2 },
+      options: opts({ canUnload: true }),
+      cargo: [
+        { unitId: "inf1", displayName: "Infantry", sprite: null },
+        { unitId: "mech1", displayName: "Mech", sprite: null },
+      ],
+    };
+    const onChooseCargo = vi.fn();
+    render(
+      <ActionPanel state={state} handlers={handlers({ onChooseCargo })} />,
+    );
+
+    expect(screen.getByText("Unload")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /Mech/ }));
+    expect(onChooseCargo).toHaveBeenCalledWith("mech1");
   });
 });

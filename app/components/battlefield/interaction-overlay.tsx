@@ -7,8 +7,9 @@ import { cn } from "@/app/lib/utils";
  *
  * The DOM grid that sits over the Phaser canvas (`design-reference.md` §6: range,
  * path and tooltips are DOM overlays over the board). It renders one cell per
- * tile, highlights the movement range (blue) and attackable targets (red), and
- * reports tile clicks up to the interaction controller. Being DOM, the whole
+ * tile, highlights the movement range (blue) and attackable targets (red), draws
+ * the Advance-Wars move **path arrow** and the target **reticle**, reports tile
+ * clicks and hovers up to the interaction controller. Being DOM, the whole
  * interaction surface is testable in jsdom — the canvas beneath is not. Pixel
  * alignment with the canvas is tuned visually in M12.
  *
@@ -20,27 +21,40 @@ export const TILE_DISPLAY_PX = 48;
 
 type Tile = { readonly x: number; readonly y: number };
 
+/** The center pixel of a tile, for drawing the path polyline. */
+const center = (n: number): number => n * TILE_DISPLAY_PX + TILE_DISPLAY_PX / 2;
+
 export function InteractionOverlay({
   width,
   height,
   reachable,
   targets = [],
+  reticles = [],
+  path = [],
   onTileClick,
+  onTileHover,
 }: {
   width: number;
   height: number;
   reachable: readonly Tile[];
   /** Tiles holding an attackable enemy (highlighted red during target select). */
   targets?: readonly Tile[];
+  /** Tiles to draw the target reticle over (the enemy being aimed at). */
+  reticles?: readonly Tile[];
+  /** The move path to draw as an arrow (origin → hovered destination). */
+  path?: readonly Tile[];
   onTileClick: (x: number, y: number) => void;
+  onTileHover?: (x: number, y: number) => void;
 }) {
   const inRange = new Set(reachable.map((c) => `${c.x},${c.y}`));
   const targetable = new Set(targets.map((c) => `${c.x},${c.y}`));
+  const aimed = new Set(reticles.map((c) => `${c.x},${c.y}`));
   const cells: React.ReactNode[] = [];
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
       const highlighted = inRange.has(`${x},${y}`);
       const isTarget = targetable.has(`${x},${y}`);
+      const isAimed = aimed.has(`${x},${y}`);
       cells.push(
         <button
           key={`${x},${y}`}
@@ -49,26 +63,56 @@ export function InteractionOverlay({
           data-y={y}
           aria-label={`Tile ${x}, ${y}`}
           onClick={() => onTileClick(x, y)}
+          onMouseEnter={() => onTileHover?.(x, y)}
           className={cn(
-            "border border-transparent transition-colors",
+            "relative border border-transparent transition-colors",
             highlighted && "bg-primary/30 hover:bg-primary/40",
             isTarget &&
               "border-destructive bg-destructive/40 hover:bg-destructive/50",
           )}
-        />,
+        >
+          {isAimed && (
+            <span
+              aria-hidden
+              data-reticle="true"
+              className="pointer-events-none absolute inset-[15%] rounded-full border-2 border-yellow-300 shadow-[0_0_0_2px_rgba(0,0,0,0.55)] ring-2 ring-yellow-300/40"
+            />
+          )}
+        </button>,
       );
     }
   }
 
   return (
-    <div
-      className="grid"
-      style={{
-        gridTemplateColumns: `repeat(${width}, ${TILE_DISPLAY_PX}px)`,
-        gridTemplateRows: `repeat(${height}, ${TILE_DISPLAY_PX}px)`,
-      }}
-    >
-      {cells}
+    <div className="relative">
+      <div
+        className="grid"
+        style={{
+          gridTemplateColumns: `repeat(${width}, ${TILE_DISPLAY_PX}px)`,
+          gridTemplateRows: `repeat(${height}, ${TILE_DISPLAY_PX}px)`,
+        }}
+      >
+        {cells}
+      </div>
+      {path.length >= 2 && (
+        <svg
+          aria-hidden
+          data-path
+          className="pointer-events-none absolute inset-0"
+          width={width * TILE_DISPLAY_PX}
+          height={height * TILE_DISPLAY_PX}
+        >
+          <polyline
+            points={path.map((c) => `${center(c.x)},${center(c.y)}`).join(" ")}
+            fill="none"
+            className="stroke-primary"
+            strokeWidth={6}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            opacity={0.85}
+          />
+        </svg>
+      )}
     </div>
   );
 }
