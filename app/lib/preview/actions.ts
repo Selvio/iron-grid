@@ -83,6 +83,25 @@ export interface UnitSprite {
   readonly frameSize: number;
 }
 
+/** The Advance-Wars intel read-out for one unit type (build menu right panel). */
+export interface UnitStats {
+  /** Movement points. */
+  readonly move: number;
+  /** Base vision range. */
+  readonly vision: number;
+  /** Max fuel ("gas"). */
+  readonly gas: number;
+  /** Primary-weapon ammo, or null when the unit fires without ammo (∞). */
+  readonly ammo: number | null;
+  /** Primary / secondary weapon display names, or null for an empty slot. */
+  readonly weapon1: string | null;
+  readonly weapon2: string | null;
+  /** Movement class label — "Foot", "Treads", "Air"… */
+  readonly mobility: string;
+  /** Which domain badge lights up. */
+  readonly domain: "ground" | "air" | "naval";
+}
+
 /** One buildable unit in a property's build menu (§6.4). */
 export interface ProductionOption {
   readonly unitTypeId: string;
@@ -92,6 +111,49 @@ export interface ProductionOption {
   readonly affordable: boolean;
   /** The unit's sprite for the menu icon, or null when art is unavailable. */
   readonly sprite: UnitSprite | null;
+  /** Move/vision/gas/weapons for the intel panel. */
+  readonly stats: UnitStats;
+}
+
+/** `units.yaml` movement types as the intel panel labels them. */
+const MOBILITY_LABEL: Readonly<Record<string, string>> = {
+  foot: "Foot",
+  mech: "Mech",
+  tires: "Tires",
+  treads: "Treads",
+  air: "Air",
+  ship: "Ship",
+  transport_ship: "Ship",
+};
+
+/** The intel read-out for a unit type, defaulting anything the data omits. */
+function unitStats(gameData: GameData, unitTypeId: string): UnitStats {
+  const def = gameData.units[unitTypeId] as
+    | {
+        movement?: { points?: number; type?: string };
+        vision?: { base_range?: number };
+        logistics?: { max_fuel?: number; max_ammo?: number | null };
+        combat?: {
+          primary_weapon_id?: string | null;
+          secondary_weapon_id?: string | null;
+        };
+        category?: string;
+      }
+    | undefined;
+  const weaponName = (id: string | null | undefined): string | null =>
+    id ? (gameData.weapons[id]?.display_name ?? id) : null;
+  const movementType = def?.movement?.type ?? "";
+  const category = def?.category;
+  return {
+    move: def?.movement?.points ?? 0,
+    vision: def?.vision?.base_range ?? 0,
+    gas: def?.logistics?.max_fuel ?? 0,
+    ammo: def?.logistics?.max_ammo ?? null,
+    weapon1: weaponName(def?.combat?.primary_weapon_id),
+    weapon2: weaponName(def?.combat?.secondary_weapon_id),
+    mobility: MOBILITY_LABEL[movementType] ?? movementType,
+    domain: category === "air" || category === "naval" ? category : "ground",
+  };
 }
 
 /** The viewer-faction idle sprite crop for `unitTypeId`, or null when unavailable. */
@@ -169,6 +231,76 @@ export function actionsAtDestination(
 }
 
 /**
+ * The tiles a selected unit threatens, as the Advance-Wars red hatch.
+ *
+ * An indirect unit cannot move and fire (§12.4), so its range is a fixed ring
+ * around the tile it stands on — that ring *is* its turn, which is why the board
+ * shows it by default. A direct unit instead threatens everything one step off
+ * its move range, which `menu` supplies; that view buries the board in hatch, so
+ * the controller only asks for it when the player toggles the range on. Passing
+ * `menu: null` therefore yields nothing for direct units. Unarmed units (APC,
+ * transports) always return nothing.
+ */
+export function attackRangeTiles(
+  view: MatchView,
+  gameData: GameData,
+  unitId: string,
+  menu: UnitMenu | null = null,
+): Coordinate[] {
+  const unit = view.units.find((u) => u.id === unitId);
+  if (unit === undefined || unit.position === null) return [];
+  const def = gameData.units[unit.typeId] as
+    | {
+        combat?: { min_range?: number | null; max_range?: number | null };
+        movement?: { can_move_and_attack?: boolean };
+      }
+    | undefined;
+  const minRange = def?.combat?.min_range ?? null;
+  const maxRange = def?.combat?.max_range ?? null;
+  if (minRange === null || maxRange === null) return [];
+
+  const movesAndFires = def?.movement?.can_move_and_attack !== false;
+  if (movesAndFires && menu === null) return [];
+  const firingTiles = movesAndFires ? menu!.moveDestinations : [unit.position];
+  // Tiles it can move onto stay blue — the hatch is only what it can shoot.
+  const moveable = new Set(
+    movesAndFires ? firingTiles.map((c) => `${c.x},${c.y}`) : [],
+  );
+  const tiles = new Map<string, Coordinate>();
+  for (const from of firingTiles) {
+    for (let dy = -maxRange; dy <= maxRange; dy++) {
+      const span = maxRange - Math.abs(dy);
+      for (let dx = -span; dx <= span; dx++) {
+        const distance = Math.abs(dx) + Math.abs(dy);
+        if (distance < minRange) continue;
+        const x = from.x + dx;
+        const y = from.y + dy;
+        if (x < 0 || y < 0 || x >= view.map.width || y >= view.map.height) {
+          continue;
+        }
+        const key = `${x},${y}`;
+        if (moveable.has(key)) continue;
+        tiles.set(key, { x, y });
+      }
+    }
+  }
+  return [...tiles.values()];
+}
+
+/** True when the unit fires only from where it stands (its hatch shows by default). */
+export function isIndirectUnit(
+  view: MatchView,
+  gameData: GameData,
+  unitId: string,
+): boolean {
+  const unit = view.units.find((u) => u.id === unitId);
+  if (unit === undefined) return false;
+  const def = gameData.units[unit.typeId] as
+    { movement?: { can_move_and_attack?: boolean } } | undefined;
+  return def?.movement?.can_move_and_attack === false;
+}
+
+/**
  * The owned, empty production property at a tile (base/airport/port), or null.
  * The `isMyTurn` gate stays in the controller (like `ownSelectableAt`); this only
  * checks ownership, that the property type produces, and that the tile is empty.
@@ -218,6 +350,7 @@ export function previewProduction(
       cost: unitDef.cost,
       affordable: funds >= unitDef.cost,
       sprite: unitSprite(view, gameData, unitTypeId),
+      stats: unitStats(gameData, unitTypeId),
     });
   }
   return options;

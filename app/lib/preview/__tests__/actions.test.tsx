@@ -5,6 +5,7 @@ import type { MatchView } from "@/app/lib/api-client";
 import { fixtureGameData } from "@/app/server/lifecycle/__tests__/fixtures";
 import {
   actionsAtDestination,
+  attackRangeTiles,
   previewProduction,
   previewUnitMenu,
   productionTargetAt,
@@ -148,6 +149,74 @@ describe("actionsAtDestination", () => {
   });
 });
 
+// --- Attack range (the red threat hatch) ---------------------------------------
+
+describe("attackRangeTiles", () => {
+  /** A 5×4 map with `unit` at (2,1); ranges come from `gameData`. */
+  function rangeView(unit: Record<string, unknown>): MatchView {
+    return { ...VIEW, units: [{ ...TANK, ...unit }] } as unknown as MatchView;
+  }
+
+  const rangeGameData = (
+    combat: Record<string, unknown>,
+    canMoveAndAttack: boolean,
+  ): GameData =>
+    ({
+      units: {
+        tank: { combat, movement: { can_move_and_attack: canMoveAndAttack } },
+      },
+    }) as unknown as GameData;
+
+  const menu = (moveDestinations: { x: number; y: number }[]) =>
+    ({ moveDestinations }) as unknown as ReturnType<typeof previewUnitMenu>;
+
+  it("rings an indirect unit's origin between min and max range", () => {
+    const tiles = attackRangeTiles(
+      rangeView({}),
+      rangeGameData({ min_range: 2, max_range: 3 }, false),
+      "u1",
+    );
+    const keys = tiles.map((c) => `${c.x},${c.y}`);
+
+    expect(keys).toContain("0,1"); // distance 2
+    expect(keys).toContain("2,3"); // distance 2, still on the map
+    expect(keys).not.toContain("2,2"); // distance 1 — inside the minimum
+    expect(keys).not.toContain("2,1"); // its own tile
+    expect(keys.every((k) => !k.startsWith("-"))).toBe(true); // clipped to the map
+  });
+
+  it("returns nothing for a unit that can move and fire until a menu is passed", () => {
+    const view = rangeView({});
+    const gd = rangeGameData({ min_range: 1, max_range: 1 }, true);
+    expect(attackRangeTiles(view, gd, "u1")).toEqual([]);
+
+    // With the move menu (the player toggled the range on) it is the move range
+    // grown by the unit's reach, minus the move range itself.
+    const keys = attackRangeTiles(
+      view,
+      gd,
+      "u1",
+      menu([
+        { x: 2, y: 1 },
+        { x: 3, y: 1 },
+      ]),
+    ).map((c) => `${c.x},${c.y}`);
+    expect(keys).toContain("4,1"); // adjacent to the far move destination
+    expect(keys).toContain("1,1"); // adjacent to the origin
+    expect(keys).not.toContain("3,1"); // reachable tiles stay blue
+  });
+
+  it("returns nothing for an unarmed unit", () => {
+    expect(
+      attackRangeTiles(
+        rangeView({}),
+        rangeGameData({ min_range: null, max_range: null }, false),
+        "u1",
+      ),
+    ).toEqual([]);
+  });
+});
+
 // --- Production (build menu) ---------------------------------------------------
 
 function productionGameData(): GameData {
@@ -158,6 +227,14 @@ function productionGameData(): GameData {
         cost: 1000,
         display_name: "Infantry",
         rendering: { sprite_row: 0 },
+        category: "ground",
+        movement: { points: 3, type: "foot" },
+        vision: { base_range: 2 },
+        logistics: { max_fuel: 99, max_ammo: null },
+        combat: {
+          primary_weapon_id: "machine_gun",
+          secondary_weapon_id: null,
+        },
       },
       tank: {
         enabled_in_mvp: true,
@@ -167,6 +244,7 @@ function productionGameData(): GameData {
       },
       wip: { enabled_in_mvp: false, cost: 500, display_name: "WIP" },
     },
+    weapons: { machine_gun: { display_name: "Machine Gun" } },
     properties: {
       base: {
         production: {
@@ -246,6 +324,24 @@ describe("previewProduction", () => {
     expect(options[1]).toMatchObject({
       displayName: "Tank",
       affordable: false,
+    });
+  });
+
+  it("attaches the intel read-out (move/vision/gas/weapons) for each unit", () => {
+    const gd = productionGameData();
+    const v = productionView();
+    const base = v.properties.find((p) => p.id === "b1")!;
+    const [infantry] = previewProduction(v, gd, base);
+
+    expect(infantry?.stats).toEqual({
+      move: 3,
+      vision: 2,
+      gas: 99,
+      ammo: null,
+      weapon1: "Machine Gun",
+      weapon2: null,
+      mobility: "Foot",
+      domain: "ground",
     });
   });
 

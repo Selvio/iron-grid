@@ -26,6 +26,7 @@ export function InteractionOverlay({
   height,
   tilePx = TILE_DISPLAY_PX,
   reachable,
+  attackRange = [],
   targets = [],
   reticles = [],
   path = [],
@@ -37,6 +38,8 @@ export function InteractionOverlay({
   /** Display size of one tile in CSS px (must stay an integer for crisp pixels). */
   tilePx?: number;
   reachable: readonly Tile[];
+  /** Tiles the selected unit could fire on (the Advance-Wars red hatch). */
+  attackRange?: readonly Tile[];
   /** Tiles holding an attackable enemy (highlighted red during target select). */
   targets?: readonly Tile[];
   /** Tiles to draw the target reticle over (the enemy being aimed at). */
@@ -48,6 +51,7 @@ export function InteractionOverlay({
 }) {
   const center = (n: number): number => n * tilePx + tilePx / 2;
   const inRange = new Set(reachable.map((c) => `${c.x},${c.y}`));
+  const threatened = new Set(attackRange.map((c) => `${c.x},${c.y}`));
   const targetable = new Set(targets.map((c) => `${c.x},${c.y}`));
   const aimed = new Set(reticles.map((c) => `${c.x},${c.y}`));
   const cells: React.ReactNode[] = [];
@@ -56,6 +60,7 @@ export function InteractionOverlay({
       const highlighted = inRange.has(`${x},${y}`);
       const isTarget = targetable.has(`${x},${y}`);
       const isAimed = aimed.has(`${x},${y}`);
+      const isThreatened = threatened.has(`${x},${y}`);
       cells.push(
         <button
           key={`${x},${y}`}
@@ -72,6 +77,18 @@ export function InteractionOverlay({
               "border-destructive bg-destructive/40 hover:bg-destructive/50",
           )}
         >
+          {isThreatened && (
+            <span
+              aria-hidden
+              data-attack-range="true"
+              className="pointer-events-none absolute inset-0"
+              style={{
+                // The Advance-Wars threat hatch: red diagonal stripes over the
+                // terrain, sized off the tile so the angle reads at any zoom.
+                backgroundImage: `repeating-linear-gradient(45deg, rgba(226,58,58,0.55) 0, rgba(226,58,58,0.55) ${tilePx / 8}px, rgba(255,255,255,0.30) ${tilePx / 8}px, rgba(255,255,255,0.30) ${tilePx / 4}px)`,
+              }}
+            />
+          )}
           {isAimed && (
             <span
               aria-hidden

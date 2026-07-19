@@ -168,7 +168,7 @@ describe("ActionPanel", () => {
     expect(onConfirmAttack).toHaveBeenCalledOnce();
   });
 
-  it("renders the build menu, greys unaffordable units, and produces on click", async () => {
+  it("renders the build popup, shows the selected unit's intel, and builds it", async () => {
     const state: InteractionState = {
       kind: "production-menu",
       property: { id: "b1", position: { x: 2, y: 3 } },
@@ -184,6 +184,16 @@ describe("ActionPanel", () => {
             frameY: 16,
             frameSize: 32,
           },
+          stats: {
+            move: 3,
+            vision: 2,
+            gas: 99,
+            ammo: null,
+            weapon1: "M Gun",
+            weapon2: null,
+            mobility: "Foot",
+            domain: "ground",
+          },
         },
         {
           unitTypeId: "neotank",
@@ -191,25 +201,44 @@ describe("ActionPanel", () => {
           cost: 22000,
           affordable: false,
           sprite: null,
+          stats: {
+            move: 6,
+            vision: 1,
+            gas: 99,
+            ammo: 9,
+            weapon1: "Neo Gun",
+            weapon2: "M Gun",
+            mobility: "Treads",
+            domain: "ground",
+          },
         },
       ],
     };
     const onProduce = vi.fn();
-    render(<ActionPanel state={state} handlers={handlers({ onProduce })} />);
+    render(
+      <ActionPanel
+        state={state}
+        funds={4200}
+        handlers={handlers({ onProduce })}
+      />,
+    );
 
-    expect(screen.getByText("Build")).toBeInTheDocument();
-    expect(screen.getByText("1,000 G")).toBeInTheDocument();
+    // The roster header shows funds; the intel panel the first unit's stats.
+    expect(screen.getByText("4,200")).toBeInTheDocument();
+    expect(screen.getByText("M Gun")).toBeInTheDocument();
+    expect(screen.getByText("×∞")).toBeInTheDocument();
 
-    // The affordable unit renders its sprite icon; the disabled one has none.
-    const infantry = screen.getByRole("button", { name: /Infantry/ });
+    // Selecting the unaffordable unit swaps the intel and blocks Build.
+    await userEvent.click(screen.getByRole("button", { name: /Neotank/ }));
+    expect(screen.getByText("Neo Gun")).toBeInTheDocument();
     expect(
-      infantry.querySelector('[style*="background-image"]'),
-    ).not.toBeNull();
+      screen.getByRole("button", { name: /Build · 22,000 G/ }),
+    ).toBeDisabled();
 
-    const neotank = screen.getByRole("button", { name: /Neotank/ });
-    expect(neotank).toBeDisabled();
-
-    await userEvent.click(infantry);
+    await userEvent.click(screen.getByRole("button", { name: /Infantry/ }));
+    await userEvent.click(
+      screen.getByRole("button", { name: /Build · 1,000 G/ }),
+    );
     expect(onProduce).toHaveBeenCalledWith("infantry");
   });
 

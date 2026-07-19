@@ -579,10 +579,12 @@ describe("BattlefieldView · production", () => {
     render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
 
     await userEvent.click(screen.getByLabelText("Tile 2, 2")); // click the base
-    expect(screen.getByText("Build")).toBeInTheDocument();
+    expect(screen.getByText("INTEL")).toBeInTheDocument();
     // Funds 1000 (fixture) afford infantry but not the tank.
-    expect(screen.getByRole("button", { name: /Tank/ })).toBeDisabled();
+    await userEvent.click(screen.getByRole("button", { name: /Tank/ }));
+    expect(screen.getByRole("button", { name: /^Build ·/ })).toBeDisabled();
     await userEvent.click(screen.getByRole("button", { name: /Infantry/ }));
+    await userEvent.click(screen.getByRole("button", { name: /^Build ·/ }));
 
     await waitFor(() => {
       const submit = fetchMock.mock.calls.find((c) =>
@@ -693,6 +695,69 @@ describe("BattlefieldView · logistics", () => {
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
     await userEvent.hover(screen.getByLabelText("Tile 3, 1")); // reachable tile
     expect(container.querySelector("[data-path]")).not.toBeNull();
+  });
+
+  it("hatches the firing ring of an indirect unit, and nothing for a direct one", async () => {
+    const gd = combatGameData();
+    const artillery = {
+      ...gd.units.tank,
+      movement: { ...gd.units.tank!.movement, can_move_and_attack: false },
+      combat: { type: "indirect", min_range: 2, max_range: 3 },
+    };
+    const indirect = {
+      ...gd,
+      units: { ...gd.units, tank: artillery },
+    } as unknown as GameData;
+    const v = view();
+    stubFetch(v);
+    const hatch = (label: string) =>
+      screen.getByLabelText(label).querySelector("[data-attack-range]");
+
+    const { unmount } = render(
+      <BattlefieldView matchView={v} gameData={indirect} />,
+    );
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select
+    expect(hatch("Tile 2, 3")).not.toBeNull(); // distance 2 — in the ring
+    expect(hatch("Tile 2, 2")).toBeNull(); // distance 1 — inside the minimum
+
+    await userEvent.click(screen.getByLabelText("Tile 0, 3")); // deselect
+    expect(hatch("Tile 2, 3")).toBeNull();
+    unmount();
+
+    // A direct unit shows no hatch — its blue move range already says it all.
+    render(<BattlefieldView matchView={v} gameData={gd} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1"));
+    expect(hatch("Tile 2, 3")).toBeNull();
+  });
+
+  it("toggles the attack range with Space (and the Range chip)", async () => {
+    const v = view();
+    stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+    const hatch = (label: string) =>
+      screen.getByLabelText(label).querySelector("[data-attack-range]");
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select the tank
+    const chip = screen.getByRole("button", { name: /Range/ });
+    expect(chip).toHaveAttribute("aria-pressed", "false");
+    // (0,2) is 3 tiles away: outside the fuel-2 move range, inside its threat.
+    expect(hatch("Tile 0, 2")).toBeNull();
+
+    await userEvent.keyboard(" ");
+    expect(chip).toHaveAttribute("aria-pressed", "true");
+    expect(hatch("Tile 0, 2")).not.toBeNull(); // threat range now painted
+
+    await userEvent.keyboard(" ");
+    expect(hatch("Tile 0, 2")).toBeNull();
+
+    // A fresh selection returns to the unit's own default (hidden, here).
+    await userEvent.keyboard(" ");
+    await userEvent.click(screen.getByLabelText("Tile 0, 3")); // deselect
+    await userEvent.click(screen.getByLabelText("Tile 2, 1"));
+    expect(screen.getByRole("button", { name: /Range/ })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 
   it("unloads a single cargo unit onto an adjacent tile", async () => {

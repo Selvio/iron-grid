@@ -4,7 +4,6 @@ import { displayHp, type Coordinate } from "game-engine";
 
 import type { InteractionState } from "@/app/lib/battlefield/machine";
 import type { UnitSprite } from "@/app/lib/preview/actions";
-import { formatFunds } from "@/app/lib/format";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -13,6 +12,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/app/components/ui/card";
+
+import { BuildMenu } from "./build-menu";
 
 /**
  * Action / confirmation panel (M10-T6).
@@ -104,47 +105,23 @@ export function ActionPanel({
   state,
   handlers,
   unitOrigin = null,
+  funds = 0,
 }: {
   state: InteractionState;
   handlers: ActionPanelHandlers;
   /** The selected unit's current tile — used to label Move vs Wait. */
   unitOrigin?: Coordinate | null;
+  /** The viewer's funds — shown in the build popup's roster header. */
+  funds?: number;
 }) {
   if (state.kind === "production-menu") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
-        <CardHeader>
-          <CardTitle>Build</CardTitle>
-          <CardDescription>
-            At ({state.property.position.x}, {state.property.position.y}) · no
-            undo
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            {state.options.map((option) => (
-              <Button
-                key={option.unitTypeId}
-                variant="secondary"
-                disabled={!option.affordable}
-                className="h-auto justify-between py-2"
-                onClick={() => handlers.onProduce(option.unitTypeId)}
-              >
-                <span className="flex items-center gap-2">
-                  <SpriteIcon sprite={option.sprite} />
-                  <span>{option.displayName}</span>
-                </span>
-                <span className="font-mono text-xs">
-                  {formatFunds(option.cost)}
-                </span>
-              </Button>
-            ))}
-          </div>
-          <Button variant="outline" onClick={handlers.onCancel}>
-            Cancel
-          </Button>
-        </CardContent>
-      </Card>
+      <BuildMenu
+        options={state.options}
+        funds={funds}
+        onProduce={handlers.onProduce}
+        onCancel={handlers.onCancel}
+      />
     );
   }
 

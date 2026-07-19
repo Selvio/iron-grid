@@ -176,6 +176,16 @@ describe("interactionReducer", () => {
         cost: 1000,
         affordable: true,
         sprite: null,
+        stats: {
+          move: 3,
+          vision: 2,
+          gas: 99,
+          ammo: null,
+          weapon1: "M Gun",
+          weapon2: null,
+          mobility: "Foot",
+          domain: "ground" as const,
+        },
       },
     ];
     const menu = interactionReducer(INITIAL_INTERACTION, {
