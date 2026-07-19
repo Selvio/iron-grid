@@ -52,7 +52,6 @@ export function InteractionOverlay({
   onTileClick: (x: number, y: number) => void;
   onTileHover?: (x: number, y: number) => void;
 }) {
-  const center = (n: number): number => n * tilePx + tilePx / 2;
   const inRange = new Set(reachable.map((c) => `${c.x},${c.y}`));
   const threatened = new Set(attackRange.map((c) => `${c.x},${c.y}`));
   const targetable = new Set(targets.map((c) => `${c.x},${c.y}`));
@@ -105,43 +104,81 @@ export function InteractionOverlay({
       >
         {cells}
       </div>
-      {path.length >= 2 && (
-        <svg
-          aria-hidden
-          data-path
-          className="pointer-events-none absolute inset-0"
-          width={width * tilePx}
-          height={height * tilePx}
-        >
-          <defs>
-            <marker
-              id="ig-path-arrow"
-              viewBox="0 0 10 10"
-              refX="6.5"
-              refY="5"
-              markerWidth="3.6"
-              markerHeight="3.6"
-              orient="auto"
-              markerUnits="strokeWidth"
-            >
-              <path d="M0.5,1 L9,5 L0.5,9 Z" className="fill-primary" />
-            </marker>
-          </defs>
-          <g opacity={0.85}>
-            <polyline
-              points={path
-                .map((c) => `${center(c.x)},${center(c.y)}`)
-                .join(" ")}
-              fill="none"
-              className="stroke-primary"
-              strokeWidth={Math.max(2, Math.round(tilePx / 8))}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              markerEnd="url(#ig-path-arrow)"
-            />
-          </g>
-        </svg>
-      )}
+      {path.length >= 2 && <PathArrow path={path} tilePx={tilePx} />}
     </div>
+  );
+}
+
+/**
+ * The Advance-Wars move arrow: a thick solid shaft with a black outline and a
+ * broad triangular head, not a hairline with a marker. It is built from two
+ * passes of the same geometry — the outline underneath, the fill on top — which
+ * is what gives the chunky sprite look at any zoom.
+ */
+function PathArrow({
+  path,
+  tilePx,
+}: {
+  path: readonly Tile[];
+  tilePx: number;
+}) {
+  const center = (n: number): number => n * tilePx + tilePx / 2;
+  const last = path[path.length - 1]!;
+  const previous = path[path.length - 2]!;
+  const dx = Math.sign(last.x - previous.x);
+  const dy = Math.sign(last.y - previous.y);
+  const headLength = tilePx * 0.44;
+  const headHalfWidth = tilePx * 0.34;
+  const shaft = tilePx * 0.3;
+  const outline = Math.max(2, Math.round(tilePx * 0.09));
+
+  // The shaft stops where the head begins so the two do not overlap.
+  const tip = { x: center(last.x), y: center(last.y) };
+  const base = { x: tip.x - dx * headLength, y: tip.y - dy * headLength };
+  const points = path
+    .slice(0, -1)
+    .map((c) => `${center(c.x)},${center(c.y)}`)
+    .concat(`${base.x},${base.y}`)
+    .join(" ");
+  // Perpendicular to the final heading, for the head's two back corners.
+  const head = [
+    `${tip.x},${tip.y}`,
+    `${base.x - dy * headHalfWidth},${base.y - dx * headHalfWidth}`,
+    `${base.x + dy * headHalfWidth},${base.y + dx * headHalfWidth}`,
+  ].join(" ");
+
+  return (
+    <svg
+      aria-hidden
+      data-path
+      className="pointer-events-none absolute inset-0 overflow-visible"
+    >
+      <g
+        fill="none"
+        stroke="#12161f"
+        strokeWidth={shaft + outline * 2}
+        strokeLinecap="butt"
+        strokeLinejoin="miter"
+      >
+        <polyline points={points} />
+      </g>
+      <polygon
+        points={head}
+        fill="#12161f"
+        stroke="#12161f"
+        strokeWidth={outline * 2}
+        strokeLinejoin="miter"
+      />
+      <g
+        fill="none"
+        stroke="#d63b2f"
+        strokeWidth={shaft}
+        strokeLinecap="butt"
+        strokeLinejoin="miter"
+      >
+        <polyline points={points} />
+      </g>
+      <polygon points={head} fill="#d63b2f" />
+    </svg>
   );
 }
