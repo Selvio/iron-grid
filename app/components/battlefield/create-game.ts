@@ -21,8 +21,8 @@ import { stepDirection, walkFrameSpec } from "@/app/lib/render/walk-frames";
 const FACTION_TINT: Record<FactionId, number> = {
   blue: 0x4c8dff,
   green: 0x4fb85f,
-  red: 0xf0616d,
-  yellow: 0xe6b23a,
+  red: 0xf2565b,
+  yellow: 0xf2b23c,
 };
 
 /**
@@ -58,6 +58,23 @@ function ownershipTint(faction: FactionId): number {
 const ASSET_BASE = "/game-assets";
 const RENDER_SCALE = 2;
 const WALK_MS_PER_TILE = 120;
+const ART_SCALE_MIN = 1;
+const ART_SCALE_MAX = 4;
+
+/** Snap camera zoom so each tile lands on a whole CSS pixel. */
+function clampArtScale(artScale: number): number {
+  const tilePx = Math.round(
+    Math.min(
+      TERRAIN_TILE_PX * ART_SCALE_MAX,
+      Math.max(TERRAIN_TILE_PX * ART_SCALE_MIN, TERRAIN_TILE_PX * artScale),
+    ),
+  );
+  return tilePx / TERRAIN_TILE_PX;
+}
+
+function displaySize(mapSpan: number, artScale: number): number {
+  return mapSpan * Math.round(TERRAIN_TILE_PX * artScale);
+}
 
 /** The imperative surface the React controller drives on the live scene. */
 export interface BattlefieldHandle {
@@ -65,6 +82,11 @@ export interface BattlefieldHandle {
   syncModel(data: BattlefieldData): void;
   /** Play a resolved-event plan; resolves when the animation completes. */
   playAnimation(steps: readonly AnimationStep[]): Promise<void>;
+  /**
+   * Re-render at a display scale relative to the 24px source tile. Tile CSS size
+   * is always rounded to a whole pixel so seams stay crisp.
+   */
+  setArtScale(artScale: number): void;
 }
 
 export interface BattlefieldData {
@@ -78,6 +100,7 @@ export interface BattlefieldData {
 class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private model: BattlefieldData;
   private readonly onReady?: (handle: BattlefieldHandle) => void;
+  private artScale: number;
   private readonly unitSprites = new Map<string, Phaser.GameObjects.Image>();
   private readonly unitModels = new Map<string, UnitSprite>();
   /** Every unit/property/shadow/bar object — cleared and redrawn by syncModel. */
@@ -86,10 +109,12 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   constructor(
     data: BattlefieldData,
     onReady?: (handle: BattlefieldHandle) => void,
+    artScale: number = RENDER_SCALE,
   ) {
     super("battlefield");
     this.model = data;
     this.onReady = onReady;
+    this.artScale = clampArtScale(artScale);
   }
 
   preload(): void {
@@ -218,7 +243,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
           fontSize: "11px",
           fontStyle: "bold",
           color: "#ffffff",
-          stroke: "#0b0e14",
+          stroke: "#0d1117",
           strokeThickness: 3,
         },
       )
@@ -244,7 +269,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
             worldY,
             TERRAIN_TILE_PX,
             TERRAIN_TILE_PX,
-            0x0b0e14,
+            0x0d1117,
             0.45,
           )
           .setOrigin(0, 0);
@@ -257,10 +282,22 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         this.model.mapWidth * TERRAIN_TILE_PX,
         this.model.mapHeight * TERRAIN_TILE_PX,
       )
-      .setZoom(RENDER_SCALE);
+      .setRoundPixels(true)
+      .setZoom(this.artScale);
 
     this.syncModel(this.model); // initial dynamic draw
     this.onReady?.(this);
+  }
+
+  /** Resize the canvas + camera; tile size stays on whole CSS pixels. */
+  setArtScale(artScale: number): void {
+    const scale = clampArtScale(artScale);
+    this.artScale = scale;
+    this.cameras.main.setZoom(scale);
+    this.scale.resize(
+      displaySize(this.model.mapWidth, scale),
+      displaySize(this.model.mapHeight, scale),
+    );
   }
 
   /** Redraw the dynamic unit + property layers from a fresh model, in place. */
@@ -383,16 +420,21 @@ export function createBattlefieldGame(
   container: HTMLElement,
   data: BattlefieldData,
   onReady?: (handle: BattlefieldHandle) => void,
+  artScale: number = RENDER_SCALE,
 ): Phaser.Game {
+  const scale = clampArtScale(artScale);
   return new Phaser.Game({
     type: Phaser.AUTO,
     parent: container,
-    backgroundColor: "#0b0e14",
+    backgroundColor: "#0d1117",
     pixelArt: true,
     scale: {
-      mode: Phaser.Scale.RESIZE,
-      autoCenter: Phaser.Scale.CENTER_BOTH,
+      // Fixed size — CSS zoom must not drive Phaser.Scale.RESIZE (it desyncs the
+      // canvas from the board after non-1.0 zoom).
+      mode: Phaser.Scale.NONE,
+      width: displaySize(data.mapWidth, scale),
+      height: displaySize(data.mapHeight, scale),
     },
-    scene: [new BattlefieldScene(data, onReady)],
+    scene: [new BattlefieldScene(data, onReady, scale)],
   });
 }

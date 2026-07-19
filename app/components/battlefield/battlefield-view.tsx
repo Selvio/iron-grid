@@ -2,6 +2,7 @@
 
 import type { GameData } from "game-data";
 import type { Coordinate } from "game-engine";
+import { Flag, Minus, Plus } from "lucide-react";
 import { useEffect, useReducer, useRef, useState } from "react";
 
 import {
@@ -23,6 +24,7 @@ import {
   productionTargetAt,
   unloadCargo,
   unloadDropTiles,
+  unitSprite,
   type DestinationOptions,
 } from "@/app/lib/preview/actions";
 import { computePath } from "@/app/lib/preview/path";
@@ -33,14 +35,22 @@ import {
   type AnimationStep,
 } from "@/app/lib/render/animation-plan";
 
-import { Button } from "@/app/components/ui/button";
-
 import { ActionPanel } from "./action-panel";
 import { Battlefield } from "./battlefield";
 import type { BattlefieldHandle } from "./create-game";
 import { Hud, type HudTerrain, type HudUnit } from "./hud/hud";
 import { InteractionOverlay, TILE_DISPLAY_PX } from "./interaction-overlay";
 import { Minimap } from "./minimap";
+
+/** Board zoom bounds — 10% steps, tile size snapped to whole CSS pixels. */
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2;
+const ZOOM_STEP = 0.1;
+const clampZoom = (z: number): number =>
+  Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Math.round(z * 10) / 10));
+/** Display tile size for a UI zoom (always an integer CSS px). */
+const tilePxForZoom = (z: number): number =>
+  Math.round(TILE_DISPLAY_PX * clampZoom(z));
 
 /** Whether a chosen tile offers any legal action for the selected unit. */
 function anyAction(o: DestinationOptions): boolean {
@@ -84,11 +94,14 @@ export function BattlefieldView({
   const [busy, setBusy] = useState(false);
   const [hovered, setHovered] = useState<Coordinate | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
+  const [zoom, setZoom] = useState(1);
   const sceneRef = useRef<BattlefieldHandle | null>(null);
   const turnKeyRef = useRef(
     `${matchView.currentDay}:${matchView.activePlayerId}`,
   );
   const isMyTurn = view.activePlayerId === view.viewerPlayerId;
+  const tilePx = tilePxForZoom(zoom);
+  const artScale = tilePx / (TILE_DISPLAY_PX / 2); // tilePx / 24
 
   // A transient Advance-Wars turn banner whenever the day or active player flips.
   useEffect(() => {
@@ -436,13 +449,34 @@ export function BattlefieldView({
     "unitId" in state
       ? (view.units.find((u) => u.id === state.unitId) ?? null)
       : null;
+  const selectedDef = selectedUnit
+    ? gameData.units[selectedUnit.typeId]
+    : undefined;
+  const selectedTerrainId = selectedUnit?.position
+    ? view.map.logicalTerrain[selectedUnit.position.y]?.[
+        selectedUnit.position.x
+      ]
+    : undefined;
+  const selectedTerrainDef = selectedTerrainId
+    ? gameData.terrain[selectedTerrainId]
+    : undefined;
   const hudUnit: HudUnit | null = selectedUnit
     ? {
         typeId: selectedUnit.typeId,
         ownerPlayerId: selectedUnit.ownerPlayerId,
         trueHp: selectedUnit.trueHp,
+        maxHp: selectedDef?.max_true_hp ?? 100,
         fuel: selectedUnit.fuel,
         ammo: selectedUnit.ammo,
+        movementType: selectedDef?.movement?.type ?? "",
+        movePoints: selectedDef?.movement?.points ?? 0,
+        sprite: unitSprite(view, gameData, selectedUnit.typeId),
+        terrain: selectedTerrainDef
+          ? {
+              name: selectedTerrainDef.display_name,
+              defenseStars: selectedTerrainDef.defense_stars,
+            }
+          : null,
       }
     : null;
   // The move range (blue) during selection; the drop tiles while placing cargo.
@@ -487,33 +521,46 @@ export function BattlefieldView({
       : [];
 
   return (
-    <div className="relative flex h-full w-full overflow-auto">
+    <div className="relative flex h-full w-full overflow-auto bg-gradient-to-b from-[#bfe3ff] to-[#93c8ef]">
+      {/* Board sized directly to the art scale — no CSS transform (fractional
+          scale() caused uneven pixels and Phaser RESIZE desync). */}
       <div
-        className="relative m-auto shrink-0"
+        className="m-auto shrink-0"
         style={{
-          width: view.map.width * TILE_DISPLAY_PX,
-          height: view.map.height * TILE_DISPLAY_PX,
+          width: view.map.width * tilePx,
+          height: view.map.height * tilePx,
         }}
       >
-        <div className="absolute inset-0">
-          <Battlefield
-            matchView={view}
-            onSceneReady={(handle) => {
-              sceneRef.current = handle;
-            }}
-          />
-        </div>
-        <div className="absolute inset-0">
-          <InteractionOverlay
-            width={view.map.width}
-            height={view.map.height}
-            reachable={reachable}
-            targets={targetTiles}
-            reticles={reticleTiles}
-            path={hoverPath}
-            onTileClick={handleTileClick}
-            onTileHover={(x, y) => setHovered({ x, y })}
-          />
+        <div
+          className="relative box-content overflow-hidden rounded-[20px] border-4 border-[#1c2b45] shadow-[0_10px_0_rgba(28,43,69,0.32)]"
+          style={{
+            width: view.map.width * tilePx,
+            height: view.map.height * tilePx,
+            imageRendering: "pixelated",
+          }}
+        >
+          <div className="absolute inset-0">
+            <Battlefield
+              matchView={view}
+              artScale={artScale}
+              onSceneReady={(handle) => {
+                sceneRef.current = handle;
+              }}
+            />
+          </div>
+          <div className="absolute inset-0">
+            <InteractionOverlay
+              width={view.map.width}
+              height={view.map.height}
+              tilePx={tilePx}
+              reachable={reachable}
+              targets={targetTiles}
+              reticles={reticleTiles}
+              path={hoverPath}
+              onTileClick={handleTileClick}
+              onTileHover={(x, y) => setHovered({ x, y })}
+            />
+          </div>
         </div>
       </div>
       <Hud matchView={view} selectedUnit={hudUnit} terrain={hudTerrain} />
@@ -537,21 +584,48 @@ export function BattlefieldView({
         }}
       />
       {isMyTurn && state.kind === "idle" && (
-        <Button
-          className="pointer-events-auto absolute bottom-4 left-4"
+        <button
+          type="button"
+          className="pointer-events-auto absolute bottom-4 right-4 flex items-center gap-2 rounded-2xl border-4 border-[#1c2b45] bg-gradient-to-b from-[#ffd94a] to-[#f5b820] px-6 py-3.5 font-display text-lg font-extrabold text-[#1c2b45] shadow-[0_6px_0_rgba(28,43,69,0.35)] transition-[filter] hover:brightness-105 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={busy}
           onClick={() => void endTurn()}
         >
+          <Flag className="size-5" aria-hidden="true" />
           End turn
-        </Button>
+        </button>
       )}
       <Minimap view={view} gameData={gameData} />
+
+      {/* Zoom control — 10% steps; tile size snaps to whole CSS pixels. */}
+      <div className="pointer-events-auto absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border-[3px] border-[#1c2b45] bg-[#fff6e0] px-2.5 py-1.5 shadow-[0_5px_0_rgba(28,43,69,0.3)]">
+        <button
+          type="button"
+          aria-label="Zoom out"
+          disabled={zoom <= ZOOM_MIN}
+          onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
+          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a93f7] disabled:opacity-40"
+        >
+          <Minus className="size-4" aria-hidden="true" />
+        </button>
+        <span className="w-12 text-center font-display text-sm font-extrabold text-[#1c2b45]">
+          {Math.round(zoom * 100)}%
+        </span>
+        <button
+          type="button"
+          aria-label="Zoom in"
+          disabled={zoom >= ZOOM_MAX}
+          onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
+          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a93f7] disabled:opacity-40"
+        >
+          <Plus className="size-4" aria-hidden="true" />
+        </button>
+      </div>
       {banner && (
         <div
           role="status"
-          className="pointer-events-none absolute inset-x-0 top-24 flex justify-center"
+          className="pointer-events-none absolute inset-x-0 top-28 flex justify-center"
         >
-          <span className="rounded-full border border-border bg-card/95 px-6 py-2 text-lg font-semibold shadow-lg backdrop-blur">
+          <span className="rounded-2xl border-[3px] border-[#1c2b45] bg-[#fff6e0] px-6 py-2 font-display text-xl font-extrabold text-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
             {banner}
           </span>
         </div>

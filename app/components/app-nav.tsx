@@ -22,17 +22,21 @@ export function AppNav({
   signOutAction: () => void | Promise<void>;
 }) {
   return (
-    <header className="border-b border-border">
-      <nav className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
+    <header className="border-b-[3px] border-[#1c2b45] bg-[#fff6e0]/85 backdrop-blur">
+      <nav className="mx-auto flex h-16 w-full max-w-5xl items-center justify-between px-4">
         <Link
           href="/dashboard"
-          className="inline-flex items-center gap-2 font-semibold"
+          className="inline-flex items-center gap-2 font-display text-lg font-extrabold text-[#1c2b45]"
         >
-          <Grid3x3 className="size-5 text-primary" aria-hidden="true" />
+          <span className="grid size-8 place-items-center rounded-lg border-2 border-[#1c2b45] bg-primary text-[#052a25]">
+            <Grid3x3 className="size-5" aria-hidden="true" />
+          </span>
           Iron Grid
         </Link>
         <div className="flex items-center gap-3">
-          <span className="text-sm text-muted-foreground">{userLabel}</span>
+          <span className="text-sm font-semibold text-muted-foreground">
+            {userLabel}
+          </span>
           <Button asChild variant="ghost" size="sm">
             <Link
               href="/account/notifications"

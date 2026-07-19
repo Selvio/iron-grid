@@ -16,17 +16,15 @@ import { cn } from "@/app/lib/utils";
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T5)
  */
 
-/** Display size of one tile (24px source × 2 desktop scale, `frontend.md` §4). */
+/** Display size of one tile at the default desktop art scale (24px × 2). */
 export const TILE_DISPLAY_PX = 48;
 
 type Tile = { readonly x: number; readonly y: number };
 
-/** The center pixel of a tile, for drawing the path polyline. */
-const center = (n: number): number => n * TILE_DISPLAY_PX + TILE_DISPLAY_PX / 2;
-
 export function InteractionOverlay({
   width,
   height,
+  tilePx = TILE_DISPLAY_PX,
   reachable,
   targets = [],
   reticles = [],
@@ -36,6 +34,8 @@ export function InteractionOverlay({
 }: {
   width: number;
   height: number;
+  /** Display size of one tile in CSS px (must stay an integer for crisp pixels). */
+  tilePx?: number;
   reachable: readonly Tile[];
   /** Tiles holding an attackable enemy (highlighted red during target select). */
   targets?: readonly Tile[];
@@ -46,6 +46,7 @@ export function InteractionOverlay({
   onTileClick: (x: number, y: number) => void;
   onTileHover?: (x: number, y: number) => void;
 }) {
+  const center = (n: number): number => n * tilePx + tilePx / 2;
   const inRange = new Set(reachable.map((c) => `${c.x},${c.y}`));
   const targetable = new Set(targets.map((c) => `${c.x},${c.y}`));
   const aimed = new Set(reticles.map((c) => `${c.x},${c.y}`));
@@ -88,8 +89,8 @@ export function InteractionOverlay({
       <div
         className="grid"
         style={{
-          gridTemplateColumns: `repeat(${width}, ${TILE_DISPLAY_PX}px)`,
-          gridTemplateRows: `repeat(${height}, ${TILE_DISPLAY_PX}px)`,
+          gridTemplateColumns: `repeat(${width}, ${tilePx}px)`,
+          gridTemplateRows: `repeat(${height}, ${tilePx}px)`,
         }}
       >
         {cells}
@@ -99,14 +100,14 @@ export function InteractionOverlay({
           aria-hidden
           data-path
           className="pointer-events-none absolute inset-0"
-          width={width * TILE_DISPLAY_PX}
-          height={height * TILE_DISPLAY_PX}
+          width={width * tilePx}
+          height={height * tilePx}
         >
           <polyline
             points={path.map((c) => `${center(c.x)},${center(c.y)}`).join(" ")}
             fill="none"
             className="stroke-primary"
-            strokeWidth={6}
+            strokeWidth={Math.max(2, Math.round(tilePx / 8))}
             strokeLinecap="round"
             strokeLinejoin="round"
             opacity={0.85}

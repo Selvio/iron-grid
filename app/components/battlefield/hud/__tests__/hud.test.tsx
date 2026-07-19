@@ -23,7 +23,8 @@ describe("Hud", () => {
     render(<Hud matchView={view()} nowMs={NOW} />);
     expect(screen.getByText("Day 3")).toBeInTheDocument();
     expect(screen.getByText("Your turn")).toBeInTheDocument();
-    expect(screen.getByText("12,000 G")).toBeInTheDocument();
+    // Funds render as a gold coin + the grouped amount (mockup style).
+    expect(screen.getByText("12,000")).toBeInTheDocument();
     expect(screen.getByText("2d 2h")).toBeInTheDocument();
     // The active faction identity is shown (color + insignia).
     expect(screen.getByText("Blue")).toBeInTheDocument();
@@ -39,15 +40,24 @@ describe("Hud", () => {
       typeId: "tank",
       ownerPlayerId: "me",
       trueHp: 55,
+      maxHp: 100,
       fuel: 40,
       ammo: 6,
+      movementType: "treads",
+      movePoints: 5,
+      sprite: null,
+      terrain: { name: "Plain", defenseStars: 1 },
     };
     render(<Hud matchView={view()} selectedUnit={unit} nowMs={NOW} />);
     expect(screen.getByText("Tank")).toBeInTheDocument();
     // displayHp(55) = ceil(55/10) = 6.
     expect(screen.getByText("6/10")).toBeInTheDocument();
-    expect(screen.getByText("40")).toBeInTheDocument();
-    expect(screen.getByText("6")).toBeInTheDocument();
+    expect(screen.getByText("40")).toBeInTheDocument(); // fuel
+    expect(screen.getByText("6")).toBeInTheDocument(); // ammo
+    expect(screen.getByText("5")).toBeInTheDocument(); // move points
+    // Faction · movement subtitle + terrain footer.
+    expect(screen.getByText(/Blue · Treads/)).toBeInTheDocument();
+    expect(screen.getByText("Plain")).toBeInTheDocument();
   });
 
   it("omits the selected-unit panel when nothing is selected", () => {

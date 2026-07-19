@@ -95,7 +95,7 @@ export interface ProductionOption {
 }
 
 /** The viewer-faction idle sprite crop for `unitTypeId`, or null when unavailable. */
-function unitSprite(
+export function unitSprite(
   view: MatchView,
   gameData: GameData,
   unitTypeId: string,

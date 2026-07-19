@@ -19,10 +19,10 @@ export default async function Home() {
   }
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-      <span className="mb-6 inline-flex size-16 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+      <span className="mb-6 inline-flex size-16 items-center justify-center rounded-2xl border-[3px] border-[#1c2b45] bg-primary text-[#052a25] shadow-[0_5px_0_rgba(28,43,69,0.22)]">
         <Grid3x3 className="size-8" aria-hidden="true" />
       </span>
-      <h1 className="text-4xl font-bold tracking-tight sm:text-5xl">
+      <h1 className="font-display text-5xl font-extrabold tracking-tight text-[#1c2b45] sm:text-6xl">
         Iron Grid
       </h1>
       <p className="mt-4 max-w-md text-lg text-muted-foreground">

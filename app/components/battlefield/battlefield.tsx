@@ -23,9 +23,12 @@ import type { BattlefieldData, BattlefieldHandle } from "./create-game";
  */
 export function Battlefield({
   matchView,
+  artScale = 2,
   onSceneReady,
 }: {
   matchView: MatchView;
+  /** Integer multiple of the 24px source tile at 100% (may be fractional when zoomed). */
+  artScale?: number;
   onSceneReady?: (handle: BattlefieldHandle) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,9 +50,11 @@ export function Battlefield({
   // render — the async create callback may fire after a later render).
   const dataRef = useRef(data);
   const onReadyRef = useRef(onSceneReady);
+  const artScaleRef = useRef(artScale);
   useEffect(() => {
     dataRef.current = data;
     onReadyRef.current = onSceneReady;
+    artScaleRef.current = artScale;
   });
 
   // Create the game ONCE; destroy only on unmount.
@@ -62,10 +67,15 @@ export function Battlefield({
 
     void import("./create-game").then(({ createBattlefieldGame }) => {
       if (destroyed) return;
-      game = createBattlefieldGame(container, dataRef.current, (handle) => {
-        handleRef.current = handle;
-        onReadyRef.current?.(handle);
-      });
+      game = createBattlefieldGame(
+        container,
+        dataRef.current,
+        (handle) => {
+          handleRef.current = handle;
+          onReadyRef.current?.(handle);
+        },
+        artScaleRef.current,
+      );
     });
 
     return () => {
@@ -80,6 +90,11 @@ export function Battlefield({
   useEffect(() => {
     handleRef.current?.syncModel(data);
   }, [data]);
+
+  // Re-render at the chosen art scale (integer tile pixels — no CSS transform).
+  useEffect(() => {
+    handleRef.current?.setArtScale(artScale);
+  }, [artScale]);
 
   return (
     <div

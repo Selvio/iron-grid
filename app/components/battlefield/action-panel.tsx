@@ -112,7 +112,7 @@ export function ActionPanel({
 }) {
   if (state.kind === "production-menu") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64">
+      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
           <CardTitle>Build</CardTitle>
           <CardDescription>
@@ -150,7 +150,7 @@ export function ActionPanel({
 
   if (state.kind === "unload-cargo") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64">
+      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
           <CardTitle>Unload</CardTitle>
           <CardDescription>Choose a unit to drop</CardDescription>
@@ -179,7 +179,7 @@ export function ActionPanel({
 
   if (state.kind === "unload-drop") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64">
+      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
           <CardTitle>Unload</CardTitle>
           <CardDescription>
@@ -211,7 +211,7 @@ export function ActionPanel({
         : "Actions";
 
   return (
-    <Card className="pointer-events-auto absolute bottom-4 right-4 w-64">
+    <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>

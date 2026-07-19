@@ -123,6 +123,18 @@ describe("BattlefieldView", () => {
     expect(screen.queryByText("Tank")).not.toBeInTheDocument();
   });
 
+  it("zooms the board in and out with the ± control", async () => {
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    expect(screen.getByText("100%")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Zoom in" }));
+    expect(screen.getByText("110%")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    await userEvent.click(screen.getByRole("button", { name: "Zoom out" }));
+    expect(screen.getByText("90%")).toBeInTheDocument();
+  });
+
   it("opens the no-undo action menu at a chosen destination", async () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank

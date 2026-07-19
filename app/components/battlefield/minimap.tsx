@@ -19,8 +19,8 @@ const CELL_PX = 6;
 const FACTION_COLOR: Record<string, string> = {
   blue: "#4c8dff",
   green: "#4fb85f",
-  red: "#f0616d",
-  yellow: "#e6b23a",
+  red: "#f2565b",
+  yellow: "#f2b23c",
 };
 const NEUTRAL = "#9aa4b2";
 
@@ -107,7 +107,7 @@ export function Minimap({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute right-4 top-20 rounded border border-border/70 bg-card/80 p-1 shadow-lg backdrop-blur"
+      className="pointer-events-none absolute bottom-4 left-4 rounded-xl border-[3px] border-[#1c2b45] bg-[#0d1117]/85 p-1.5 shadow-[0_5px_0_rgba(28,43,69,0.32)]"
     >
       <div
         className="grid gap-px"

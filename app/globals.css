@@ -13,59 +13,69 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #f7f8fa;
-  --foreground: #12151c;
-  --card: #ffffff;
-  --card-foreground: #12151c;
-  --popover: #ffffff;
-  --popover-foreground: #12151c;
-  --primary: #1f6feb;
-  --primary-foreground: #f7f8fa;
-  --secondary: #e6e9ef;
-  --secondary-foreground: #12151c;
-  --muted: #eceff4;
-  --muted-foreground: #5a6472;
-  --accent: #e6e9ef;
-  --accent-foreground: #12151c;
-  --destructive: #d1242f;
-  --destructive-foreground: #f7f8fa;
-  --border: #d6dae2;
-  --input: #d6dae2;
-  --ring: #1f6feb;
+  /* Playful light theme from the Claude Design mockup: sky background, cream
+   * cards, navy ink (#1c2b45), teal accent, vivid factions (`Iron Grid.dc.html`). */
+  --background: #e9f1fc;
+  --foreground: #1c2b45;
+  --card: #fff6e0;
+  --card-foreground: #1c2b45;
+  --popover: #fffdf6;
+  --popover-foreground: #1c2b45;
+  --primary: #17a897;
+  --primary-foreground: #052a25;
+  --secondary: #fbeecb;
+  --secondary-foreground: #1c2b45;
+  --muted: #e2ecf9;
+  --muted-foreground: #5c6779;
+  --accent: #e2ecf9;
+  --accent-foreground: #1c2b45;
+  --destructive: #d33f3a;
+  --destructive-foreground: #ffffff;
+  --border: #d8c79c;
+  --input: #cbb891;
+  --ring: #17a897;
 
-  --faction-blue: #2f74d0;
-  --faction-green: #3fa34d;
-  --faction-red: #cf3b3b;
-  --faction-yellow: #d9a520;
+  --gold: #d99417;
+  --success: #2fbf6a;
 
-  --radius: 0.625rem;
+  --faction-blue: #4a93f7;
+  --faction-green: #2fbf6a;
+  --faction-red: #f2726d;
+  --faction-yellow: #f5b820;
+
+  --radius: 0.75rem;
 }
 
 .dark {
-  --background: #0b0e14;
-  --foreground: #e6e9ef;
-  --card: #12161f;
-  --card-foreground: #e6e9ef;
-  --popover: #12161f;
-  --popover-foreground: #e6e9ef;
-  --primary: #4c8dff;
-  --primary-foreground: #0b0e14;
-  --secondary: #1b212d;
-  --secondary-foreground: #e6e9ef;
-  --muted: #161b25;
-  --muted-foreground: #8b94a3;
-  --accent: #1b212d;
-  --accent-foreground: #e6e9ef;
-  --destructive: #f0616d;
-  --destructive-foreground: #0b0e14;
-  --border: #232b39;
-  --input: #232b39;
-  --ring: #4c8dff;
+  /* Battlefield palette from the Claude Design mockup (`design-reference.md` §4):
+   * bg #0d1117, panels #161b22/#1b222c, teal accent #3fc7b4, danger #f2565b. */
+  --background: #0d1117;
+  --foreground: #e6edf3;
+  --card: #161b22;
+  --card-foreground: #e6edf3;
+  --popover: #161b22;
+  --popover-foreground: #e6edf3;
+  --primary: #3fc7b4;
+  --primary-foreground: #06231f;
+  --secondary: #1b222c;
+  --secondary-foreground: #e6edf3;
+  --muted: #1b222c;
+  --muted-foreground: #9aa5b4;
+  --accent: #1b222c;
+  --accent-foreground: #e6edf3;
+  --destructive: #f2565b;
+  --destructive-foreground: #0d1117;
+  --border: #2a323d;
+  --input: #2a323d;
+  --ring: #3fc7b4;
+
+  --gold: #f2b23c;
+  --success: #4cc46e;
 
   --faction-blue: #4c8dff;
   --faction-green: #4fb85f;
-  --faction-red: #f0616d;
-  --faction-yellow: #e6b23a;
+  --faction-red: #f2565b;
+  --faction-yellow: #f2b23c;
 }
 
 @theme inline {
@@ -89,6 +99,9 @@
   --color-input: var(--input);
   --color-ring: var(--ring);
 
+  --color-gold: var(--gold);
+  --color-success: var(--success);
+
   --color-faction-blue: var(--faction-blue);
   --color-faction-green: var(--faction-green);
   --color-faction-red: var(--faction-red);
@@ -96,6 +109,7 @@
 
   --font-sans: var(--font-manrope);
   --font-mono: var(--font-jetbrains-mono);
+  --font-display: var(--font-baloo), var(--font-manrope), system-ui, sans-serif;
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -103,7 +117,7 @@
 }
 
 body {
-  background: var(--background);
+  background: linear-gradient(180deg, #e6f1ff, #cfe4fa) fixed;
   color: var(--foreground);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
