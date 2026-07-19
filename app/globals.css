@@ -122,6 +122,13 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Pointer-first game UI: suppress focus chrome everywhere so tile buttons and
+ * HUD controls never show browser outlines or focus rings over the pixel art. */
+*:focus,
+*:focus-visible {
+  outline: none;
+}
+
 /* Honor reduced-motion by default (`frontend.md` §10) — the mockup's motion
  * Tweak is illustrative; production respects the OS setting. */
 @media (prefers-reduced-motion: reduce) {

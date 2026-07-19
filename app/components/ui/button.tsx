@@ -14,7 +14,7 @@ import { cn } from "@/app/lib/utils";
  * `ghost`/`link` opt out of the frame for subtle nav actions.
  */
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border-[3px] border-[#1c2b45] text-sm font-bold shadow-[0_4px_0_rgba(28,43,69,0.24)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-0.5 active:shadow-[0_2px_0_rgba(28,43,69,0.24)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50 disabled:active:translate-y-0 [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border-[3px] border-[#1c2b45] text-sm font-bold shadow-[0_4px_0_rgba(28,43,69,0.24)] transition-[filter,transform] hover:brightness-[1.04] active:translate-y-0.5 active:shadow-[0_2px_0_rgba(28,43,69,0.24)] disabled:pointer-events-none disabled:opacity-50 disabled:active:translate-y-0 [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {

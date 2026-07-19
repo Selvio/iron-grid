@@ -44,7 +44,6 @@ import { Battlefield } from "./battlefield";
 import type { BattlefieldHandle } from "./create-game";
 import { Hud, type HudTerrain, type HudUnit } from "./hud/hud";
 import { InteractionOverlay, TILE_DISPLAY_PX } from "./interaction-overlay";
-import { Minimap } from "./minimap";
 
 /** Board zoom bounds — 10% steps, tile size snapped to whole CSS pixels. */
 const ZOOM_MIN = 0.5;
@@ -668,7 +667,6 @@ export function BattlefieldView({
           </kbd>
         </button>
       )}
-      <Minimap view={view} gameData={gameData} />
 
       {/* Zoom control — 10% steps; tile size snaps to whole CSS pixels. */}
       <div className="pointer-events-auto absolute bottom-4 left-1/2 flex -translate-x-1/2 items-center gap-2 rounded-2xl border-[3px] border-[#1c2b45] bg-[#fff6e0] px-2.5 py-1.5 shadow-[0_5px_0_rgba(28,43,69,0.3)]">
@@ -677,7 +675,7 @@ export function BattlefieldView({
           aria-label="Zoom out"
           disabled={zoom <= ZOOM_MIN}
           onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
-          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a93f7] disabled:opacity-40"
+          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 disabled:opacity-40"
         >
           <Minus className="size-4" aria-hidden="true" />
         </button>
@@ -689,7 +687,7 @@ export function BattlefieldView({
           aria-label="Zoom in"
           disabled={zoom >= ZOOM_MAX}
           onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
-          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4a93f7] disabled:opacity-40"
+          className="grid size-9 place-items-center rounded-xl border-2 border-[#1c2b45] bg-white text-[#1c2b45] shadow-[0_2px_0_rgba(28,43,69,0.25)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 disabled:opacity-40"
         >
           <Plus className="size-4" aria-hidden="true" />
         </button>

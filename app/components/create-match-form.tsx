@@ -144,7 +144,7 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
             {hasMaps ? (
               <select
                 id="mapId"
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
                 {...register("mapId")}
               >
                 {maps.map((map) => (
@@ -169,7 +169,7 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
             <Label htmlFor="turnDeadline">Turn deadline</Label>
             <select
               id="turnDeadline"
-              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
               {...register("turnDeadline")}
             >
               {DEADLINE_OPTIONS.map((option) => (
