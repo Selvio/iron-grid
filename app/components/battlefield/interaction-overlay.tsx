@@ -103,15 +103,33 @@ export function InteractionOverlay({
           width={width * tilePx}
           height={height * tilePx}
         >
-          <polyline
-            points={path.map((c) => `${center(c.x)},${center(c.y)}`).join(" ")}
-            fill="none"
-            className="stroke-primary"
-            strokeWidth={Math.max(2, Math.round(tilePx / 8))}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            opacity={0.85}
-          />
+          <defs>
+            <marker
+              id="ig-path-arrow"
+              viewBox="0 0 10 10"
+              refX="6.5"
+              refY="5"
+              markerWidth="3.6"
+              markerHeight="3.6"
+              orient="auto"
+              markerUnits="strokeWidth"
+            >
+              <path d="M0.5,1 L9,5 L0.5,9 Z" className="fill-primary" />
+            </marker>
+          </defs>
+          <g opacity={0.85}>
+            <polyline
+              points={path
+                .map((c) => `${center(c.x)},${center(c.y)}`)
+                .join(" ")}
+              fill="none"
+              className="stroke-primary"
+              strokeWidth={Math.max(2, Math.round(tilePx / 8))}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              markerEnd="url(#ig-path-arrow)"
+            />
+          </g>
         </svg>
       )}
     </div>
