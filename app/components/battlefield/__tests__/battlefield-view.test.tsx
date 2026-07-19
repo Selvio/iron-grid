@@ -145,13 +145,15 @@ describe("BattlefieldView", () => {
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
     await userEvent.click(screen.getByLabelText("Tile 3, 1")); // reachable dest
 
-    expect(screen.getByText("Actions")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /actions/i })).toBeInTheDocument();
     expect(screen.getByText(/no undo/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Move" })).toBeInTheDocument();
 
     // Cancel steps back to the selected-unit state (range still shown).
     await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
-    expect(screen.queryByText("Actions")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: /actions/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Tank")).toBeInTheDocument();
   });
 
@@ -161,7 +163,7 @@ describe("BattlefieldView", () => {
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
     await userEvent.click(screen.getByLabelText("Tile 3, 1")); // open menu
-    expect(screen.getByText("Actions")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /actions/i })).toBeInTheDocument();
 
     // Re-click the same destination — commits move_and_wait (no Move button).
     await userEvent.click(screen.getByLabelText("Tile 3, 1"));

@@ -13,6 +13,7 @@ import {
   CardTitle,
 } from "@/app/components/ui/card";
 
+import { ActionMenu } from "./action-menu";
 import { BuildMenu } from "./build-menu";
 import { PixelSprite } from "./pixel-sprite";
 
@@ -77,8 +78,12 @@ function damageRange(min: number, max: number): string {
 function useActionMenuFocus(open: boolean): void {
   useEffect(() => {
     if (!open) return;
+    // The first *enabled* row: landing on a greyed-out action would make Enter
+    // do nothing and look broken.
     document
-      .querySelector<HTMLButtonElement>("[data-action-menu] button")
+      .querySelector<HTMLButtonElement>(
+        "[data-action-menu] button:not([disabled])",
+      )
       ?.focus();
   }, [open]);
 }
@@ -99,30 +104,19 @@ function onMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
   buttons[next]!.focus();
 }
 
-/** Label for ending activation: "Move" when relocating, "Wait" when staying. */
-function commitLabel(
-  destination: Coordinate,
-  unitOrigin: Coordinate | null,
-): string {
-  if (
-    unitOrigin !== null &&
-    (unitOrigin.x !== destination.x || unitOrigin.y !== destination.y)
-  ) {
-    return "Move";
-  }
-  return "Wait";
-}
-
 export function ActionPanel({
   state,
   handlers,
   unitOrigin = null,
+  unitName,
   funds = 0,
 }: {
   state: InteractionState;
   handlers: ActionPanelHandlers;
   /** The selected unit's current tile — used to label Move vs Wait. */
   unitOrigin?: Coordinate | null;
+  /** The selected unit's display name, for the menu's title bar. */
+  unitName?: string;
   /** The viewer's funds — shown in the build popup's roster header. */
   funds?: number;
 }) {
@@ -139,9 +133,23 @@ export function ActionPanel({
     );
   }
 
+  if (state.kind === "action-menu") {
+    return (
+      <ActionMenu
+        options={state.options}
+        menu={state.menu}
+        destination={state.destination}
+        unitOrigin={unitOrigin}
+        unitName={unitName}
+        handlers={handlers}
+        onKeyDown={onMenuKeyDown}
+      />
+    );
+  }
+
   if (state.kind === "unload-cargo") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
+      <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
           <CardTitle>Unload</CardTitle>
           <CardDescription>Choose a unit to drop</CardDescription>
@@ -170,7 +178,7 @@ export function ActionPanel({
 
   if (state.kind === "unload-drop") {
     return (
-      <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
+      <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
           <CardTitle>Unload</CardTitle>
           <CardDescription>
@@ -186,23 +194,14 @@ export function ActionPanel({
     );
   }
 
-  if (
-    state.kind !== "action-menu" &&
-    state.kind !== "select-target" &&
-    state.kind !== "combat-preview"
-  ) {
+  if (state.kind !== "select-target" && state.kind !== "combat-preview") {
     return null;
   }
 
-  const title =
-    state.kind === "combat-preview"
-      ? "Combat"
-      : state.kind === "select-target"
-        ? "Choose target"
-        : "Actions";
+  const title = state.kind === "combat-preview" ? "Combat" : "Choose target";
 
   return (
-    <Card className="pointer-events-auto absolute bottom-4 right-4 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
+    <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
         <CardDescription>
@@ -211,57 +210,7 @@ export function ActionPanel({
             : `To (${state.destination.x}, ${state.destination.y}) · no undo`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3" onKeyDown={onMenuKeyDown}>
-        {state.kind === "action-menu" && (
-          <div data-action-menu className="flex flex-col gap-1.5">
-            {state.options.canWait && (
-              <Button variant="secondary" onClick={handlers.onWait}>
-                {commitLabel(state.destination, unitOrigin)}
-              </Button>
-            )}
-            {state.options.canCapture && (
-              <Button variant="secondary" onClick={handlers.onCapture}>
-                Capture
-              </Button>
-            )}
-            {state.options.attackTargets.length > 0 && (
-              <Button variant="secondary" onClick={handlers.onAttack}>
-                Attack
-              </Button>
-            )}
-            {state.options.canLoad && (
-              <Button variant="secondary" onClick={handlers.onLoad}>
-                Load
-              </Button>
-            )}
-            {state.options.canJoin && (
-              <Button variant="secondary" onClick={handlers.onJoin}>
-                Join
-              </Button>
-            )}
-            {state.options.canSupply && (
-              <Button variant="secondary" onClick={handlers.onSupply}>
-                Supply
-              </Button>
-            )}
-            {state.options.canUnload && (
-              <Button variant="secondary" onClick={handlers.onUnload}>
-                Unload
-              </Button>
-            )}
-            {state.options.canDive && (
-              <Button variant="secondary" onClick={handlers.onDive}>
-                Dive
-              </Button>
-            )}
-            {state.options.canSurface && (
-              <Button variant="secondary" onClick={handlers.onSurface}>
-                Surface
-              </Button>
-            )}
-          </div>
-        )}
-
+      <CardContent className="flex flex-col gap-3">
         {state.kind === "combat-preview" && (
           <dl className="font-mono text-sm">
             {state.defender && (

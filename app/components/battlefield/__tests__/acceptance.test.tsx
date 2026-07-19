@@ -112,10 +112,12 @@ describe("battlefield acceptance", () => {
 
     await user.click(screen.getByLabelText("Tile 2, 1")); // select
     await user.click(screen.getByLabelText("Tile 3, 1")); // action menu
-    expect(screen.getByText("Actions")).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: /actions/i })).toBeInTheDocument();
 
     await user.keyboard("{Escape}"); // menu → selected unit
-    expect(screen.queryByText("Actions")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: /actions/i }),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Tank")).toBeInTheDocument();
 
     await user.keyboard("{Escape}"); // selected unit → idle
@@ -193,7 +195,9 @@ describe("battlefield acceptance", () => {
     wait.focus();
     await user.keyboard("{Enter}");
     await waitFor(() =>
-      expect(screen.queryByText("Actions")).not.toBeInTheDocument(),
+      expect(
+        screen.queryByRole("group", { name: /actions/i }),
+      ).not.toBeInTheDocument(),
     );
   });
 
@@ -231,6 +235,8 @@ describe("battlefield acceptance", () => {
       ).toBe(true),
     );
     // Selection cleared — the client did not keep a locally-applied move.
-    expect(screen.queryByText("Actions")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: /actions/i }),
+    ).not.toBeInTheDocument();
   });
 });

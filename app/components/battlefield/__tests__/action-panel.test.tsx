@@ -276,7 +276,7 @@ describe("ActionPanel", () => {
     expect(onProduce).toHaveBeenCalledWith("infantry");
   });
 
-  it("opens the action menu focused, and the arrows walk it", async () => {
+  it("opens focused on the first available action, and the arrows walk it", async () => {
     const state: InteractionState = {
       kind: "action-menu",
       unitId: "u1",
@@ -284,18 +284,21 @@ describe("ActionPanel", () => {
       destination: { x: 3, y: 2 },
       options: opts({ canWait: true, canCapture: true }),
     };
-    const onCapture = vi.fn();
+    const onWait = vi.fn();
     render(
       <ActionPanel
         state={state}
         unitOrigin={{ x: 1, y: 2 }}
-        handlers={handlers({ onCapture })}
+        handlers={handlers({ onWait })}
       />,
     );
 
+    // Capture comes first in the menu's fixed order; Move/Wait closes it.
+    expect(screen.getByRole("button", { name: "Capture" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}");
     expect(screen.getByRole("button", { name: "Move" })).toHaveFocus();
-    await userEvent.keyboard("{ArrowDown}{Enter}");
-    expect(onCapture).toHaveBeenCalledOnce();
+    await userEvent.keyboard("{Enter}");
+    expect(onWait).toHaveBeenCalledOnce();
   });
 
   it("shows logistics buttons only when legal and fires their handlers", async () => {

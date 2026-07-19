@@ -749,6 +749,12 @@ export function BattlefieldView({
       <ActionPanel
         state={state}
         unitOrigin={selectedUnit?.position ?? null}
+        unitName={
+          selectedUnit
+            ? (gameData.units[selectedUnit.typeId]?.display_name ??
+              selectedUnit.typeId)
+            : undefined
+        }
         funds={view.you?.funds ?? 0}
         handlers={{
           onWait: submitWait,
