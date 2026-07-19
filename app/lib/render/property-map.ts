@@ -59,8 +59,6 @@ export interface PropertySprite {
   readonly capturingFaction: FactionId | null;
   /** Capture progress in [0, 1]; 0 when uncontested. */
   readonly captureProgress: number;
-  /** Capture points left before the property flips — the number the board shows. */
-  readonly capturePointsRemaining: number;
 }
 
 function factionByPlayer(view: MatchView): Record<string, FactionId> {
@@ -106,7 +104,6 @@ export function buildPropertyRenderModel(view: MatchView): PropertySprite[] {
       captureProgress:
         (MAX_CAPTURE_POINTS - property.capturePointsRemaining) /
         MAX_CAPTURE_POINTS,
-      capturePointsRemaining: property.capturePointsRemaining,
     };
   });
 }

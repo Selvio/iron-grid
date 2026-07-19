@@ -175,17 +175,16 @@ if (captureDemo !== undefined) {
       }
     }
   };
-  // Mirrors the scene's capture tag: a plate floating above the tile, its
-  // bottom edge filled to the capture's progress. (The number is text, which
-  // this raw compositor cannot draw — check it in the app.)
+  // Mirrors the scene's capture bar: a slim outlined track floating above the
+  // tile, filled to the capture's progress.
   const progress = (20 - remaining!) / 20;
-  const tagY = cy! * TILE - 9;
-  fill(cx! * TILE, tagY - 1, TILE, 11, [242, 86, 91]);
-  fill(cx! * TILE + 1, tagY, TILE - 2, 9, [13, 17, 23]);
+  const barY = cy! * TILE - 5;
+  fill(cx! * TILE + 1, barY, TILE - 2, 4, [242, 86, 91]);
+  fill(cx! * TILE + 2, barY + 1, TILE - 4, 2, [13, 17, 23]);
   fill(
-    cx! * TILE + 1,
-    tagY + 7,
-    Math.max(1, Math.round((TILE - 2) * progress)),
+    cx! * TILE + 2,
+    barY + 1,
+    Math.max(1, Math.round((TILE - 4) * progress)),
     2,
     [242, 86, 91],
   );
