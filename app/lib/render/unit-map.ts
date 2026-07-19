@@ -32,6 +32,8 @@ export interface UnitSprite {
   readonly submerged: boolean;
   /** Display HP on the 0–10 scale; the scene shows it only below 10 (§27.4). */
   readonly displayHp: number;
+  /** The idle sprite faces right; flip it when the enemy base is to the left. */
+  readonly faceLeft: boolean;
 }
 
 function factionByPlayer(view: MatchView): Record<string, FactionId> {
@@ -43,8 +45,20 @@ function factionByPlayer(view: MatchView): Record<string, FactionId> {
   return table;
 }
 
+/** Each player's headquarters x (properties are public), for enemy-base facing. */
+function hqXByOwner(view: MatchView): Map<string, number> {
+  const map = new Map<string, number>();
+  for (const property of view.properties ?? []) {
+    if (property.typeId === "headquarters" && property.ownerPlayerId !== null) {
+      map.set(property.ownerPlayerId, property.position.x);
+    }
+  }
+  return map;
+}
+
 export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
   const factions = factionByPlayer(view);
+  const hqX = hqXByOwner(view);
   const sprites: UnitSprite[] = [];
 
   for (const unit of view.units) {
@@ -60,6 +74,19 @@ export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
         ? meta.submergedRow
         : meta.spriteRow;
 
+    // Face the opponent's HQ (left/right only): the idle art points right, so
+    // flip when the enemy base sits to the left of this unit's own base.
+    const ownHqX = hqX.get(unit.ownerPlayerId);
+    let enemyHqX: number | undefined;
+    for (const [owner, x] of hqX) {
+      if (owner !== unit.ownerPlayerId) {
+        enemyHqX = x;
+        break;
+      }
+    }
+    const faceLeft =
+      ownHqX !== undefined && enemyHqX !== undefined && enemyHqX < ownHqX;
+
     sprites.push({
       unitId: unit.id,
       x: unit.position.x,
@@ -70,6 +97,7 @@ export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
       greyed: unit.ownerPlayerId === view.viewerPlayerId && unit.hasActed,
       submerged,
       displayHp: displayHp(unit.trueHp),
+      faceLeft,
     });
   }
 

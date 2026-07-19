@@ -4,7 +4,7 @@ import type { MatchView } from "@/app/lib/api-client";
 import { buildUnitRenderModel } from "../unit-map";
 import { unitFrame } from "../derive-render-data";
 
-function view(units: unknown[]): MatchView {
+function view(units: unknown[], properties: unknown[] = []): MatchView {
   return {
     viewerPlayerId: "me",
     you: { playerId: "me", factionId: "blue" },
@@ -15,6 +15,7 @@ function view(units: unknown[]): MatchView {
       submarine: { spriteRow: 40, submergedRow: 39, isAir: false },
     },
     units,
+    properties,
   } as unknown as MatchView;
 }
 
@@ -127,5 +128,42 @@ describe("buildUnitRenderModel", () => {
     );
     expect(full!.displayHp).toBe(10);
     expect(hurt!.displayHp).toBe(7);
+  });
+
+  it("faces each unit toward the opponent's headquarters", () => {
+    // Blue HQ on the right (x=9), red HQ on the left (x=0).
+    const hqs = [
+      { typeId: "headquarters", ownerPlayerId: "me", position: { x: 9, y: 4 } },
+      {
+        typeId: "headquarters",
+        ownerPlayerId: "them",
+        position: { x: 0, y: 4 },
+      },
+    ];
+    const sprites = buildUnitRenderModel(
+      view(
+        [
+          { ...base, id: "blue", typeId: "tank", ownerPlayerId: "me" },
+          {
+            ...base,
+            id: "red",
+            typeId: "tank",
+            ownerPlayerId: "them",
+            position: { x: 5, y: 0 },
+          },
+        ],
+        hqs,
+      ),
+    );
+    // Blue's enemy base is to the left → flipped; red's is to the right → not.
+    expect(sprites.find((s) => s.unitId === "blue")!.faceLeft).toBe(true);
+    expect(sprites.find((s) => s.unitId === "red")!.faceLeft).toBe(false);
+  });
+
+  it("does not flip when headquarters are unknown", () => {
+    const [sprite] = buildUnitRenderModel(
+      view([{ ...base, id: "u", typeId: "tank", ownerPlayerId: "me" }]),
+    );
+    expect(sprite!.faceLeft).toBe(false);
   });
 });

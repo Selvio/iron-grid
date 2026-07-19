@@ -217,6 +217,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       const sprite = this.add
         .image(worldX, worldY, key, frameName)
         .setOrigin(0.5, 1);
+      sprite.setFlipX(unit.faceLeft); // face the enemy base (left/right only)
       if (unit.greyed) sprite.setTint(0x8a94a3);
       if (unit.submerged) sprite.setAlpha(0.55);
       this.unitSprites.set(unit.unitId, sprite);
