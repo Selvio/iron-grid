@@ -61,6 +61,11 @@ const DEPTH = {
   effect: 6,
 } as const;
 
+/** Width of one red + pale band pair in the attack hatch, in source pixels. */
+const STRIPE_PERIOD = 8;
+/** How often the hatch crawls one pixel along its diagonal. */
+const STRIPE_MS = 110;
+
 const RENDER_SCALE = 3;
 const WALK_MS_PER_TILE = 120;
 const ART_SCALE_MIN = 1;
@@ -133,6 +138,10 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private dynamicObjects: Phaser.GameObjects.GameObject[] = [];
   /** The range washes, refreshed on their own by `setRanges`. */
   private rangeObjects: Phaser.GameObjects.GameObject[] = [];
+  /** Just the hatch tiles, kept so the stripe crawl can retexture them. */
+  private attackRangeSprites: Phaser.GameObjects.Image[] = [];
+  /** Current offset of the crawling hatch, in source pixels. */
+  private stripePhase = 0;
   /** Current frame of the unit idle breathing loop. */
   private idleFrame = 0;
   /** Current frame of the slower building flag loop. */
@@ -209,10 +218,13 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
    *
    * Move range is a translucent blue so the terrain underneath still reads —
    * you are choosing where to stand. Attack range is the Advance-Wars candy
-   * stripe and is **opaque**: it is a warning, not a survey of the ground.
+   * stripe and is **opaque**: it is a warning, not a survey of the ground. The
+   * stripe comes in `STRIPE_PERIOD` phases, each shifted a pixel along, which
+   * `tickStripes` cycles to make the hatch crawl.
    */
-  private highlightTexture(kind: "move" | "attack"): string {
-    const key = `highlight-${kind}`;
+  private highlightTexture(kind: "move" | "attack", phase = 0): string {
+    const key =
+      kind === "move" ? "highlight-move" : `highlight-attack-${phase}`;
     if (this.textures.exists(key)) return key;
     const size = TERRAIN_TILE_PX;
     const texture = this.textures.createCanvas(key, size, size);
@@ -226,12 +238,14 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     }
     // Painted pixel by pixel rather than stroked: a stroked diagonal is
     // antialiased, and this tile is magnified with nearest-neighbour, so the
-    // soft edges would smear. The 8 px period divides the tile, so the stripes
-    // run unbroken across neighbouring tiles.
+    // soft edges would smear. The period divides the tile, so the stripes run
+    // unbroken across neighbouring tiles.
     const image = ctx.createImageData(size, size);
     for (let y = 0; y < size; y++) {
       for (let x = 0; x < size; x++) {
-        const stripe = (((x - y) % 8) + 8) % 8 < 4;
+        const band =
+          (((x - y - phase) % STRIPE_PERIOD) + STRIPE_PERIOD) % STRIPE_PERIOD;
+        const stripe = band < STRIPE_PERIOD / 2;
         const i = (y * size + x) * 4;
         image.data[i] = stripe ? 0xe2 : 0xf6;
         image.data[i + 1] = stripe ? 0x45 : 0xd6;
@@ -245,6 +259,18 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   }
 
   /**
+   * Advance the hatch one pixel along its diagonal. A range that sits perfectly
+   * still reads as part of the map; the crawl is what says "this is an overlay
+   * the game is telling you about", and it is how Advance Wars draws it.
+   */
+  private tickStripes(): void {
+    if (this.attackRangeSprites.length === 0) return;
+    this.stripePhase = (this.stripePhase + 1) % STRIPE_PERIOD;
+    const key = this.highlightTexture("attack", this.stripePhase);
+    for (const sprite of this.attackRangeSprites) sprite.setTexture(key);
+  }
+
+  /**
    * Range washes, drawn between the board and the units: terrain and buildings
    * go under them, units stay on top, as in Advance Wars — the point of a range
    * is to read the ground it covers, not to bury the pieces standing on it.
@@ -255,15 +281,19 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   ): void {
     for (const object of this.rangeObjects) object.destroy();
     this.rangeObjects = [];
+    this.attackRangeSprites = [];
     const draw = (tiles: readonly Coordinate[], kind: "move" | "attack") => {
-      const key = this.highlightTexture(kind);
+      const key = this.highlightTexture(
+        kind,
+        kind === "attack" ? this.stripePhase : 0,
+      );
       for (const tile of tiles) {
-        this.rangeObjects.push(
-          this.add
-            .image(tile.x * TERRAIN_TILE_PX, tile.y * TERRAIN_TILE_PX, key)
-            .setOrigin(0, 0)
-            .setDepth(DEPTH.range),
-        );
+        const sprite = this.add
+          .image(tile.x * TERRAIN_TILE_PX, tile.y * TERRAIN_TILE_PX, key)
+          .setOrigin(0, 0)
+          .setDepth(DEPTH.range);
+        this.rangeObjects.push(sprite);
+        if (kind === "attack") this.attackRangeSprites.push(sprite);
       }
     };
     draw(moveRange, "move");
@@ -428,9 +458,10 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     this.syncModel(this.model); // initial dynamic draw
     this.onReady?.(this);
 
-    // Advance-Wars-style idle loops: unit breathing and a slower building flag
-    // flap so the board never feels frozen. Honored off under OS reduced-motion
-    // (`frontend.md` §10); mid-walk / one-shot unit clips are left still.
+    // Advance-Wars-style idle loops: unit breathing, a slower building flag flap
+    // and the crawling range hatch, so the board never feels frozen. Honored off
+    // under OS reduced-motion (`frontend.md` §10); mid-walk / one-shot unit clips
+    // are left still.
     const reduce =
       typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
@@ -445,6 +476,11 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         delay: BUILDING_IDLE_MS,
         loop: true,
         callback: () => this.tickBuildingIdle(),
+      });
+      this.time.addEvent({
+        delay: STRIPE_MS,
+        loop: true,
+        callback: () => this.tickStripes(),
       });
     }
   }
