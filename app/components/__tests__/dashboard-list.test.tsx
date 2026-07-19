@@ -14,14 +14,21 @@ function summary(overrides: Partial<MatchSummary>): MatchSummary {
     viewerPlayerId: "me",
     activePlayerId: "me",
     turnDeadlineAt: null,
-    mapId: "crossfire-basin",
+    mapId: "spann-island",
     day: 0,
     opponent: null,
     ...overrides,
   };
 }
 
-const MAP_SIZES = { "crossfire-basin": { width: 20, height: 16 } };
+const MAP_PREVIEWS = {
+  "spann-island": {
+    id: "spann-island",
+    width: 20,
+    height: 16,
+    terrain: [["plain"]],
+  },
+};
 
 describe("DashboardList", () => {
   it("shows the empty state with a create CTA when there are no matches", () => {
@@ -99,10 +106,10 @@ describe("DashboardList", () => {
       <DashboardList
         nowMs={NOW}
         matches={[summary({ day: 7 })]}
-        mapSizes={MAP_SIZES}
+        mapPreviews={MAP_PREVIEWS}
       />,
     );
-    expect(screen.getByText("Crossfire Basin")).toBeInTheDocument();
+    expect(screen.getByText("Spann Island")).toBeInTheDocument();
     expect(screen.getByText("Day 7")).toBeInTheDocument();
     expect(screen.getByText("20×16")).toBeInTheDocument();
   });

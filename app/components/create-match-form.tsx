@@ -4,13 +4,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Check, Copy } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 
 import { ApiError, apiClient } from "@/app/lib/api-client";
 import { createMatchSchema, type CreateMatchInput } from "@/app/lib/schemas";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
+import { MapThumbnail, type MapPreview } from "@/app/components/map-thumbnail";
 import {
   Card,
   CardContent,
@@ -32,8 +33,10 @@ import {
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T5)
  */
 
-export interface MapOption {
-  readonly id: string;
+/**
+ * A selectable map: its label, plus the layout the thumbnail draws (M9-T10).
+ */
+export interface MapOption extends MapPreview {
   readonly label: string;
 }
 
@@ -56,6 +59,7 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<CreateMatchInput>({
     resolver: zodResolver(createMatchSchema),
@@ -65,6 +69,11 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
       dayLimit: null,
     },
   });
+
+  // The preview follows the select, so you see the layout you are picking.
+  // `useWatch` (not `watch`) so the subscription is a hook, not a render-time call.
+  const selectedId = useWatch({ control, name: "mapId" });
+  const selectedMap = maps.find((map) => map.id === selectedId) ?? maps[0];
 
   if (created) {
     const joinPath = `/matches/${created.matchId}/join?code=${created.invitationCode}`;
@@ -141,6 +150,12 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
         <form onSubmit={onSubmit} className="flex flex-col gap-5" noValidate>
           <div className="flex flex-col gap-2">
             <Label htmlFor="mapId">Map</Label>
+            {selectedMap !== undefined && (
+              <MapThumbnail
+                map={selectedMap}
+                className="w-full rounded-lg border-2 border-[#1c2b45]"
+              />
+            )}
             {hasMaps ? (
               <select
                 id="mapId"

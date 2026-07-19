@@ -1,7 +1,10 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { DashboardList, type MapSizes } from "@/app/components/dashboard-list";
+import {
+  DashboardList,
+  type MapPreviews,
+} from "@/app/components/dashboard-list";
 import { Button } from "@/app/components/ui/button";
 import { requireSessionUser } from "@/app/lib/session";
 import { createDatabase, type Database } from "@/app/server/db";
@@ -52,11 +55,16 @@ export default async function DashboardPage() {
   const user = await requireSessionUser();
   const matches = await listMatchesForUser(database(), user.id);
 
-  // The official map catalogue supplies each row's `W×H` readout.
-  const mapSizes: MapSizes = Object.fromEntries(
+  // The official map catalogue supplies each row's thumbnail and `W×H` readout.
+  const mapPreviews: MapPreviews = Object.fromEntries(
     Object.values(getGameData().maps).map((map) => [
       map.id,
-      { width: map.dimensions.width, height: map.dimensions.height },
+      {
+        id: map.id,
+        width: map.dimensions.width,
+        height: map.dimensions.height,
+        terrain: map.logical_terrain,
+      },
     ]),
   );
 
@@ -80,7 +88,7 @@ export default async function DashboardPage() {
           </Link>
         </Button>
       </div>
-      <DashboardList matches={matches} mapSizes={mapSizes} />
+      <DashboardList matches={matches} mapPreviews={mapPreviews} />
     </section>
   );
 }

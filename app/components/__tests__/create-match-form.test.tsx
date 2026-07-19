@@ -2,11 +2,28 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { CreateMatchForm } from "../create-match-form";
+import { CreateMatchForm, type MapOption } from "../create-match-form";
 
-const MAPS = [
-  { id: "map-1", label: "map-1 · 20×16" },
-  { id: "map-2", label: "map-2 · 20×16" },
+/** A tiny 2×2 layout — enough to prove the thumbnail draws the right map. */
+function mapOption(id: string, terrain: string[][]): MapOption {
+  return {
+    id,
+    label: `${id} · ${terrain[0].length}×${terrain.length}`,
+    width: terrain[0].length,
+    height: terrain.length,
+    terrain,
+  };
+}
+
+const MAPS: MapOption[] = [
+  mapOption("map-1", [
+    ["plain", "plain"],
+    ["sea", "sea"],
+  ]),
+  mapOption("map-2", [
+    ["forest", "road"],
+    ["road", "city"],
+  ]),
 ];
 
 function mockFetch(status: number, body: unknown) {
@@ -72,9 +89,25 @@ describe("CreateMatchForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("previews the default map and follows the selection", async () => {
+    render(<CreateMatchForm maps={MAPS} />);
+    expect(
+      screen.getByRole("img", { name: /Map 1 map preview, 2×2/i }),
+    ).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText("Map"), "map-2");
+    expect(
+      screen.getByRole("img", { name: /Map 2 map preview, 2×2/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("img", { name: /Map 1 map preview/i }),
+    ).not.toBeInTheDocument();
+  });
+
   it("disables creation when no maps are available (design-blocked)", () => {
     render(<CreateMatchForm maps={[]} />);
     expect(screen.getByText(/no maps are available yet/i)).toBeInTheDocument();
+    expect(screen.queryByRole("img", { name: /map preview/i })).toBeNull();
     expect(
       screen.getByRole("button", { name: /create match/i }),
     ).toBeDisabled();

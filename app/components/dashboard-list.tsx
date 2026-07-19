@@ -8,6 +8,7 @@ import type { MatchSummary } from "@/app/lib/api-client";
 import { formatCountdown, formatMapName } from "@/app/lib/format";
 import { Button } from "@/app/components/ui/button";
 import { FactionBadge, type FactionId } from "@/app/components/faction-badge";
+import { MapThumbnail, type MapPreview } from "@/app/components/map-thumbnail";
 import { cn } from "@/app/lib/utils";
 
 /**
@@ -45,10 +46,8 @@ function asFaction(factionId: string | null): FactionId | null {
     : null;
 }
 
-/** The dimensions of each official map, so a row can show its `W×H`. */
-export type MapSizes = Readonly<
-  Record<string, { readonly width: number; readonly height: number }>
->;
+/** The official maps a row may need to draw, keyed by map id. */
+export type MapPreviews = Readonly<Record<string, MapPreview>>;
 
 /** The screen a row links to, or `null` when the status has no M9 destination. */
 function matchHref(match: MatchSummary): string | null {
@@ -114,16 +113,16 @@ function MatchRow({
   match,
   now,
   live,
-  mapSizes,
+  mapPreviews,
 }: {
   match: MatchSummary;
   now: number | null;
   /** True for the caller's own turn — the design's cream, raised card. */
   live: boolean;
-  mapSizes: MapSizes;
+  mapPreviews: MapPreviews;
 }) {
   const href = matchHref(match);
-  const size = mapSizes[match.mapId];
+  const preview = mapPreviews[match.mapId];
   const showCountdown = match.status === "active";
   const countdown =
     now === null ? "—" : formatCountdown(match.turnDeadlineAt, new Date(now));
@@ -132,13 +131,19 @@ function MatchRow({
     <>
       <span
         className={cn(
-          "flex size-12 shrink-0 items-center justify-center rounded-xl border-2",
+          "flex w-12 shrink-0 items-center justify-center overflow-hidden rounded-xl border-2",
           live
             ? "border-[#1c2b45] bg-secondary text-[#1c2b45]"
             : "border-border bg-muted text-muted-foreground",
+          // A map the catalogue no longer has still needs a square tile.
+          preview === undefined && "size-12",
         )}
       >
-        <MapIcon className="size-5" aria-hidden="true" />
+        {preview === undefined ? (
+          <MapIcon className="size-5" aria-hidden="true" />
+        ) : (
+          <MapThumbnail map={preview} className="w-full" />
+        )}
       </span>
 
       <span className="flex min-w-0 flex-1 flex-col gap-1">
@@ -150,7 +155,7 @@ function MatchRow({
             className={cn(
               "shrink-0 rounded-full border-2 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide",
               live
-                ? "border-[#1c2b45] bg-[var(--faction-yellow)] text-[#1c2b45]"
+                ? "border-[#1c2b45] bg-faction-yellow text-[#1c2b45]"
                 : "border-border bg-muted text-muted-foreground",
             )}
           >
@@ -160,9 +165,9 @@ function MatchRow({
         <span className="flex flex-wrap items-center gap-x-3.5 gap-y-1 text-xs font-semibold text-muted-foreground">
           <OpponentTag match={match} />
           {match.day > 0 && <span className="font-mono">Day {match.day}</span>}
-          {size !== undefined && (
+          {preview !== undefined && (
             <span className="font-mono">
-              {size.width}×{size.height}
+              {preview.width}×{preview.height}
             </span>
           )}
         </span>
@@ -176,7 +181,7 @@ function MatchRow({
           <span
             className={cn(
               "block font-mono text-sm font-bold",
-              live ? "text-[var(--gold)]" : "text-muted-foreground",
+              live ? "text-gold" : "text-muted-foreground",
             )}
           >
             {countdown}
@@ -219,13 +224,13 @@ function MatchRow({
 export function DashboardList({
   matches,
   nowMs,
-  mapSizes = {},
+  mapPreviews = {},
 }: {
   matches: readonly MatchSummary[];
   /** A fixed clock for tests; omitted in production so the client ticks live. */
   nowMs?: number;
-  /** Official map dimensions, keyed by map id, from the server's game data. */
-  mapSizes?: MapSizes;
+  /** The official maps, keyed by id, from the server's game data. */
+  mapPreviews?: MapPreviews;
 }) {
   const [now, setNow] = useState<number | null>(nowMs ?? null);
   useEffect(() => {
@@ -292,7 +297,7 @@ export function DashboardList({
                 match={match}
                 now={now}
                 live={live}
-                mapSizes={mapSizes}
+                mapPreviews={mapPreviews}
               />
             ))}
           </section>

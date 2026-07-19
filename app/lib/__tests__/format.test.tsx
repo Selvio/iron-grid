@@ -28,7 +28,7 @@ describe("formatHp", () => {
 
 describe("formatMapName", () => {
   it("title-cases a slug id without inventing a name", () => {
-    expect(formatMapName("crossfire-basin")).toBe("Crossfire Basin");
+    expect(formatMapName("spann-island")).toBe("Spann Island");
     expect(formatMapName("ridge_line")).toBe("Ridge Line");
     expect(formatMapName("delta")).toBe("Delta");
   });

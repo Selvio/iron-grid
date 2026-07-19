@@ -332,7 +332,38 @@ exports only `POST` — so the dashboard has nothing to list against (see M9-T4)
   stays color **+ insignia** (§27.4); `db:generate` produces no schema change.
 - **Dependencies:** M9-T4.
 
-**Ordering:** M9-T1 → M9-T2 → M9-T3 → (M9-T4 ∥ M9-T5 ∥ M9-T6 ∥ M9-T7) → M9-T8 → M9-T9.
+## M9-T10 · Map thumbnails (follow-up)
+- **Goal:** you can see the map you are choosing. The create form named a map
+  (`spann-island · 15×10`) but showed nothing of it, and M9-T9's dashboard row used a
+  placeholder icon where the design shows a map tile (`design-reference.md` §5
+  `create-match`, `match-dashboard`).
+- **Scope:**
+  - **`terrainSwatch`** (`app/lib/render/terrain-swatch.ts`) — one flat color per
+    `terrain.yaml` id, with a neutral fallback for ids the palette predates. This is
+    **not** the board renderer: the battlefield draws the approved art pack through
+    the atlas (ADR-0005); a thumbnail needs a color per cell so it reads small, in
+    the DOM, with no asset load. `terrain.yaml` has no color field (it is rules data),
+    so the palette lives in the client.
+  - **`MapThumbnail`** (`app/components/map-thumbnail.tsx`) — `logical_terrain` as a
+    CSS grid, one `<span>` per cell, aspect-ratio-correct. A single `role="img"`
+    labelled with the map name + size, so hundreds of cells never reach assistive
+    tech as noise. Ownership is **not** drawn — `logical_terrain` carries none and a
+    thumbnail must not imply a side.
+  - **Create form:** the preview follows the `mapId` select. **Dashboard:** the row
+    tile is the thumbnail, falling back to the icon for a map the catalogue no longer
+    has.
+  - `MapOption` / the dashboard's `MapPreviews` gain `width` / `height` / `terrain`,
+    carried as RSC props from `getGameData()` — the client cannot `loadGameData`.
+- **Files:** `app/lib/render/terrain-swatch.ts`, `app/components/map-thumbnail.tsx`,
+  `app/components/create-match-form.tsx`, `app/components/dashboard-list.tsx`,
+  `app/(app)/matches/new/page.tsx`, `app/(app)/dashboard/page.tsx`, tests (RTL).
+- **Acceptance:** the create form previews the default map and repaints on selection;
+  the dashboard row draws its map; the thumbnail exposes exactly one labelled `img`
+  with one cell per tile in row-major order; an unknown terrain id still draws.
+- **Dependencies:** M9-T5, M9-T9.
+
+**Ordering:** M9-T1 → M9-T2 → M9-T3 → (M9-T4 ∥ M9-T5 ∥ M9-T6 ∥ M9-T7) → M9-T8 →
+M9-T9 → M9-T10.
 
 ---
 
