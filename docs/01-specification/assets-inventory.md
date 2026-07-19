@@ -187,7 +187,6 @@ afconvert -f m4af -d aac -b 96000 <in>.wav public/game-assets/audio/<id>.m4a
 |---|---|---|
 | Select foot unit | `song069.wav` | `select_foot` |
 | Select wheeled unit | `ReconSelect.wav` | `select_wheels` |
-| Select artillery | `SoldierLaughe.wav` | `select_artillery` |
 | Select tracked unit | `ShermanE8.wav` | `select_treads` |
 | Select air unit | `song021.wav` | `select_air` |
 | Select naval unit | `song056.wav` | `select_naval` |
@@ -204,7 +203,14 @@ afconvert -f m4af -d aac -b 96000 <in>.wav public/game-assets/audio/<id>.m4a
 | Menu confirmation | `song124.wav` | `ui_confirm` |
 | Match music (loop) | `main.wav` | `music_main` |
 
-Deliberately **not** imported: `123.wav`, `car-engine.mp3` and `gunfire.mp3`
+Selection follows the chassis (`units.yaml movement.type`) and attacking follows
+the armament, which is the split the source project used — so the rocket
+launcher, on tyres, answers like the recon while still firing a cannon.
+
+Deliberately **not** imported: `SoldierLaughe.wav`, the source project's
+artillery selection — a cackling soldier reads as a bug on a vehicle, and our
+artillery is tracked, so it sounds like one; `123.wav`, `car-engine.mp3` and
+`gunfire.mp3`
 (unused by the source project too); `screaming.wav`, which it played for the
 death of *every* unit — a human scream for a destroyed tank does not fit, so the
 explosion it defined but never fired is used instead; and `song022`/`song057`,

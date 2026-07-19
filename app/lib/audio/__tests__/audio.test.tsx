@@ -68,17 +68,15 @@ describe("playSfx", () => {
 });
 
 describe("soundsFor", () => {
-  it("gives each family the clip the source project chose for it", () => {
+  it("picks the select clip off the chassis and the attack clip off the weapon", () => {
     expect(soundsFor("infantry")).toEqual({
       select: "select_foot",
       attack: "attack_rifle",
     });
-    expect(soundsFor("mech").attack).toBe("attack_bazooka");
-    expect(soundsFor("recon")).toEqual({
-      select: "select_wheels",
-      attack: "attack_recon",
+    expect(soundsFor("mech")).toEqual({
+      select: "select_foot",
+      attack: "attack_bazooka",
     });
-    expect(soundsFor("artillery").attack).toBe("attack_cannon");
     expect(soundsFor("tank")).toEqual({
       select: "select_treads",
       attack: "attack_tank",
@@ -87,13 +85,20 @@ describe("soundsFor", () => {
     expect(soundsFor("battleship").select).toBe("select_naval");
   });
 
-  it("extends a family's clip to the units the original never voiced", () => {
-    // The source project only sounded ten units; ours share by family rather
-    // than falling back to one beep for two thirds of the roster.
-    expect(soundsFor("neotank")).toEqual(soundsFor("tank"));
-    expect(soundsFor("rockets")).toEqual(soundsFor("artillery"));
-    expect(soundsFor("bomber")).toEqual(soundsFor("fighter"));
-    expect(soundsFor("submarine_submerged")).toEqual(soundsFor("battleship"));
+  it("follows units.yaml's movement type, not the weapon, when selecting", () => {
+    // Rockets and missiles ride on tyres, so they answer like the recon rather
+    // than like the artillery they shoot as.
+    expect(soundsFor("rockets").select).toBe(soundsFor("recon").select);
+    expect(soundsFor("missiles").select).toBe("select_wheels");
+    expect(soundsFor("rockets").attack).toBe("attack_cannon");
+    // The artillery is tracked, so it sounds like a tank pulling away.
+    expect(soundsFor("artillery").select).toBe("select_treads");
+    expect(soundsFor("artillery").attack).toBe("attack_cannon");
+    // The APC is tracked too, and carries no gun.
+    expect(soundsFor("apc")).toEqual({
+      select: "select_treads",
+      attack: "attack_default",
+    });
   });
 
   it("falls back for a unit it has never heard of", () => {

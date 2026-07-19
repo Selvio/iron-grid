@@ -22,7 +22,6 @@ import { isMuted } from "./settings";
 export const SFX = {
   select_foot: "select_foot",
   select_wheels: "select_wheels",
-  select_artillery: "select_artillery",
   select_treads: "select_treads",
   select_air: "select_air",
   select_naval: "select_naval",

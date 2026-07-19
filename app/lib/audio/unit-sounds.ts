@@ -5,10 +5,16 @@ import type { SfxId } from "./sfx";
  *
  * Transcribed from the source project's renderers (`view/render/units/**`),
  * where each unit carries its own `selected` and `attack` clip. It only voiced
- * ten units; the rest fell back to a default pair. Rather than leave two thirds
- * of our roster on the same beep, the mapping is by **family** — foot, wheels,
- * artillery, treads, air, naval — which is how the clips were chosen in the
- * first place (a Sherman for the tank, a rifle for the infantry).
+ * ten of them, so the rest are grouped — but along the two axes the original
+ * itself used, which are not the same axis:
+ *
+ * - **Selecting** is the vehicle answering, so it follows the chassis: a Sherman
+ *   engine for tracks, tyres for wheels, rotors for air. That is
+ *   `units.yaml movement.type`, not a hand-drawn guess — which is how the rocket
+ *   launcher (tyres) ended up laughing like a soldier when it was filed under
+ *   "artillery".
+ * - **Attacking** is the weapon firing, so it follows armament: a cannon for
+ *   artillery and rockets, a rifle for infantry, a bazooka for the mech.
  *
  * Keyed by sprite key, which equals the unit id (ADR-0005), so the same function
  * serves the React controller and the Phaser scene.
@@ -21,46 +27,65 @@ export interface UnitSounds {
   readonly attack: SfxId;
 }
 
-const FAMILIES: Readonly<Record<string, UnitSounds>> = {
-  foot: { select: "select_foot", attack: "attack_rifle" },
-  mech: { select: "select_foot", attack: "attack_bazooka" },
-  wheels: { select: "select_wheels", attack: "attack_recon" },
-  artillery: { select: "select_artillery", attack: "attack_cannon" },
-  treads: { select: "select_treads", attack: "attack_tank" },
-  air: { select: "select_air", attack: "attack_air" },
-  naval: { select: "select_naval", attack: "attack_naval" },
+/** Chassis → the sound of it moving off, mirroring `units.yaml movement.type`. */
+const SELECT_BY_CHASSIS: Readonly<Record<string, SfxId>> = {
+  foot: "select_foot",
+  mech: "select_foot",
+  tires: "select_wheels",
+  treads: "select_treads",
+  air: "select_air",
+  ship: "select_naval",
+  transport_ship: "select_naval",
 };
 
-/** Unit id → family. Anything unlisted falls back to the default pair. */
-const UNIT_FAMILY: Readonly<Record<string, keyof typeof FAMILIES>> = {
+const UNIT_CHASSIS: Readonly<Record<string, keyof typeof SELECT_BY_CHASSIS>> = {
   infantry: "foot",
   mech: "mech",
-  recon: "wheels",
-  apc: "wheels",
-  artillery: "artillery",
-  rockets: "artillery",
-  missiles: "artillery",
+  recon: "tires",
+  missiles: "tires",
+  rockets: "tires",
+  apc: "treads",
+  artillery: "treads",
   tank: "treads",
+  anti_air: "treads",
   medium_tank: "treads",
   neotank: "treads",
-  anti_air: "treads",
-  fighter: "air",
-  bomber: "air",
   battle_copter: "air",
   transport_copter: "air",
-  battleship: "naval",
-  cruiser: "naval",
-  lander: "naval",
-  submarine: "naval",
-  submarine_submerged: "naval",
+  fighter: "air",
+  bomber: "air",
+  lander: "transport_ship",
+  cruiser: "ship",
+  submarine: "ship",
+  submarine_submerged: "ship",
+  battleship: "ship",
 };
 
-const DEFAULT: UnitSounds = {
-  select: "select_foot",
-  attack: "attack_default",
+/** Armament → the sound of it firing. Unlisted units use the generic report. */
+const ATTACK_BY_UNIT: Readonly<Record<string, SfxId>> = {
+  infantry: "attack_rifle",
+  mech: "attack_bazooka",
+  recon: "attack_recon",
+  artillery: "attack_cannon",
+  rockets: "attack_cannon",
+  missiles: "attack_cannon",
+  tank: "attack_tank",
+  medium_tank: "attack_tank",
+  neotank: "attack_tank",
+  anti_air: "attack_tank",
+  fighter: "attack_air",
+  bomber: "attack_air",
+  battle_copter: "attack_air",
+  battleship: "attack_naval",
+  cruiser: "attack_naval",
+  submarine: "attack_naval",
+  submarine_submerged: "attack_naval",
 };
 
 export function soundsFor(spriteKey: string): UnitSounds {
-  const family = UNIT_FAMILY[spriteKey];
-  return family === undefined ? DEFAULT : FAMILIES[family]!;
+  const chassis = UNIT_CHASSIS[spriteKey];
+  return {
+    select: chassis === undefined ? "select_foot" : SELECT_BY_CHASSIS[chassis]!,
+    attack: ATTACK_BY_UNIT[spriteKey] ?? "attack_default",
+  };
 }
