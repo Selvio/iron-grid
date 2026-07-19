@@ -1,11 +1,12 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
 
-import { DashboardList } from "@/app/components/dashboard-list";
+import { DashboardList, type MapSizes } from "@/app/components/dashboard-list";
 import { Button } from "@/app/components/ui/button";
 import { requireSessionUser } from "@/app/lib/session";
 import { createDatabase, type Database } from "@/app/server/db";
 import { listMatchesForUser } from "@/app/server/db/queries/matches";
+import { getGameData } from "@/app/server/load-game-data";
 
 /**
  * Dashboard — the signed-in landing (M9-T4).
@@ -26,22 +27,60 @@ function database(): Database {
   return cachedDatabase;
 }
 
+/**
+ * The design's header subtitle — a plain count of what is going on (§5).
+ */
+function summarize(matches: readonly { status: string }[]): string {
+  const active = matches.filter((m) => m.status === "active").length;
+  const starting = matches.filter((m) =>
+    [
+      "draft",
+      "waiting_for_opponent",
+      "commander_selection",
+      "ready_check",
+    ].includes(m.status),
+  ).length;
+  const plural = (n: number, noun: string) => `${n} ${noun}`;
+  return [
+    plural(active, "active"),
+    `${starting} waiting to start`,
+    "asynchronous 1v1",
+  ].join(" · ");
+}
+
 export default async function DashboardPage() {
   const user = await requireSessionUser();
   const matches = await listMatchesForUser(database(), user.id);
 
+  // The official map catalogue supplies each row's `W×H` readout.
+  const mapSizes: MapSizes = Object.fromEntries(
+    Object.values(getGameData().maps).map((map) => [
+      map.id,
+      { width: map.dimensions.width, height: map.dimensions.height },
+    ]),
+  );
+
   return (
-    <section className="flex flex-col gap-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Your matches</h1>
+    <section className="flex flex-col gap-7">
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">
+            Your matches
+          </h1>
+          {matches.length > 0 && (
+            <p className="mt-1.5 text-sm font-semibold text-muted-foreground">
+              {summarize(matches)}
+            </p>
+          )}
+        </div>
         <Button asChild>
           <Link href="/matches/new">
             <Plus className="size-4" aria-hidden="true" />
-            Create match
+            New match
           </Link>
         </Button>
       </div>
-      <DashboardList matches={matches} />
+      <DashboardList matches={matches} mapSizes={mapSizes} />
     </section>
   );
 }

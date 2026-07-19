@@ -302,7 +302,37 @@ exports only `POST` — so the dashboard has nothing to list against (see M9-T4)
   interaction + error-path coverage; no test hits a real network or renders a board.
 - **Dependencies:** M9-T4, M9-T5, M9-T6, M9-T7.
 
-**Ordering:** M9-T1 → M9-T2 → M9-T3 → (M9-T4 ∥ M9-T5 ∥ M9-T6 ∥ M9-T7) → M9-T8.
+## M9-T9 · Dashboard rows aligned to the design (follow-up)
+- **Goal:** the dashboard row renders the anatomy the mockup shows
+  (`design-reference.md` §5 `match-dashboard`, `Iron Grid.dc.html` → `MATCH DASHBOARD`).
+  M9-T4 shipped the grouping and countdowns but a row read only its status label and a
+  clock — no map, no opponent, no day. This closes that gap.
+- **Scope:**
+  - **Backend:** `listMatchesForUser` also selects `mapId` and the `day_counter`
+    mirror column, and left-joins the **other seat** (`match_players` aliased, +
+    `users`) for the opponent's `name` and `factionId`. Read-only, **no migration**,
+    still anchored to the caller's membership row. The opponent's **email is not
+    selected** — identity on the dashboard is name + insignia only.
+  - **UI:** the row shows a map tile, the map name, a state pill (`YOUR TURN` in
+    faction-yellow when it is the caller's move, else the status label), the
+    `vs <insignia> opponent · Day N · W×H` meta line, a `DEADLINE` /
+    `THEIR DEADLINE` readout, and a chevron; the **whole row** is the link. Rows that
+    are not the caller's move render muted, per the design's two-tier treatment. The
+    header gains the design's count subtitle; the CTA reads **"New match"**.
+  - Map dimensions reach the client as an RSC prop from `getGameData().maps` (the
+    `MapOption` pattern of M9-T5); `formatMapName` title-cases the map **id** —
+    `maps.yaml` has no display-name field and the UI must not invent one.
+- **Files:** `app/server/db/queries/matches.ts`, `app/lib/api-client.ts`,
+  `app/lib/format.ts`, `app/(app)/dashboard/page.tsx`,
+  `app/components/dashboard-list.tsx`, and their tests (PGlite + RTL).
+- **Acceptance:** the list endpoint returns `mapId` / `day` / `opponent` and **never**
+  the opponent's email, with `opponent: null` while the second seat is unfilled; the
+  row renders map name, size, day (hidden pre-activation), opponent name + insignia,
+  and marks only the caller's own turn with the `YOUR TURN` pill; faction identity
+  stays color **+ insignia** (§27.4); `db:generate` produces no schema change.
+- **Dependencies:** M9-T4.
+
+**Ordering:** M9-T1 → M9-T2 → M9-T3 → (M9-T4 ∥ M9-T5 ∥ M9-T6 ∥ M9-T7) → M9-T8 → M9-T9.
 
 ---
 
@@ -316,7 +346,9 @@ M9 is complete when, from a clean checkout:
 2. A player can **sign in** (magic-link), and unauthenticated access to a gated route
    redirects to sign-in; `signOut` clears the session (`frontend.md` §2).
 3. The **dashboard** lists the caller's matches (membership-scoped `GET /api/matches`)
-   grouped "your turn" / "waiting" with **deadline countdowns** and an empty-state CTA.
+   grouped "your turn" / "waiting" with **deadline countdowns** and an empty-state CTA,
+   each row carrying the designed anatomy — map, opponent + insignia, day, deadline
+   (M9-T9).
 4. **Create** posts the exact create body with **fog forced off**, and surfaces the
    returned invitation code; **join** advances to commander selection; **commander
    select** shows **placeholder** labels (no invented names, §33.1) and reflects

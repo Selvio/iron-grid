@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 
+import { eq } from "drizzle-orm";
 import type { Session } from "next-auth";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
@@ -59,12 +60,18 @@ describe("list matches endpoint", () => {
     await handle.close();
   });
 
-  async function join(matchId: string, uid: string, role: "host" | "guest") {
+  async function join(
+    matchId: string,
+    uid: string,
+    role: "host" | "guest",
+    overrides: Partial<typeof matchPlayers.$inferInsert> = {},
+  ) {
     await handle.db.insert(matchPlayers).values({
       id: randomUUID(),
       matchId,
       userId: uid,
       role,
+      ...overrides,
     });
   }
 
@@ -164,6 +171,59 @@ describe("list matches endpoint", () => {
     }>;
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ matchId: match, role: "guest" });
+  });
+
+  it("carries the map, day counter and the opponent's name + faction", async () => {
+    const match = await insertMatch(handle, {
+      status: "active",
+      dayCounter: 7,
+    });
+    await handle.db
+      .update(users)
+      .set({ name: "Ada" })
+      .where(eq(users.id, otherId));
+    await join(match, userId, "host", { factionId: "blue" });
+    await join(match, otherId, "guest", { factionId: "red" });
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    const rows = (await response.json()) as Array<{
+      mapId: string;
+      day: number;
+      opponent: { name: string | null; factionId: string | null } | null;
+    }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].mapId).toBe(TEST_MAP_ID);
+    expect(rows[0].day).toBe(7);
+    // The opponent's own seat, never the caller's own faction.
+    expect(rows[0].opponent).toEqual({ name: "Ada", factionId: "red" });
+  });
+
+  it("never exposes the opponent's email", async () => {
+    const match = await insertMatch(handle);
+    await join(match, userId, "host");
+    await join(match, otherId, "guest");
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    expect(await response.text()).not.toContain("other@example.edu");
+  });
+
+  it("reports a null opponent while the second seat is unfilled", async () => {
+    const match = await insertMatch(handle);
+    await join(match, userId, "host");
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    const rows = (await response.json()) as Array<{ opponent: unknown }>;
+    expect(rows).toHaveLength(1);
+    expect(rows[0].opponent).toBeNull();
   });
 
   it("rejects an unauthenticated caller with 401", async () => {

@@ -14,15 +14,20 @@ function summary(overrides: Partial<MatchSummary>): MatchSummary {
     viewerPlayerId: "me",
     activePlayerId: "me",
     turnDeadlineAt: null,
+    mapId: "crossfire-basin",
+    day: 0,
+    opponent: null,
     ...overrides,
   };
 }
+
+const MAP_SIZES = { "crossfire-basin": { width: 20, height: 16 } };
 
 describe("DashboardList", () => {
   it("shows the empty state with a create CTA when there are no matches", () => {
     render(<DashboardList matches={[]} nowMs={NOW} />);
     expect(screen.getByText(/no matches yet/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /create match/i })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /new match/i })).toHaveAttribute(
       "href",
       "/matches/new",
     );
@@ -40,10 +45,18 @@ describe("DashboardList", () => {
         ]}
       />,
     );
-    expect(screen.getByText("Your turn")).toBeInTheDocument();
-    expect(screen.getByText("Waiting on opponent")).toBeInTheDocument();
-    expect(screen.getByText("Setting up")).toBeInTheDocument();
-    expect(screen.getByText("Finished")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /your turn — act now/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /waiting on opponent/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /setting up/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: /finished/i }),
+    ).toBeInTheDocument();
   });
 
   it("renders a deadline countdown for an active turn", () => {
@@ -59,8 +72,95 @@ describe("DashboardList", () => {
         ]}
       />,
     );
-    const section = screen.getByText("Your turn").closest("section")!;
+    const section = screen
+      .getByRole("heading", { name: /your turn — act now/i })
+      .closest("section")!;
+    expect(within(section).getByText("Deadline")).toBeInTheDocument();
     expect(within(section).getByText("2d 2h")).toBeInTheDocument();
+  });
+
+  it("labels the opponent's countdown as theirs", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[
+          summary({
+            activePlayerId: "them",
+            turnDeadlineAt: "2026-07-18T14:00:00.000Z",
+          }),
+        ]}
+      />,
+    );
+    expect(screen.getByText("Their deadline")).toBeInTheDocument();
+  });
+
+  it("titles a row with the map name, its size and the day counter", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ day: 7 })]}
+        mapSizes={MAP_SIZES}
+      />,
+    );
+    expect(screen.getByText("Crossfire Basin")).toBeInTheDocument();
+    expect(screen.getByText("Day 7")).toBeInTheDocument();
+    expect(screen.getByText("20×16")).toBeInTheDocument();
+  });
+
+  it("omits the day counter before the match starts", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ status: "commander_selection", day: 0 })]}
+      />,
+    );
+    expect(screen.queryByText(/^Day /)).not.toBeInTheDocument();
+  });
+
+  it("shows the opponent by name with a non-color-only faction insignia", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ opponent: { name: "Ada", factionId: "red" } })]}
+      />,
+    );
+    expect(screen.getByText("Ada")).toBeInTheDocument();
+    // The insignia carries a text label for screen readers (§27.4).
+    expect(screen.getByText("Red")).toBeInTheDocument();
+  });
+
+  it("falls back to a neutral opponent label when they have no name", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ opponent: { name: null, factionId: null } })]}
+      />,
+    );
+    expect(screen.getByText("Opponent")).toBeInTheDocument();
+  });
+
+  it("says so when the second seat is still empty", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ status: "waiting_for_opponent", opponent: null })]}
+      />,
+    );
+    expect(screen.getByText("No opponent yet")).toBeInTheDocument();
+  });
+
+  it("marks only the caller's own turn with the 'Your turn' pill", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[
+          summary({ matchId: "a", activePlayerId: "me" }),
+          summary({ matchId: "b", activePlayerId: "them" }),
+        ]}
+      />,
+    );
+    expect(screen.getAllByText("Your turn")).toHaveLength(1);
+    expect(screen.getByText("In play")).toBeInTheDocument();
   });
 
   it("links a commander-selection match to its screen", () => {

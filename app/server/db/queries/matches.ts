@@ -1,9 +1,19 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, ne } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { MatchState } from "game-engine";
 
 import { matchPlayers } from "../schema/match-players";
 import { matches } from "../schema/matches";
+import { users } from "../schema/users";
+
+/** The other seat in a match, as far as the dashboard is allowed to see it. */
+export interface MatchOpponentRow {
+  /** The opponent's display name, or `null` when they never set one. */
+  readonly name: string | null;
+  /** `blue` | `green` | `red` | `yellow`, or `null` before commander selection. */
+  readonly factionId: string | null;
+}
 
 /** One row of a player's match list (`GET /api/matches`, M9-T4). */
 export interface MatchSummaryRow {
@@ -13,6 +23,12 @@ export interface MatchSummaryRow {
   readonly viewerPlayerId: string;
   readonly activePlayerId: string | null;
   readonly turnDeadlineAt: string | null;
+  /** The map the match is played on — the dashboard's row identity (M9-T9). */
+  readonly mapId: string;
+  /** The `day_counter` mirror column; `0` until the match activates. */
+  readonly day: number;
+  /** `null` while the second seat is unfilled (a `waiting_for_opponent` match). */
+  readonly opponent: MatchOpponentRow | null;
 }
 
 /**
@@ -23,12 +39,22 @@ export interface MatchSummaryRow {
  * dashboard fields from the indexed mirror columns (no `state` jsonb read); the
  * `viewerPlayerId` lets the client mark "your turn" without a projection.
  *
- * @see docs/04-development/milestones/m9-app-shell.md (M9-T4)
+ * M9-T9 adds the fields the designed row shows — `mapId`, `day`, and the other
+ * seat's display name + faction — via a left join on the opponent seat. The
+ * opponent's **email is deliberately not selected**: the dashboard identifies
+ * them by name and insignia only, and the join is still anchored to the caller's
+ * membership row, so it can only ever surface the opponent of a match the caller
+ * is in.
+ *
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T4, M9-T9)
  */
 export async function listMatchesForUser<
   TQuery extends PgQueryResultHKT,
   TSchema extends Record<string, unknown>,
 >(db: PgDatabase<TQuery, TSchema>, userId: string): Promise<MatchSummaryRow[]> {
+  const opponentSeat = alias(matchPlayers, "opponent_seat");
+  const opponentUser = alias(users, "opponent_user");
+
   const rows = await db
     .select({
       matchId: matches.id,
@@ -37,9 +63,22 @@ export async function listMatchesForUser<
       viewerPlayerId: matchPlayers.id,
       activePlayerId: matches.activePlayerId,
       turnDeadlineAt: matches.turnDeadlineAt,
+      mapId: matches.mapId,
+      day: matches.dayCounter,
+      opponentSeatId: opponentSeat.id,
+      opponentName: opponentUser.name,
+      opponentFactionId: opponentSeat.factionId,
     })
     .from(matchPlayers)
     .innerJoin(matches, eq(matchPlayers.matchId, matches.id))
+    .leftJoin(
+      opponentSeat,
+      and(
+        eq(opponentSeat.matchId, matches.id),
+        ne(opponentSeat.id, matchPlayers.id),
+      ),
+    )
+    .leftJoin(opponentUser, eq(opponentUser.id, opponentSeat.userId))
     .where(eq(matchPlayers.userId, userId))
     .orderBy(desc(matches.createdAt));
 
@@ -51,6 +90,12 @@ export async function listMatchesForUser<
     activePlayerId: row.activePlayerId,
     turnDeadlineAt:
       row.turnDeadlineAt === null ? null : row.turnDeadlineAt.toISOString(),
+    mapId: row.mapId,
+    day: row.day,
+    opponent:
+      row.opponentSeatId === null
+        ? null
+        : { name: row.opponentName, factionId: row.opponentFactionId },
   }));
 }
 

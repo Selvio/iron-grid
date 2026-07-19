@@ -38,6 +38,14 @@ export interface PlayerEvent {
 export type MatchStatus = MatchView["status"];
 
 /** A row of the dashboard list (`GET /api/matches`, added in M9-T4). */
+/** The other seat, as the dashboard is allowed to see it (M9-T9). */
+export interface MatchOpponent {
+  /** Their display name, or `null` when they never set one. */
+  readonly name: string | null;
+  /** A faction id, or `null` before they pick a commander. */
+  readonly factionId: string | null;
+}
+
 export interface MatchSummary {
   readonly matchId: string;
   readonly status: MatchStatus;
@@ -46,6 +54,12 @@ export interface MatchSummary {
   readonly viewerPlayerId: string;
   readonly activePlayerId: string | null;
   readonly turnDeadlineAt: string | null;
+  /** The map played on — the dashboard row's identity (M9-T9). */
+  readonly mapId: string;
+  /** The day counter; `0` until the match activates. */
+  readonly day: number;
+  /** `null` while the second seat is still unfilled. */
+  readonly opponent: MatchOpponent | null;
 }
 
 export interface CreateMatchResult {

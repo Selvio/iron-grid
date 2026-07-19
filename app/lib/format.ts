@@ -19,6 +19,21 @@ export function formatHp(hp: number): string {
 }
 
 /**
+ * A map id as a human-readable name (M9-T9).
+ *
+ * `maps.yaml` carries no display-name field — the id *is* the name — so the
+ * dashboard title-cases the slug (`crossfire-basin` → `Crossfire Basin`) rather
+ * than inventing one. When a display name lands in the schema, this goes away.
+ */
+export function formatMapName(mapId: string): string {
+  return mapId
+    .split(/[-_]/)
+    .filter((part) => part.length > 0)
+    .map((part) => part[0].toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
+/**
  * A turn deadline as a compact countdown from `now`. `null` (a `"none"`
  * deadline) reads "No deadline"; a passed deadline reads "Overdue".
  */

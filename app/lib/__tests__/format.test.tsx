@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { formatCountdown, formatFunds, formatHp } from "../format";
+import {
+  formatCountdown,
+  formatFunds,
+  formatHp,
+  formatMapName,
+} from "../format";
 
 const NOW = new Date("2026-07-16T12:00:00.000Z");
 
@@ -18,6 +23,19 @@ describe("formatHp", () => {
     expect(formatHp(-3)).toBe("0");
     expect(formatHp(14)).toBe("10");
     expect(formatHp(7.6)).toBe("8");
+  });
+});
+
+describe("formatMapName", () => {
+  it("title-cases a slug id without inventing a name", () => {
+    expect(formatMapName("crossfire-basin")).toBe("Crossfire Basin");
+    expect(formatMapName("ridge_line")).toBe("Ridge Line");
+    expect(formatMapName("delta")).toBe("Delta");
+  });
+
+  it("tolerates stray separators", () => {
+    expect(formatMapName("--twin--peaks-")).toBe("Twin Peaks");
+    expect(formatMapName("")).toBe("");
   });
 });
 
