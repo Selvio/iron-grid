@@ -152,13 +152,17 @@ describe("units obligations", () => {
       "disagree",
     );
   });
-  it("rejects an unapproved sprite row", () => {
+  it("rejects an unapproved sprite key", () => {
     reject(
       () =>
         parseUnits(
-          withValue("units", "units.infantry.rendering.sprite_row", 99),
+          withValue(
+            "units",
+            "units.infantry.rendering.sprite_key",
+            "not_a_unit",
+          ),
         ),
-      "not an approved row",
+      "not an approved key",
     );
   });
   it("enforces the validation.expected self-checks", () => {

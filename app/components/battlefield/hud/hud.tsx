@@ -8,6 +8,7 @@ import type { FactionId } from "@/app/components/faction-badge";
 import type { MatchView } from "@/app/lib/api-client";
 import type { UnitSprite } from "@/app/lib/preview/actions";
 import { formatCountdown } from "@/app/lib/format";
+import { PixelSprite } from "@/app/components/battlefield/pixel-sprite";
 
 /**
  * Battlefield HUD (M10-T4, restyled to the Claude Design mockup).
@@ -308,17 +309,7 @@ export function Hud({
                 className={`grid size-14 shrink-0 place-items-center overflow-hidden rounded-xl border-2 ${NAVY} ${selectedFaction ? FACTION_BG[selectedFaction] : "bg-white"}`}
               >
                 {selectedUnit.sprite ? (
-                  <span
-                    aria-hidden
-                    style={{
-                      width: selectedUnit.sprite.frameSize,
-                      height: selectedUnit.sprite.frameSize,
-                      backgroundImage: `url(${selectedUnit.sprite.sheetUrl})`,
-                      backgroundPosition: `-${selectedUnit.sprite.frameX}px -${selectedUnit.sprite.frameY}px`,
-                      backgroundRepeat: "no-repeat",
-                      imageRendering: "pixelated",
-                    }}
-                  />
+                  <PixelSprite sprite={selectedUnit.sprite} scale={2} />
                 ) : SelectedIcon ? (
                   <SelectedIcon
                     className="size-6 text-white"

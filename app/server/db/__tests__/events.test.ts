@@ -54,14 +54,12 @@ describe("event store", () => {
       { type: "match_started", payload: {} },
     ]);
     await expect(
-      handle.db
-        .insert(events)
-        .values({
-          matchId: "match-1",
-          sequence: 1,
-          type: "turn_started",
-          payload: {},
-        }),
+      handle.db.insert(events).values({
+        matchId: "match-1",
+        sequence: 1,
+        type: "turn_started",
+        payload: {},
+      }),
     ).rejects.toThrow();
   });
 

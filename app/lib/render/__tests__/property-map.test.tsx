@@ -39,8 +39,10 @@ describe("buildPropertyRenderModel", () => {
       ownerFaction: "blue",
       captureProgress: 0,
     });
-    expect(model[0].renderTileId).toBe("terrain_r14_c03");
+    // Ownership is a different sprite, not a tint.
+    expect(model[0].renderTileId).toBe("building_headquarters_blue_0");
     expect(model[1].ownerFaction).toBeNull();
+    expect(model[1].renderTileId).toBe("building_city_neutral_0");
   });
 
   it("reports capture progress as a fraction of the 20 points", () => {

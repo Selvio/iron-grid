@@ -23,6 +23,9 @@ export interface UnitSprite {
   readonly x: number;
   readonly y: number;
   readonly faction: FactionId;
+  /** The unit's atlas sprite family — the scene picks clips off it. */
+  readonly spriteKey: string;
+  /** The resting idle frame, ready to draw. */
   readonly frame: FrameRect;
   /** Air units are elevated and draw a ground shadow. */
   readonly shadow: boolean;
@@ -69,10 +72,10 @@ export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
     if (faction === undefined) continue;
 
     const submerged = unit.specialState === "submerged";
-    const spriteRow =
-      submerged && meta.submergedRow !== null
-        ? meta.submergedRow
-        : meta.spriteRow;
+    const spriteKey =
+      submerged && meta.submergedSpriteKey !== null
+        ? meta.submergedSpriteKey
+        : meta.spriteKey;
 
     // Face the opponent's HQ (left/right only): the idle art points right, so
     // flip when the enemy base sits to the left of this unit's own base.
@@ -92,7 +95,8 @@ export function buildUnitRenderModel(view: MatchView): UnitSprite[] {
       x: unit.position.x,
       y: unit.position.y,
       faction,
-      frame: unitFrame(spriteRow, "idle", 0),
+      spriteKey,
+      frame: unitFrame(spriteKey, "idle", 0),
       shadow: meta.isAir,
       greyed: unit.ownerPlayerId === view.viewerPlayerId && unit.hasActed,
       submerged,

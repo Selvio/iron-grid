@@ -2,15 +2,13 @@ import type { Coordinate } from "game-engine";
 import Phaser from "phaser";
 
 import {
-  ANIMATION_COLUMNS,
-  FACTION_SHEETS,
   TERRAIN_TILE_PX,
-  UNIT_ROW_HEIGHT_PX,
-  UNIT_SHEET_HEADER_PX,
-  terrainTileFrame,
+  frameCount,
   unitFrame,
+  type FrameRect,
   type UnitAnimation,
 } from "@/app/lib/render/derive-render-data";
+import { ATLAS, assetUrl, keysWithPrefix } from "@/app/lib/render/atlas";
 import type { FactionId } from "@/app/components/faction-badge";
 import type { AnimationStep } from "@/app/lib/render/animation-plan";
 import type { PropertySprite } from "@/app/lib/render/property-map";
@@ -18,27 +16,13 @@ import type { TerrainCell } from "@/app/lib/render/terrain-map";
 import type { UnitSprite } from "@/app/lib/render/unit-map";
 import { stepDirection, walkFrameSpec } from "@/app/lib/render/walk-frames";
 
-/** Faction tint colors for the programmatic property ownership overlay (§33.4). */
-const FACTION_TINT: Record<FactionId, number> = {
+/** Faction colors for the capture-progress bar. */
+const FACTION_COLOR: Record<FactionId, number> = {
   blue: 0x4c8dff,
   green: 0x4fb85f,
   red: 0xf2565b,
   yellow: 0xf2b23c,
 };
-
-/**
- * Soften a faction color slightly toward white so HARD_LIGHT ownership washes
- * stay close to `--faction-*` without reading neon.
- */
-function ownershipTint(faction: FactionId): number {
-  const hex = FACTION_TINT[faction];
-  const amount = 0.18;
-  const mix = (c: number) => Math.round(c + (255 - c) * amount);
-  const r = mix((hex >> 16) & 0xff);
-  const g = mix((hex >> 8) & 0xff);
-  const b = mix(hex & 0xff);
-  return (r << 16) | (g << 8) | b;
-}
 
 /**
  * The Phaser bootstrap — a thin imperative shell over the pure render/interaction
@@ -49,18 +33,22 @@ function ownershipTint(faction: FactionId): number {
  * frames (Advance-Wars style) before the caller reconciles. Animation never gates
  * gameplay (§28.2): the authoritative state is already committed when it runs.
  *
- * Not unit-tested — jsdom has no WebGL; the canvas is verified manually. Assets
- * are the bundled `game-assets/` pack (Aleksandr Makarov / @IKnowKingRabbit —
- * attribution in `/credits`, `game-assets/license.txt`).
+ * Every rectangle comes from the generated atlas, and each sheet the atlas
+ * references is loaded as a plain texture with named sub-frames cut on demand —
+ * the pack has no uniform grid to hand Phaser as a spritesheet.
  *
- * @see docs/04-development/milestones/m10-battlefield.md
+ * Not unit-tested — jsdom has no WebGL; the canvas is verified manually. Assets
+ * are placeholder Advance-Wars rips (`game-assets/license.txt`): prototype only.
+ *
+ * @see docs/decisions/0005-advance-wars-asset-pack.md
  */
 
-const ASSET_BASE = "/game-assets";
-const RENDER_SCALE = 2;
+const RENDER_SCALE = 3;
 const WALK_MS_PER_TILE = 120;
 const ART_SCALE_MIN = 1;
-const ART_SCALE_MAX = 4;
+const ART_SCALE_MAX = 6;
+/** How long one explosion frame holds when a unit dies. */
+const EXPLOSION_MS_PER_FRAME = 45;
 
 /** Snap camera zoom so each tile lands on a whole CSS pixel. */
 function clampArtScale(artScale: number): number {
@@ -84,7 +72,7 @@ export interface BattlefieldHandle {
   /** Play a resolved-event plan; resolves when the animation completes. */
   playAnimation(steps: readonly AnimationStep[]): Promise<void>;
   /**
-   * Re-render at a display scale relative to the 24px source tile. Tile CSS size
+   * Re-render at a display scale relative to the 16px source tile. Tile CSS size
    * is always rounded to a whole pixel so seams stay crisp.
    */
   setArtScale(artScale: number): void;
@@ -98,6 +86,11 @@ export interface BattlefieldData {
   readonly mapHeight: number;
 }
 
+/** Texture key for an atlas file, per faction where the file is faction-specific. */
+function textureKey(file: string, faction?: FactionId): string {
+  return file.replace("{faction}", faction ?? "");
+}
+
 class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private model: BattlefieldData;
   private readonly onReady?: (handle: BattlefieldHandle) => void;
@@ -108,7 +101,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private dynamicObjects: Phaser.GameObjects.GameObject[] = [];
   /** Current frame of the shared idle loop (Advance-Wars-style unit breathing). */
   private idleFrame = 0;
-  /** Unit ids playing a one-shot combat clip; the idle loop leaves them alone. */
+  /** Unit ids playing a one-shot clip; the idle loop leaves them alone. */
   private readonly animating = new Set<string>();
 
   constructor(
@@ -123,72 +116,90 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   }
 
   preload(): void {
-    this.load.spritesheet("tileset", `${ASSET_BASE}/tileset/tileset.png`, {
-      frameWidth: TERRAIN_TILE_PX,
-      frameHeight: TERRAIN_TILE_PX,
-    });
-    this.load.image("fog", `${ASSET_BASE}/tileset/fog-of-war.png`);
-    this.load.image("shadow", `${ASSET_BASE}/tileset/small-unit-shadow.png`);
-    for (const [faction, file] of Object.entries(FACTION_SHEETS)) {
-      this.load.image(`units-${faction}`, `${ASSET_BASE}/units/${file}`);
+    const factions: FactionId[] = ["blue", "green", "red", "yellow"];
+    const files = new Set(Object.values(ATLAS).map((entry) => entry.file));
+    for (const file of files) {
+      if (file.includes("{faction}")) {
+        for (const faction of factions) {
+          this.load.image(textureKey(file, faction), assetUrl(file, faction));
+        }
+      } else {
+        this.load.image(textureKey(file), assetUrl(file));
+      }
     }
   }
 
-  private tilesetFrameIndex(renderTileId: string): number {
-    const columns = Math.max(1, Math.floor(240 / TERRAIN_TILE_PX)); // 10-wide tileset
-    const frame = terrainTileFrame(renderTileId);
-    return (frame.y / TERRAIN_TILE_PX) * columns + frame.x / TERRAIN_TILE_PX;
+  /**
+   * Registers (once) a named sub-frame of a sheet and returns the texture +
+   * frame to draw it with. The pack's rectangles are irregular, so frames are
+   * cut lazily by rectangle rather than declared as a uniform grid up front.
+   */
+  private frameOf(
+    atlasKey: string,
+    faction?: FactionId,
+  ): { key: string; frame: string } {
+    const entry = ATLAS[atlasKey as keyof typeof ATLAS];
+    const key = textureKey(entry.file, faction);
+    const name = `${entry.x}_${entry.y}_${entry.w}_${entry.h}`;
+    const texture = this.textures.get(key);
+    if (!texture.has(name)) {
+      texture.add(name, 0, entry.x, entry.y, entry.w, entry.h);
+    }
+    return { key, frame: name };
   }
 
-  /** Draws property buildings with the §33.4 ownership tint + capture bar. */
+  /** Same, for a rectangle already resolved by the render model. */
+  private frameOfRect(
+    file: string,
+    rect: FrameRect,
+    faction?: FactionId,
+  ): { key: string; frame: string } {
+    const key = textureKey(file, faction);
+    const name = `${rect.x}_${rect.y}_${rect.width}_${rect.height}`;
+    const texture = this.textures.get(key);
+    if (!texture.has(name)) {
+      texture.add(name, 0, rect.x, rect.y, rect.width, rect.height);
+    }
+    return { key, frame: name };
+  }
+
+  /** The sheet a unit's frames live on, for the owning faction. */
+  private unitTexture(unit: UnitSprite): string {
+    return ATLAS[`unit_${unit.spriteKey}_idle_0` as keyof typeof ATLAS].file;
+  }
+
+  /**
+   * Draws property buildings in their owner's colors plus the capture bar.
+   * Buildings are taller than a tile (an HQ is nearly two), so they are anchored
+   * to the tile's bottom edge and allowed to overhang upward.
+   */
   private drawProperties(): void {
     for (const property of this.model.properties) {
       const worldX = property.x * TERRAIN_TILE_PX;
-      const worldY = property.y * TERRAIN_TILE_PX;
-      const building = this.add
-        .image(
-          worldX,
-          worldY,
-          "tileset",
-          this.tilesetFrameIndex(property.renderTileId),
-        )
-        .setOrigin(0, 0);
-      // An in-progress capture remains untinted (the building's white artwork).
-      // The faction-colored progress bar communicates who is capturing it.
-      const tintFaction =
-        property.captureProgress > 0 ? null : property.ownerFaction;
-      // Default MULTIPLY crushes dark factory art (base r14_c00). Phaser 4
-      // HARD_LIGHT keeps shading; ownershipTint softens chroma slightly.
-      if (tintFaction !== null) {
-        building
-          .setTint(ownershipTint(tintFaction))
-          .setTintMode(Phaser.TintModes.HARD_LIGHT);
-      }
-      this.dynamicObjects.push(building);
+      const worldY = (property.y + 1) * TERRAIN_TILE_PX;
+      const { key, frame } = this.frameOf(property.renderTileId);
+      this.dynamicObjects.push(
+        this.add.image(worldX, worldY, key, frame).setOrigin(0, 1),
+      );
       if (property.captureProgress > 0) {
         const barColor =
           property.capturingFaction !== null
-            ? FACTION_TINT[property.capturingFaction]
+            ? FACTION_COLOR[property.capturingFaction]
             : 0xffffff;
+        const barY = worldY - 3;
         // Track under the fill so partial progress reads clearly on the tile.
         this.dynamicObjects.push(
           this.add
-            .rectangle(
-              worldX + 2,
-              worldY + TERRAIN_TILE_PX - 5,
-              TERRAIN_TILE_PX - 4,
-              4,
-              0x1a1f2a,
-            )
+            .rectangle(worldX + 1, barY, TERRAIN_TILE_PX - 2, 3, 0x1a1f2a)
             .setOrigin(0, 0),
         );
         this.dynamicObjects.push(
           this.add
             .rectangle(
-              worldX + 2,
-              worldY + TERRAIN_TILE_PX - 5,
-              (TERRAIN_TILE_PX - 4) * property.captureProgress,
-              4,
+              worldX + 1,
+              barY,
+              (TERRAIN_TILE_PX - 2) * property.captureProgress,
+              3,
               barColor,
             )
             .setOrigin(0, 0),
@@ -197,30 +208,18 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     }
   }
 
-  /** Registers a named atlas sub-frame on a faction sheet if it isn't already. */
-  private ensureFrame(key: string, x: number, y: number): string {
-    const name = `f${y}_${x}`;
-    const texture = this.textures.get(key);
-    if (!texture.has(name)) {
-      texture.add(name, 0, x, y, UNIT_ROW_HEIGHT_PX, UNIT_ROW_HEIGHT_PX);
-    }
-    return name;
-  }
-
-  /** Draws unit sprites, bottom-centered over their 24px tile. */
+  /** Draws unit sprites, bottom-centered over their tile. */
   private drawUnits(): void {
     for (const unit of this.model.units) {
-      const key = `units-${unit.faction}`;
-      const frameName = this.ensureFrame(key, unit.frame.x, unit.frame.y);
+      const { key, frame } = this.frameOfRect(
+        this.unitTexture(unit),
+        unit.frame,
+        unit.faction,
+      );
       const worldX = unit.x * TERRAIN_TILE_PX + TERRAIN_TILE_PX / 2;
       const worldY = (unit.y + 1) * TERRAIN_TILE_PX;
-      if (unit.shadow) {
-        this.dynamicObjects.push(
-          this.add.image(worldX, worldY, "shadow").setOrigin(0.5, 1),
-        );
-      }
       const sprite = this.add
-        .image(worldX, worldY, key, frameName)
+        .image(worldX, worldY, key, frame)
         .setOrigin(0.5, 1);
       sprite.setFlipX(unit.faceLeft); // face the enemy base (left/right only)
       if (unit.greyed) sprite.setTint(0x8a94a3);
@@ -246,7 +245,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         String(unit.displayHp),
         {
           fontFamily: "monospace",
-          fontSize: "11px",
+          fontSize: "8px",
           fontStyle: "bold",
           color: "#ffffff",
           stroke: "#0d1117",
@@ -254,7 +253,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         },
       )
       .setOrigin(1, 1)
-      .setResolution(3);
+      .setResolution(4);
     this.dynamicObjects.push(label);
   }
 
@@ -262,17 +261,20 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     // Static terrain — drawn once, never re-synced (fog is off, layout is fixed).
     for (const cell of this.model.terrain) {
       const worldX = cell.x * TERRAIN_TILE_PX;
-      const worldY = cell.y * TERRAIN_TILE_PX;
-      for (const tileId of cell.layers) {
+      const worldY = (cell.y + 1) * TERRAIN_TILE_PX;
+      for (const layer of cell.layers) {
+        const { key, frame } = this.frameOf(layer.key);
+        // Tiles are bottom-anchored: forests and mountains are taller than a
+        // tile and overhang the cell above, as they do in the original.
         this.add
-          .image(worldX, worldY, "tileset", this.tilesetFrameIndex(tileId))
-          .setOrigin(0, 0);
+          .image(worldX + (layer.dx ?? 0), worldY + (layer.dy ?? 0), key, frame)
+          .setOrigin(0, 1);
       }
       if (!cell.visible) {
         this.add
           .rectangle(
             worldX,
-            worldY,
+            worldY - TERRAIN_TILE_PX,
             TERRAIN_TILE_PX,
             TERRAIN_TILE_PX,
             0x0d1117,
@@ -312,20 +314,23 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
 
   /** Advance one shared idle frame across every unit sprite. */
   private tickIdle(): void {
-    this.idleFrame = (this.idleFrame + 1) % ANIMATION_COLUMNS.idle.length;
+    this.idleFrame += 1;
     for (const [unitId, sprite] of this.unitSprites) {
       const model = this.unitModels.get(unitId);
       if (model === undefined) continue;
       // Every unit breathes (acted/greyed and dived included); a walking or
-      // combat-clip sprite is left alone, since that animation owns its texture.
+      // one-shot-clip sprite is left alone, since that animation owns its texture.
       if (this.animating.has(unitId) || this.tweens.isTweening(sprite))
         continue;
-      const spriteRow =
-        (model.frame.y - UNIT_SHEET_HEADER_PX) / UNIT_ROW_HEIGHT_PX;
-      const key = `units-${model.faction}`;
-      const rect = unitFrame(spriteRow, "idle", this.idleFrame);
-      sprite.setTexture(key, this.ensureFrame(key, rect.x, rect.y));
-      sprite.setFlipX(model.faceLeft);
+      const frames = frameCount(model.spriteKey, "idle");
+      if (frames === 0) continue;
+      this.setFrame(
+        sprite,
+        model,
+        "idle",
+        this.idleFrame % frames,
+        model.faceLeft,
+      );
     }
   }
 
@@ -365,69 +370,34 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     }
   }
 
-  /** The sprite row backing a unit model (idle[0] rect → row index). */
-  private rowOf(model: UnitSprite): number {
-    return (model.frame.y - UNIT_SHEET_HEADER_PX) / UNIT_ROW_HEIGHT_PX;
+  /** Apply a clip frame to a sprite, with facing. */
+  private setFrame(
+    sprite: Phaser.GameObjects.Image,
+    model: UnitSprite,
+    animation: UnitAnimation,
+    frameIndex: number,
+    flipX: boolean,
+  ): void {
+    const rect = unitFrame(model.spriteKey, animation, frameIndex);
+    const { key, frame } = this.frameOfRect(
+      this.unitTexture(model),
+      rect,
+      model.faction,
+    );
+    sprite.setTexture(key, frame);
+    sprite.setFlipX(flipX);
   }
 
   /** Reset a sprite to its resting idle frame, facing the enemy base. */
   private restIdle(sprite: Phaser.GameObjects.Image, model: UnitSprite): void {
-    this.setWalkFrame(
-      sprite,
-      model.faction,
-      this.rowOf(model),
-      "idle",
-      model.faceLeft,
-      0,
-    );
+    this.setFrame(sprite, model, "idle", 0, model.faceLeft);
   }
 
-  /** Play a one-shot frame clip on a sprite over `duration` ms. */
-  private playClip(
-    unitId: string,
-    sprite: Phaser.GameObjects.Image,
-    model: UnitSprite,
-    animation: UnitAnimation,
-    duration: number,
-    flipX: boolean,
-  ): Promise<void> {
-    this.animating.add(unitId);
-    const spriteRow = this.rowOf(model);
-    const frames = ANIMATION_COLUMNS[animation].length;
-    return new Promise((resolve) => {
-      let done = false;
-      const finish = (): void => {
-        if (done) return;
-        done = true;
-        this.animating.delete(unitId);
-        resolve();
-      };
-      this.events.once(Phaser.Scenes.Events.SHUTDOWN, finish);
-      this.events.once(Phaser.Scenes.Events.DESTROY, finish);
-      this.tweens.addCounter({
-        from: 0,
-        to: 1,
-        duration,
-        onUpdate: (tween) => {
-          const index = Math.min(
-            frames - 1,
-            Math.floor(tween.progress * frames),
-          );
-          this.setWalkFrame(
-            sprite,
-            model.faction,
-            spriteRow,
-            animation,
-            flipX,
-            index,
-          );
-        },
-        onComplete: finish,
-      });
-    });
-  }
-
-  /** Attacker swings (`attack`) while the defender recoils (`hit`). */
+  /**
+   * The attack beat. The pack animates combat in a separate battle scene, not on
+   * the map, so a map attack is a lunge toward the defender plus a flash on the
+   * hit unit — no invented frames (§28.3).
+   */
   private async playAttack(
     attackerId: string,
     defenderId: string,
@@ -435,29 +405,43 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     const attacker = this.unitSprites.get(attackerId);
     const attackerModel = this.unitModels.get(attackerId);
     const defender = this.unitSprites.get(defenderId);
-    const defenderModel = this.unitModels.get(defenderId);
     const clips: Promise<void>[] = [];
 
-    if (attacker !== undefined && attackerModel !== undefined) {
-      // Face the defender for the swing (post-move world positions are accurate).
-      const flip =
-        defender !== undefined
-          ? defender.x < attacker.x
-          : attackerModel.faceLeft;
+    if (attacker !== undefined && attackerModel !== undefined && defender) {
+      const dx = Math.sign(defender.x - attacker.x) * 3;
+      const dy = Math.sign(defender.y - attacker.y) * 3;
+      if (dx !== 0) attacker.setFlipX(dx < 0);
+      this.animating.add(attackerId);
       clips.push(
-        this.playClip(attackerId, attacker, attackerModel, "attack", 360, flip),
+        new Promise<void>((resolve) => {
+          this.events.once(Phaser.Scenes.Events.SHUTDOWN, resolve);
+          this.tweens.add({
+            targets: attacker,
+            x: attacker.x + dx,
+            y: attacker.y + dy,
+            duration: 110,
+            yoyo: true,
+            onComplete: () => {
+              this.animating.delete(attackerId);
+              resolve();
+            },
+          });
+        }),
       );
     }
-    if (defender !== undefined && defenderModel !== undefined) {
+    if (defender !== undefined) {
       clips.push(
-        this.playClip(
-          defenderId,
-          defender,
-          defenderModel,
-          "hit",
-          300,
-          defenderModel.faceLeft,
-        ),
+        new Promise<void>((resolve) => {
+          this.events.once(Phaser.Scenes.Events.SHUTDOWN, resolve);
+          this.tweens.add({
+            targets: defender,
+            alpha: 0.2,
+            duration: 90,
+            yoyo: true,
+            repeat: 1,
+            onComplete: () => resolve(),
+          });
+        }),
       );
     }
     await Promise.all(clips);
@@ -465,28 +449,40 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     if (attacker !== undefined && attackerModel !== undefined) {
       this.restIdle(attacker, attackerModel);
     }
-    if (defender !== undefined && defenderModel !== undefined) {
-      this.restIdle(defender, defenderModel);
-    }
+    if (defender !== undefined) defender.setAlpha(1);
   }
 
-  /** Play the death clip, then fade the sprite out. */
+  /** Play the pack's explosion over the unit, then remove it. */
   private async playDestroy(unitId: string): Promise<void> {
     const sprite = this.unitSprites.get(unitId);
     if (sprite === undefined) return;
-    const model = this.unitModels.get(unitId);
-    if (model !== undefined) {
-      await this.playClip(unitId, sprite, model, "death", 360, model.faceLeft);
-    }
+    const frames = keysWithPrefix("fx_explosion_");
+    const first = this.frameOf(frames[0]!);
+    const blast = this.add
+      .image(sprite.x, sprite.y, first.key, first.frame)
+      .setOrigin(0.5, 0.8);
+    this.dynamicObjects.push(blast);
+
     await new Promise<void>((resolve) => {
       this.events.once(Phaser.Scenes.Events.SHUTDOWN, resolve);
-      this.tweens.add({
-        targets: sprite,
-        alpha: 0,
-        duration: 160,
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration: frames.length * EXPLOSION_MS_PER_FRAME,
+        onUpdate: (tween) => {
+          const index = Math.min(
+            frames.length - 1,
+            Math.floor(tween.progress * frames.length),
+          );
+          const { key, frame } = this.frameOf(frames[index]!);
+          blast.setTexture(key, frame);
+          // The unit fades out under the first half of the blast.
+          sprite.setAlpha(Math.max(0, 1 - tween.progress * 2));
+        },
         onComplete: () => resolve(),
       });
     });
+    blast.destroy();
   }
 
   /** Walks a unit tile-by-tile along its path with directional walk frames. */
@@ -497,34 +493,25 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     const sprite = this.unitSprites.get(unitId);
     const model = this.unitModels.get(unitId);
     if (sprite === undefined || model === undefined || path.length < 2) return;
-    const spriteRow =
-      (model.frame.y - UNIT_SHEET_HEADER_PX) / UNIT_ROW_HEIGHT_PX;
 
     for (let i = 0; i < path.length - 1; i++) {
       const { animation, flipX } = walkFrameSpec(
         stepDirection(path[i]!, path[i + 1]!),
       );
-      await this.tweenSegment(
-        sprite,
-        path[i + 1]!,
-        model.faction,
-        spriteRow,
-        animation,
-        flipX,
-      );
+      await this.tweenSegment(sprite, model, path[i + 1]!, animation, flipX);
     }
-    this.setWalkFrame(sprite, model.faction, spriteRow, "idle", false, 0);
+    this.restIdle(sprite, model);
   }
 
   /** Tween one path segment, cycling walk frames; resolves on complete/teardown. */
   private tweenSegment(
     sprite: Phaser.GameObjects.Image,
+    model: UnitSprite,
     to: Coordinate,
-    faction: FactionId,
-    spriteRow: number,
     animation: UnitAnimation,
     flipX: boolean,
   ): Promise<void> {
+    const frames = Math.max(1, frameCount(model.spriteKey, animation));
     return new Promise((resolve) => {
       let done = false;
       const finish = (): void => {
@@ -541,39 +528,15 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         y: (to.y + 1) * TERRAIN_TILE_PX,
         duration: WALK_MS_PER_TILE,
         onUpdate: (tween) => {
-          const frames = 5; // longest walk animation; setWalkFrame clamps per anim
           const index = Math.min(
             frames - 1,
             Math.floor(tween.progress * frames),
           );
-          this.setWalkFrame(
-            sprite,
-            faction,
-            spriteRow,
-            animation,
-            flipX,
-            index,
-          );
+          this.setFrame(sprite, model, animation, index, flipX);
         },
         onComplete: finish,
       });
     });
-  }
-
-  /** Slice a walk/idle frame from the faction sheet and apply it + facing. */
-  private setWalkFrame(
-    sprite: Phaser.GameObjects.Image,
-    faction: FactionId,
-    spriteRow: number,
-    animation: UnitAnimation,
-    flipX: boolean,
-    frameIndex: number,
-  ): void {
-    const key = `units-${faction}`;
-    const rect = unitFrame(spriteRow, animation, frameIndex);
-    const name = this.ensureFrame(key, rect.x, rect.y);
-    sprite.setTexture(key, name);
-    sprite.setFlipX(flipX);
   }
 }
 

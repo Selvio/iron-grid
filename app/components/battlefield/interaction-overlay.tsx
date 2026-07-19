@@ -16,7 +16,7 @@ import { cn } from "@/app/lib/utils";
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T5)
  */
 
-/** Display size of one tile at the default desktop art scale (24px × 2). */
+/** Display size of one tile at the default desktop art scale (16px × 3). */
 export const TILE_DISPLAY_PX = 48;
 
 type Tile = { readonly x: number; readonly y: number };

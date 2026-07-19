@@ -3,11 +3,9 @@
 import { useEffect, useState } from "react";
 import { ArrowRight, Eye, Fuel, Plane, Ship, Truck } from "lucide-react";
 
-import type {
-  ProductionOption,
-  UnitSprite,
-  UnitStats,
-} from "@/app/lib/preview/actions";
+import type { ProductionOption, UnitStats } from "@/app/lib/preview/actions";
+
+import { PixelSprite } from "./pixel-sprite";
 import { formatFunds } from "@/app/lib/format";
 
 /**
@@ -22,34 +20,6 @@ import { formatFunds } from "@/app/lib/format";
  *
  * @see docs/05-design/Iron Grid.dc.html (BUILD POPUP)
  */
-
-/** A pixel-art unit sprite crop, scaled to `size` CSS pixels. */
-function Sprite({ sprite, size }: { sprite: UnitSprite | null; size: number }) {
-  if (sprite === null) return null;
-  // The crop keeps its source pixel size and is scaled by transform — percentage
-  // background-size would resolve against the element, not the sprite sheet.
-  return (
-    <span
-      aria-hidden
-      className="block shrink-0 overflow-hidden"
-      style={{ width: size, height: size }}
-    >
-      <span
-        className="block"
-        style={{
-          width: sprite.frameSize,
-          height: sprite.frameSize,
-          backgroundImage: `url(${sprite.sheetUrl})`,
-          backgroundPosition: `-${sprite.frameX}px -${sprite.frameY}px`,
-          backgroundRepeat: "no-repeat",
-          imageRendering: "pixelated",
-          transform: `scale(${size / sprite.frameSize})`,
-          transformOrigin: "top left",
-        }}
-      />
-    </span>
-  );
-}
 
 /** One `Move 3` style stat line in the intel panel. */
 function StatRow({
@@ -229,7 +199,7 @@ export function BuildMenu({
                 } ${o.affordable ? "" : "cursor-not-allowed"}`}
               >
                 <span className="flex size-8 shrink-0 items-center justify-center drop-shadow-[1px_1px_0_rgba(0,0,0,0.25)]">
-                  <Sprite sprite={o.sprite} size={28} />
+                  <PixelSprite sprite={o.sprite} box={28} scale={2} />
                 </span>
                 <span
                   className={`flex-1 text-left font-display text-xl font-extrabold leading-none ${
@@ -260,7 +230,7 @@ export function BuildMenu({
           <div className="min-h-0 flex-1 overflow-auto p-4">
             <div className="flex gap-3.5">
               <div className="grid size-24 shrink-0 place-items-center rounded-2xl border-[3px] border-[#1c2b45] bg-[#f4e2ba] shadow-[inset_0_-4px_0_rgba(0,0,0,0.1)]">
-                <Sprite sprite={option.sprite} size={64} />
+                <PixelSprite sprite={option.sprite} box={80} scale={4} />
               </div>
               <div className="flex flex-1 flex-col gap-2 pt-0.5">
                 <StatRow

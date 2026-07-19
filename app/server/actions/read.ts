@@ -58,10 +58,10 @@ export interface MapView {
 
 /** Static render metadata per unit type — the client cannot load game data. */
 export interface UnitRenderMeta {
-  /** The §9.5 sprite row (surfaced row for a submarine). */
-  readonly spriteRow: number;
-  /** The submerged row for a submarine, else null. */
-  readonly submergedRow: number | null;
+  /** The sprite family in the client's atlas (surfaced one for a submarine). */
+  readonly spriteKey: string;
+  /** The submerged sprite family for a submarine, else null. */
+  readonly submergedSpriteKey: string | null;
   /** Air units are elevated and cast a shadow. */
   readonly isAir: boolean;
 }
@@ -75,15 +75,15 @@ function unitRenderTable(
     if (!unit.enabled_in_mvp) continue;
     const rendering = unit.rendering;
     table[typeId] =
-      "sprite_rows" in rendering
+      "sprite_keys" in rendering
         ? {
-            spriteRow: rendering.sprite_rows.surfaced,
-            submergedRow: rendering.sprite_rows.submerged,
+            spriteKey: rendering.sprite_keys.surfaced,
+            submergedSpriteKey: rendering.sprite_keys.submerged,
             isAir: unit.category === "air",
           }
         : {
-            spriteRow: rendering.sprite_row,
-            submergedRow: null,
+            spriteKey: rendering.sprite_key,
+            submergedSpriteKey: null,
             isAir: unit.category === "air",
           };
   }

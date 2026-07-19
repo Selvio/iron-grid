@@ -60,7 +60,9 @@ function view(): MatchView {
     visibleTiles: [],
     units: [TANK],
     properties: [],
-    unitRender: { tank: { spriteRow: 9, submergedRow: null, isAir: false } },
+    unitRender: {
+      tank: { spriteKey: "tank", submergedSpriteKey: null, isAir: false },
+    },
     you: {
       playerId: "me",
       factionId: "blue",

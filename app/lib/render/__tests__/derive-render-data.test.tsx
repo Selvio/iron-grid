@@ -1,73 +1,83 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  TERRAIN_TILE_PX,
   factionSheetPath,
+  frameCount,
   terrainTileFrame,
   unitFrame,
-  unitSpriteRow,
+  unitSpriteKey,
 } from "../derive-render-data";
 
-describe("unitSpriteRow", () => {
-  it("returns the single row for an ordinary unit", () => {
-    // tank → row 9 (units.yaml).
-    expect(unitSpriteRow({ sprite_row: 9 })).toBe(9);
+describe("unitSpriteKey", () => {
+  it("returns the single key for an ordinary unit", () => {
+    expect(unitSpriteKey({ sprite_key: "tank" })).toBe("tank");
   });
 
   it("resolves the submarine surfaced/submerged pair", () => {
-    const sub = { sprite_rows: { surfaced: 40, submerged: 39 } };
-    expect(unitSpriteRow(sub)).toBe(40);
-    expect(unitSpriteRow(sub, true)).toBe(39);
+    const sub = {
+      sprite_keys: { surfaced: "submarine", submerged: "submarine_submerged" },
+    };
+    expect(unitSpriteKey(sub)).toBe("submarine");
+    expect(unitSpriteKey(sub, true)).toBe("submarine_submerged");
   });
 });
 
 describe("unitFrame", () => {
-  it("places the idle frame of row 0 below the 16px header", () => {
-    expect(unitFrame(0, "idle", 0)).toEqual({
-      x: 0,
-      y: 16,
-      width: 32,
-      height: 32,
-    });
+  it("returns the atlas rectangle of a clip frame", () => {
+    const first = unitFrame("infantry", "idle", 0);
+    const second = unitFrame("infantry", "idle", 1);
+    expect(first.width).toBeGreaterThan(0);
+    expect(first.height).toBeGreaterThan(0);
+    // Frames of a clip sit side by side on the sheet.
+    expect(second.x).toBeGreaterThan(first.x);
   });
 
-  it("maps animation + frame index to the right column and row", () => {
-    // tank (row 9), attack frame 2 → column 19.
-    expect(unitFrame(9, "attack", 2)).toEqual({
-      x: 19 * 32,
-      y: 16 + 9 * 32,
-      width: 32,
-      height: 32,
-    });
+  it("clamps a frame index past the clip's last frame", () => {
+    const frames = frameCount("infantry", "idle");
+    expect(unitFrame("infantry", "idle", 99)).toEqual(
+      unitFrame("infantry", "idle", frames - 1),
+    );
   });
 
-  it("clamps a frame index past the animation's last frame", () => {
-    // hit has three frames [21,22,23]; index 5 clamps to 23.
-    expect(unitFrame(0, "hit", 5).x).toBe(23 * 32);
+  it("falls back to idle for a clip the pack does not draw", () => {
+    // Naval units only ship an idle; asking for a walk must not blow up.
+    expect(frameCount("battleship", "move_up")).toBe(0);
+    expect(unitFrame("battleship", "move_up", 0)).toEqual(
+      unitFrame("battleship", "idle", 0),
+    );
+  });
+
+  it("throws for a unit the atlas has no art for", () => {
+    expect(() => unitFrame("no_such_unit")).toThrow(/no sprite frames/i);
   });
 });
 
 describe("factionSheetPath", () => {
-  it("resolves each faction to its bundled sheet", () => {
-    expect(factionSheetPath("blue")).toBe(
-      "/game-assets/units/blue-units-sprite-sheet.png",
+  it("resolves a unit's sheet for the owning faction", () => {
+    expect(factionSheetPath("blue", "infantry")).toBe(
+      "/game-assets/units/blue/sprites.png",
     );
-    expect(factionSheetPath("yellow")).toBe(
-      "/game-assets/units/yellow-units-sprite-sheet.png",
+    expect(factionSheetPath("yellow", "fighter")).toBe(
+      "/game-assets/units/yellow/air.png",
+    );
+    expect(factionSheetPath("red", "battleship")).toBe(
+      "/game-assets/units/red/sea.png",
     );
   });
 });
 
 describe("terrainTileFrame", () => {
-  it("parses a stable render-tile id into a 24px tileset rect", () => {
-    expect(terrainTileFrame("terrain_r04_c07")).toEqual({
-      x: 7 * 24,
-      y: 4 * 24,
-      width: 24,
-      height: 24,
+  it("returns the rectangle of a terrain autotile", () => {
+    expect(terrainTileFrame("terrain_plain")).toEqual({
+      x: 17,
+      y: 17,
+      width: TERRAIN_TILE_PX,
+      height: TERRAIN_TILE_PX,
     });
   });
 
-  it("throws on a malformed id", () => {
+  it("throws on an unknown tile id", () => {
     expect(() => terrainTileFrame("not-a-tile")).toThrow(/render-tile id/i);
   });
 });

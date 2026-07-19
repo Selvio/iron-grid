@@ -226,7 +226,7 @@ function productionGameData(): GameData {
         enabled_in_mvp: true,
         cost: 1000,
         display_name: "Infantry",
-        rendering: { sprite_row: 0 },
+        rendering: { sprite_key: "infantry" },
         category: "ground",
         movement: { points: 3, type: "foot" },
         vision: { base_range: 2 },
@@ -240,7 +240,7 @@ function productionGameData(): GameData {
         enabled_in_mvp: true,
         cost: 7000,
         display_name: "Tank",
-        rendering: { sprite_row: 9 },
+        rendering: { sprite_key: "tank" },
       },
       wip: { enabled_in_mvp: false, cost: 500, display_name: "WIP" },
     },
@@ -351,13 +351,18 @@ describe("previewProduction", () => {
     const base = v.properties.find((p) => p.id === "b1")!;
     const [infantry, tank] = previewProduction(v, gd, base);
 
-    // Infantry is sprite row 0 → idle frame at y = header (16); tank row 9.
-    expect(infantry?.sprite).toEqual({
-      sheetUrl: "/game-assets/units/blue-units-sprite-sheet.png",
-      frameX: 0,
-      frameY: 16,
-      frameSize: 32,
+    // The crop is the unit's idle frame on the viewer's faction sheet.
+    expect(infantry?.sprite).toMatchObject({
+      sheetUrl: "/game-assets/units/blue/sprites.png",
     });
-    expect(tank?.sprite?.frameY).toBe(16 + 9 * 32);
+    expect(infantry?.sprite).toEqual(
+      expect.objectContaining({
+        frameWidth: expect.any(Number),
+        frameHeight: expect.any(Number),
+      }),
+    );
+    // Different units crop different parts of the same sheet.
+    expect(tank?.sprite?.sheetUrl).toBe("/game-assets/units/blue/sprites.png");
+    expect(tank?.sprite?.frameY).not.toBe(infantry?.sprite?.frameY);
   });
 });

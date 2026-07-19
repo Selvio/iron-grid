@@ -33,14 +33,16 @@ export function requireEntry(key: string): AtlasEntry {
 }
 
 /**
- * The public URL of an entry's sheet. Unit sheets carry a `{faction}` slot —
- * the four palettes share one geometry — so they need the owner's faction.
+ * The public URL of an asset file. Unit sheets carry a `{faction}` slot — the
+ * four palettes share one geometry — so they need the owner's faction.
  */
+export function assetUrl(file: string, faction?: FactionId): string {
+  return `${ASSET_BASE}/${file.replace(FACTION_SLOT, faction ?? "blue")}`;
+}
+
+/** The public URL of the sheet an entry is cut from. */
 export function atlasUrl(entry: AtlasEntry, faction?: FactionId): string {
-  const file = entry.file.includes(FACTION_SLOT)
-    ? entry.file.replace(FACTION_SLOT, faction ?? "blue")
-    : entry.file;
-  return `${ASSET_BASE}/${file}`;
+  return assetUrl(entry.file, faction);
 }
 
 /** Every distinct sheet URL an entry set touches, for preloading. */

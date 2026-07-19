@@ -52,9 +52,9 @@ source_references:
 
 conventions:
   tile_grid:
-    source_tile_width_px: 24
-    source_tile_height_px: 24
-    recommended_render_scale: 2
+    source_tile_width_px: 16
+    source_tile_height_px: 16
+    recommended_render_scale: 3
     logical_map_width: 20
     logical_map_height: 16
   movement:
@@ -81,7 +81,12 @@ conventions:
     adjacency_metric: "orthogonal"
   rendering:
     logical_terrain_separate_from_render_tile: true
-    render_tile_id_format: "terrain_r{row}_c{column}"
+    # Render tiles are atlas keys, not grid coordinates: the art pack ships one
+    # 3x3 autotile file per terrain, and which position a cell uses depends on
+    # its neighbors (app/lib/render/terrain-map.ts). Tiles may be taller than
+    # one cell (mountains, buildings) and are drawn bottom-anchored.
+    render_tile_id_format: "terrain_{terrain}_{position}"
+    manifest: "app/lib/render/atlas.generated.ts"
     overlays_allowed: true
   property_link:
     definitions_file: "properties.yaml"
@@ -176,7 +181,7 @@ terrains:
       asset_status: "confirmed"
       atlas_regions:
         - "grass base and grass transition regions"
-      preferred_base_tile: "terrain_r01_c01"
+      preferred_base_tile: "terrain_plain"
       requires_overlay: false
       notes:
         - "Multiple edge and biome variants may share this logical terrain ID."
@@ -383,7 +388,7 @@ terrains:
       asset_status: "confirmed"
       atlas_regions:
         - "water base"
-      preferred_base_tile: "terrain_r01_c00"
+      preferred_base_tile: "terrain_sea"
       requires_overlay: false
     official_map_allowed: true
 

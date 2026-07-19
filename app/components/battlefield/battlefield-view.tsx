@@ -32,6 +32,7 @@ import {
 import { computePath } from "@/app/lib/preview/path";
 import { cn } from "@/app/lib/utils";
 import { formatCountdown } from "@/app/lib/format";
+import { TERRAIN_TILE_PX } from "@/app/lib/render/derive-render-data";
 import {
   prefersReducedMotion,
   submittedAttackPlan,
@@ -109,7 +110,7 @@ export function BattlefieldView({
   );
   const isMyTurn = view.activePlayerId === view.viewerPlayerId;
   const tilePx = tilePxForZoom(zoom);
-  const artScale = tilePx / (TILE_DISPLAY_PX / 2); // tilePx / 24
+  const artScale = tilePx / TERRAIN_TILE_PX;
 
   // A transient Advance-Wars turn banner whenever the day or active player flips.
   useEffect(() => {

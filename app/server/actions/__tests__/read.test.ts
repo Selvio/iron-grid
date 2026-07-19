@@ -43,7 +43,7 @@ describe("read endpoints", () => {
       units: unknown[];
       visibleTiles: unknown[];
       map: { width: number; height: number; logicalTerrain: string[][] };
-      unitRender: Record<string, { spriteRow: number; isAir: boolean }>;
+      unitRender: Record<string, { spriteKey: string; isAir: boolean }>;
       you: { playerId: string; funds: number };
       opponent: Record<string, unknown>;
     };

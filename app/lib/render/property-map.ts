@@ -2,35 +2,47 @@ import type { FactionId } from "@/app/components/faction-badge";
 import type { MatchView } from "@/app/lib/api-client";
 
 /**
- * Property render model (M10-T9).
+ * Property render model (M10-T9, re-based on the colored building art in M12).
  *
- * Turns `MatchView.properties` into draw instructions: the building tile, the
- * ownership state (neutral or a faction) and the capture-progress fraction. Per
- * the §33.4 treatment (ADR-0004), the building tiles come from the pack and the
- * ownership + capture state render as a **programmatic overlay** (a faction tint
- * + insignia, a capture bar) rather than four bespoke colorized building sets.
- * Pure and unit-tested; the exact tileset cells are provisional and confirmed
- * visually in M12.
+ * Turns `MatchView.properties` into draw instructions: which building sprite,
+ * in whose colors, and how far a capture has progressed. The art pack draws
+ * every property in five ownership palettes, so ownership is a different sprite
+ * rather than the programmatic tint ADR-0004 settled for — that ADR is
+ * superseded. Capture progress stays a drawn bar.
  *
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T9)
- * @see docs/01-specification/game-specification.md §13, §33.4
+ * @see docs/decisions/0005-advance-wars-asset-pack.md
  */
 
 /** Property capture resistance starts at 20 (`properties.yaml`). */
 export const MAX_CAPTURE_POINTS = 20;
 
-/**
- * Base building tile per property type (§33.4, ADR-0004).
- * Cells follow `assets-inventory.md` §4.7 (buildings at cols 0–5, rows 13–15).
- * Row 12 is asphalt road / dirt — never use it as a building.
- */
-export const PROPERTY_TILE: Record<string, string> = {
-  city: "terrain_r13_c00",
-  base: "terrain_r14_c00",
-  airport: "terrain_r15_c02",
-  port: "terrain_r15_c00",
-  headquarters: "terrain_r14_c03",
+/** Property type → the atlas building family drawing it. */
+export const PROPERTY_BUILDING: Record<string, string> = {
+  city: "city",
+  base: "base",
+  airport: "airport",
+  port: "port",
+  headquarters: "headquarters",
+  silo: "silo",
 };
+
+/**
+ * The atlas key for a building: `building_<type>_<color>_<frame>`. A property
+ * mid-capture keeps its current owner's colors — the capture bar communicates
+ * the takeover, exactly as the flag animation does in the original.
+ */
+export function buildingTileId(
+  typeId: string,
+  ownerFaction: FactionId | null,
+  frame = 0,
+): string {
+  const family = PROPERTY_BUILDING[typeId] ?? "city";
+  // The headquarters has no neutral art (an HQ always belongs to someone); fall
+  // back to a city so a mis-seeded map still renders something.
+  const color = ownerFaction ?? (family === "headquarters" ? "red" : "neutral");
+  return `building_${family}_${color}_${frame}`;
+}
 
 export interface PropertySprite {
   readonly propertyId: string;
@@ -72,23 +84,26 @@ function capturingFactionFor(
 
 export function buildPropertyRenderModel(view: MatchView): PropertySprite[] {
   const factions = factionByPlayer(view);
-  return view.properties.map((property) => ({
-    propertyId: property.id,
-    x: property.position.x,
-    y: property.position.y,
-    typeId: property.typeId,
-    renderTileId: PROPERTY_TILE[property.typeId] ?? PROPERTY_TILE.city,
-    ownerFaction:
+  return view.properties.map((property) => {
+    const ownerFaction =
       property.ownerPlayerId === null
         ? null
-        : (factions[property.ownerPlayerId] ?? null),
-    capturingFaction: capturingFactionFor(
-      view,
-      property.capturingUnitId,
-      factions,
-    ),
-    captureProgress:
-      (MAX_CAPTURE_POINTS - property.capturePointsRemaining) /
-      MAX_CAPTURE_POINTS,
-  }));
+        : (factions[property.ownerPlayerId] ?? null);
+    return {
+      propertyId: property.id,
+      x: property.position.x,
+      y: property.position.y,
+      typeId: property.typeId,
+      renderTileId: buildingTileId(property.typeId, ownerFaction),
+      ownerFaction,
+      capturingFaction: capturingFactionFor(
+        view,
+        property.capturingUnitId,
+        factions,
+      ),
+      captureProgress:
+        (MAX_CAPTURE_POINTS - property.capturePointsRemaining) /
+        MAX_CAPTURE_POINTS,
+    };
+  });
 }

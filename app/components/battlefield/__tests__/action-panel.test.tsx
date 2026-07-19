@@ -179,10 +179,11 @@ describe("ActionPanel", () => {
           cost: 1000,
           affordable: true,
           sprite: {
-            sheetUrl: "/game-assets/units/blue-units-sprite-sheet.png",
-            frameX: 0,
-            frameY: 16,
-            frameSize: 32,
+            sheetUrl: "/game-assets/units/blue/sprites.png",
+            frameX: 9,
+            frameY: 95,
+            frameWidth: 14,
+            frameHeight: 16,
           },
           stats: {
             move: 3,

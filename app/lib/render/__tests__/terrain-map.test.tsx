@@ -1,17 +1,17 @@
 import { describe, expect, it } from "vitest";
 
+import { ATLAS } from "@/app/lib/render/atlas";
 import type { MapView } from "@/app/server/actions/read";
 import {
-  BASE_TERRAIN_TILE,
-  FILL_TILE,
+  beachTile,
+  bridgeTile,
   buildTerrainRenderModel,
-  coastOverlayTile,
-  forestOverlayTile,
   layersForCell,
-  mountainOverlayTile,
-  neighborMask,
   renderTileFor,
-  roadRenderTile,
+  riverTile,
+  roadTile,
+  seaCorners,
+  seaTile,
 } from "../terrain-map";
 
 const MAP: MapView = {
@@ -31,123 +31,194 @@ function view(logicalTerrain: string[][]): MapView {
   };
 }
 
-describe("renderTileFor", () => {
-  it("maps forest and mountain to their inventory atlas regions", () => {
-    expect(renderTileFor("forest")).toBe("terrain_r04_c06");
-    expect(renderTileFor("mountain")).toBe("terrain_r00_c06");
-  });
+const keys = (map: MapView, x: number, y: number): string[] =>
+  layersForCell(map, x, y).map((l) => l.key);
 
-  it("uses the opaque grass cell for plains (not the transparent r00_c00)", () => {
-    expect(renderTileFor("plain")).toBe("terrain_r01_c01");
-    expect(FILL_TILE.plain).toBe("terrain_r01_c01");
-    expect(FILL_TILE.sea).toBe("terrain_r01_c00");
+describe("renderTileFor", () => {
+  it("maps each terrain to an atlas tile that exists", () => {
+    for (const terrain of [
+      "plain",
+      "forest",
+      "mountain",
+      "hill",
+      "road",
+      "river",
+      "sea",
+      "reef",
+      "shoal",
+      "bridge",
+    ]) {
+      expect(ATLAS, terrain).toHaveProperty(renderTileFor(terrain));
+    }
   });
 
   it("falls back to plain for an unmapped terrain", () => {
-    expect(renderTileFor("reef")).toBe(renderTileFor("plain"));
+    expect(renderTileFor("pipe")).toBe("terrain_plain");
   });
 });
 
-describe("neighborMask", () => {
-  it("sets N/E/S/W bits for matching neighbors", () => {
+describe("seaTile", () => {
+  it("keeps open water on the plain sea tile", () => {
     const map = view([
-      ["sea", "plain", "sea"],
-      ["plain", "sea", "plain"],
-      ["sea", "plain", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "sea"],
     ]);
-    // Center sea has land on all four sides.
-    expect(neighborMask(map, 1, 1, (t) => t === "plain")).toBe(1 | 2 | 4 | 8);
+    expect(seaTile(map, 1, 1)).toBe("terrain_sea");
   });
-});
 
-describe("coastOverlayTile", () => {
-  it("returns null for open sea and a cliff cell when land borders water", () => {
-    const map = view([
+  it("turns the coast toward the land that borders it", () => {
+    const east = view([
       ["sea", "sea", "sea"],
       ["sea", "sea", "plain"],
       ["sea", "sea", "sea"],
     ]);
-    expect(coastOverlayTile(map, 0, 0)).toBeNull();
-    // Sea at (1,1) has land to the east.
-    expect(coastOverlayTile(map, 1, 1)).toBe("terrain_r01_c04");
+    expect(seaTile(east, 1, 1)).toBe("terrain_sea_right");
+
+    const north = view([
+      ["sea", "plain", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "sea"],
+    ]);
+    expect(seaTile(north, 1, 1)).toBe("terrain_sea_top");
   });
 
-  it("covers the 16 land-neighbor masks with non-null overlays", () => {
-    // Build a 3×3 where center is sea and each orthogonal neighbor is toggled.
-    for (let mask = 1; mask <= 15; mask++) {
-      const grid = [
-        ["sea", "sea", "sea"],
-        ["sea", "sea", "sea"],
-        ["sea", "sea", "sea"],
-      ];
-      if (mask & 1) grid[0]![1] = "plain";
-      if (mask & 2) grid[1]![2] = "plain";
-      if (mask & 4) grid[2]![1] = "plain";
-      if (mask & 8) grid[1]![0] = "plain";
-      const tile = coastOverlayTile(view(grid), 1, 1);
-      expect(tile, `mask ${mask}`).toMatch(/^terrain_r0[0-3]_c0[2-5]$/);
-    }
+  it("uses a corner tile where two adjacent sides are land", () => {
+    const map = view([
+      ["sea", "plain", "sea"],
+      ["sea", "sea", "plain"],
+      ["sea", "sea", "sea"],
+    ]);
+    // The tile is named for where the land is: north and east.
+    expect(seaTile(map, 1, 1)).toBe("terrain_sea_top_right");
+  });
+
+  it("adds a rounded corner sticker for land that only touches diagonally", () => {
+    const map = view([
+      ["plain", "sea", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "sea"],
+    ]);
+    expect(seaCorners(map, 1, 1)).toEqual([
+      { key: "terrain_sea_corner_top_left", dx: 0, dy: 0 },
+    ]);
+    // With the land orthogonally adjacent the edge tile draws the shore instead.
+    const orthogonal = view([
+      ["plain", "plain", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "sea"],
+    ]);
+    expect(seaCorners(orthogonal, 1, 1)).toEqual([]);
   });
 });
 
-describe("roadRenderTile", () => {
-  it("uses horizontal asphalt for an E–W road and vertical for N–S", () => {
+describe("beachTile", () => {
+  it("faces the sand toward the water", () => {
+    const map = view([
+      ["sea", "sea", "sea"],
+      ["shoal", "shoal", "shoal"],
+      ["plain", "plain", "plain"],
+    ]);
+    // Ground to the south only → the sand's top edge meets the sea.
+    expect(beachTile(map, 1, 1)).toBe("terrain_beach_top");
+  });
+
+  it("fills the corner where only one side is open water", () => {
+    const map = view([
+      ["plain", "sea", "plain"],
+      ["plain", "shoal", "plain"],
+      ["plain", "plain", "plain"],
+    ]);
+    expect(beachTile(map, 1, 1)).toBe("terrain_beach_filled_bottom");
+  });
+});
+
+describe("riverTile", () => {
+  it("runs straight, turns and forks by its flowing neighbors", () => {
+    const cross = view([
+      ["plain", "river", "plain"],
+      ["river", "river", "river"],
+      ["plain", "river", "plain"],
+    ]);
+    expect(riverTile(cross, 1, 1)).toBe("terrain_river_center");
+
+    const horizontal = view([["river", "river", "river"]]);
+    expect(riverTile(horizontal, 1, 0)).toBe("terrain_river_horizontal");
+
+    const turn = view([
+      ["plain", "river", "plain"],
+      ["plain", "river", "river"],
+      ["plain", "plain", "plain"],
+    ]);
+    // Flows in from the north and out to the east.
+    expect(riverTile(turn, 1, 1)).toBe("terrain_river_turn_top_right");
+  });
+
+  it("caps a stub that ends on land", () => {
+    const stub = view([
+      ["plain", "river", "plain"],
+      ["plain", "river", "plain"],
+      ["plain", "plain", "plain"],
+    ]);
+    expect(riverTile(stub, 1, 1)).toBe("terrain_river_bottom_end");
+  });
+});
+
+describe("roadTile", () => {
+  it("picks straights, junctions and turns", () => {
     const roads = view([
       ["plain", "road", "plain"],
       ["road", "road", "road"],
       ["plain", "road", "plain"],
     ]);
-    expect(roadRenderTile(roads, 0, 1)).toBe("terrain_r12_c01");
-    expect(roadRenderTile(roads, 1, 0)).toBe("terrain_r12_c00");
-    expect(roadRenderTile(roads, 1, 1)).toBe("terrain_r12_c01");
+    expect(roadTile(roads, 1, 1)).toBe("terrain_road_center");
+    expect(roadTile(roads, 0, 1)).toBe("terrain_road_horizontal");
+    expect(roadTile(roads, 1, 0)).toBe("terrain_road_vertical");
+
+    const tee = view([
+      ["plain", "plain", "plain"],
+      ["road", "road", "road"],
+      ["plain", "road", "plain"],
+    ]);
+    expect(roadTile(tee, 1, 1)).toBe("terrain_road_t_bottom");
   });
 });
 
-describe("forest and mountain overlays", () => {
-  it("picks E–W strip cells: standalone, west, mid, east", () => {
-    // Isolated → soft standalone c06.
-    expect(forestOverlayTile(view([["forest"]]), 0, 0)).toBe("terrain_r04_c06");
+describe("bridgeTile", () => {
+  it("lies along the water it spans", () => {
+    const acrossRiver = view([["river", "bridge", "river"]]);
+    expect(bridgeTile(acrossRiver, 1, 0)).toBe("terrain_bridge_horizontal");
 
-    const row = view([["forest", "forest", "forest"]]);
-    expect(forestOverlayTile(row, 0, 0)).toBe("terrain_r04_c07"); // west
-    expect(forestOverlayTile(row, 1, 0)).toBe("terrain_r04_c08"); // mid
-    expect(forestOverlayTile(row, 2, 0)).toBe("terrain_r04_c09"); // east
-
-    // Vertical neighbors alone still use standalone (strip is E–W only).
-    const col = view([["forest"], ["forest"]]);
-    expect(forestOverlayTile(col, 0, 0)).toBe("terrain_r04_c06");
-    expect(forestOverlayTile(col, 0, 1)).toBe("terrain_r04_c06");
-
-    const mountains = view([["mountain", "mountain"]]);
-    expect(mountainOverlayTile(mountains, 0, 0)).toBe("terrain_r00_c07");
-    expect(mountainOverlayTile(mountains, 1, 0)).toBe("terrain_r00_c09");
-    expect(mountainOverlayTile(view([["mountain"]]), 0, 0)).toBe(
-      "terrain_r00_c06",
-    );
+    const alongRoad = view([["road", "bridge", "road"]]);
+    expect(bridgeTile(alongRoad, 1, 0)).toBe("terrain_bridge_vertical");
   });
 });
 
 describe("layersForCell", () => {
-  it("stacks opaque sea under coast overlays", () => {
+  it("draws water as a single self-contained autotile", () => {
     const map = view([
-      ["sea", "plain"],
-      ["sea", "sea"],
+      ["sea", "sea", "sea"],
+      ["sea", "sea", "plain"],
+      ["sea", "sea", "sea"],
     ]);
-    expect(layersForCell(map, 0, 0)).toEqual([
-      FILL_TILE.sea,
-      "terrain_r01_c04", // land to the east
-    ]);
-    expect(layersForCell(map, 0, 1)[0]).toBe(FILL_TILE.sea);
+    expect(keys(map, 1, 1)).toEqual(["terrain_sea_right"]);
   });
 
-  it("stacks grass under forest, mountain and road", () => {
+  it("stacks grass under raised features", () => {
     const map = view([["forest", "mountain", "road"]]);
-    expect(layersForCell(map, 0, 0)[0]).toBe(FILL_TILE.plain);
-    expect(layersForCell(map, 1, 0)[0]).toBe(FILL_TILE.plain);
-    expect(layersForCell(map, 2, 0)).toEqual([
-      FILL_TILE.plain,
-      "terrain_r12_c00",
-    ]);
+    expect(keys(map, 0, 0)).toEqual(["terrain_plain_shadow", "terrain_forest"]);
+    expect(keys(map, 1, 0)).toEqual(["terrain_plain", "terrain_mountain"]);
+    expect(keys(map, 2, 0)).toEqual(["terrain_road_horizontal"]);
+  });
+
+  it("shades the plain west of a raised feature", () => {
+    const map = view([["plain", "mountain"]]);
+    expect(keys(map, 0, 0)).toEqual(["terrain_plain_shadow"]);
+  });
+
+  it("draws bare grass under a property, which the property layer covers", () => {
+    const map = view([["city", "base"]]);
+    expect(keys(map, 1, 0)).toEqual(["terrain_plain"]);
   });
 });
 
@@ -156,16 +227,24 @@ describe("buildTerrainRenderModel", () => {
     const cells = buildTerrainRenderModel(MAP, []);
     expect(cells).toHaveLength(6);
     expect(cells[0]).toMatchObject({ x: 0, y: 0, terrainId: "plain" });
-    expect(cells[0]!.layers).toEqual([FILL_TILE.plain]);
     expect(cells[1]).toMatchObject({
       x: 1,
       y: 0,
       terrainId: "forest",
-      renderTileId: "terrain_r04_c06", // isolated → soft standalone
+      renderTileId: "terrain_forest",
     });
-    expect(cells[1]!.layers[0]).toBe(FILL_TILE.plain);
     // row-major: index 3 is (x:0, y:1).
     expect(cells[3]).toMatchObject({ x: 0, y: 1 });
+  });
+
+  it("only emits tiles the atlas can draw", () => {
+    for (const cell of buildTerrainRenderModel(MAP, [])) {
+      for (const layer of cell.layers) {
+        expect(ATLAS, `${cell.terrainId} → ${layer.key}`).toHaveProperty(
+          layer.key,
+        );
+      }
+    }
   });
 
   it("flags fog from the visible-tile set", () => {

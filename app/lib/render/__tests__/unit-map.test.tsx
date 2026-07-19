@@ -10,9 +10,13 @@ function view(units: unknown[], properties: unknown[] = []): MatchView {
     you: { playerId: "me", factionId: "blue" },
     opponent: { playerId: "them", factionId: "red" },
     unitRender: {
-      tank: { spriteRow: 9, submergedRow: null, isAir: false },
-      fighter: { spriteRow: 25, submergedRow: null, isAir: true },
-      submarine: { spriteRow: 40, submergedRow: 39, isAir: false },
+      tank: { spriteKey: "tank", submergedSpriteKey: null, isAir: false },
+      fighter: { spriteKey: "fighter", submergedSpriteKey: null, isAir: true },
+      submarine: {
+        spriteKey: "submarine",
+        submergedSpriteKey: "submarine_submerged",
+        isAir: false,
+      },
     },
     units,
     properties,
@@ -48,7 +52,8 @@ describe("buildUnitRenderModel", () => {
       greyed: false,
       submerged: false,
     });
-    expect(sprite.frame).toEqual(unitFrame(9, "idle", 0));
+    expect(sprite.frame).toEqual(unitFrame("tank", "idle", 0));
+    expect(sprite.spriteKey).toBe("tank");
   });
 
   it("greys the viewer's own unit once it has acted, but not the enemy's", () => {
@@ -81,7 +86,7 @@ describe("buildUnitRenderModel", () => {
     expect(sprite.shadow).toBe(true);
   });
 
-  it("uses the submerged row for a dived submarine", () => {
+  it("uses the submerged sprite for a dived submarine", () => {
     const [sprite] = buildUnitRenderModel(
       view([
         {
@@ -94,7 +99,7 @@ describe("buildUnitRenderModel", () => {
       ]),
     );
     expect(sprite.submerged).toBe(true);
-    expect(sprite.frame).toEqual(unitFrame(39, "idle", 0));
+    expect(sprite.frame).toEqual(unitFrame("submarine_submerged", "idle", 0));
   });
 
   it("skips cargo units with no position", () => {

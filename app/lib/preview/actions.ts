@@ -13,7 +13,7 @@ import type { MatchView } from "@/app/lib/api-client";
 import {
   factionSheetPath,
   unitFrame,
-  unitSpriteRow,
+  unitSpriteKey,
   type UnitRendering,
 } from "@/app/lib/render/derive-render-data";
 
@@ -79,8 +79,9 @@ export interface UnitSprite {
   /** The frame's top-left offset within the sheet, in source pixels. */
   readonly frameX: number;
   readonly frameY: number;
-  /** The frame is a square of this many source pixels. */
-  readonly frameSize: number;
+  /** The frame's size in source pixels — the art pack's frames are not square. */
+  readonly frameWidth: number;
+  readonly frameHeight: number;
 }
 
 /** The Advance-Wars intel read-out for one unit type (build menu right panel). */
@@ -166,12 +167,14 @@ export function unitSprite(
   const rendering = gameData.units[unitTypeId]?.rendering as
     UnitRendering | undefined;
   if (faction === undefined || rendering === undefined) return null;
-  const frame = unitFrame(unitSpriteRow(rendering), "idle", 0);
+  const spriteKey = unitSpriteKey(rendering);
+  const frame = unitFrame(spriteKey, "idle", 0);
   return {
-    sheetUrl: factionSheetPath(faction as FactionId),
+    sheetUrl: factionSheetPath(faction as FactionId, spriteKey),
     frameX: frame.x,
     frameY: frame.y,
-    frameSize: frame.width,
+    frameWidth: frame.width,
+    frameHeight: frame.height,
   };
 }
 

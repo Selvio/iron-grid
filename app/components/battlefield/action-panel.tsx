@@ -3,7 +3,6 @@
 import { displayHp, type Coordinate } from "game-engine";
 
 import type { InteractionState } from "@/app/lib/battlefield/machine";
-import type { UnitSprite } from "@/app/lib/preview/actions";
 import { Button } from "@/app/components/ui/button";
 import {
   Card,
@@ -14,6 +13,7 @@ import {
 } from "@/app/components/ui/card";
 
 import { BuildMenu } from "./build-menu";
+import { PixelSprite } from "./pixel-sprite";
 
 /**
  * Action / confirmation panel (M10-T6).
@@ -57,25 +57,6 @@ export interface ActionPanelHandlers {
   readonly onChooseCargo: (cargoUnitId: string) => void;
   /** Step back one interaction state. */
   readonly onCancel: () => void;
-}
-
-/** A pixel-art unit sprite crop for a menu row (CSS sprite; null → nothing). */
-function SpriteIcon({ sprite }: { sprite: UnitSprite | null }) {
-  if (sprite === null) return null;
-  return (
-    <span
-      aria-hidden
-      className="shrink-0"
-      style={{
-        width: sprite.frameSize,
-        height: sprite.frameSize,
-        backgroundImage: `url(${sprite.sheetUrl})`,
-        backgroundPosition: `-${sprite.frameX}px -${sprite.frameY}px`,
-        backgroundRepeat: "no-repeat",
-        imageRendering: "pixelated",
-      }}
-    />
-  );
 }
 
 /**
@@ -141,7 +122,7 @@ export function ActionPanel({
                 className="h-auto justify-start gap-2 py-2"
                 onClick={() => handlers.onChooseCargo(c.unitId)}
               >
-                <SpriteIcon sprite={c.sprite} />
+                <PixelSprite sprite={c.sprite} box={28} />
                 <span>{c.displayName}</span>
               </Button>
             ))}

@@ -30,17 +30,15 @@ describe("match_players schema", () => {
   });
 
   it("stores host and guest with distinct faction and commander", async () => {
-    await handle.db
-      .insert(matchPlayers)
-      .values([
-        player({ id: "p1", role: "host", factionId: "blue", commanderId: "a" }),
-        player({
-          id: "p2",
-          role: "guest",
-          factionId: "green",
-          commanderId: "b",
-        }),
-      ]);
+    await handle.db.insert(matchPlayers).values([
+      player({ id: "p1", role: "host", factionId: "blue", commanderId: "a" }),
+      player({
+        id: "p2",
+        role: "guest",
+        factionId: "green",
+        commanderId: "b",
+      }),
+    ]);
 
     const rows = await handle.db.select().from(matchPlayers);
     expect(rows).toHaveLength(2);

@@ -34,15 +34,16 @@ const dailyFuel = z.union([
   z.object({ default: z.int() }),
 ]);
 
-// Rendering: a single sprite row, or per-state rows for divers. These use
-// closed objects (not loose) so `"sprite_rows" in r` discriminates the union;
-// descriptive extras (shadow, animation_profile) are re-modeled by the renderer.
+// Rendering: a single atlas sprite family, or per-state families for divers.
+// These use closed objects (not loose) so `"sprite_keys" in r` discriminates the
+// union; descriptive extras (shadow, animation_profile) are re-modeled by the
+// renderer. Keys name families in the generated sprite atlas — the art pack has
+// no uniform grid, so no row/column geometry lives in the data.
 const rendering = z.union([
   z.object({
-    sprite_rows: z.object({ surfaced: z.int(), submerged: z.int() }),
-    row_ids: z.object({ surfaced: z.string(), submerged: z.string() }),
+    sprite_keys: z.object({ surfaced: z.string(), submerged: z.string() }),
   }),
-  z.object({ sprite_row: z.int(), row_id: z.string() }),
+  z.object({ sprite_key: z.string() }),
 ]);
 
 /** One MVP unit (`units.yaml` units.*). */
@@ -108,7 +109,7 @@ const unitsFile = z.looseObject({
   units: z.record(z.string(), unitSchema),
   cross_unit_constraints: z.looseObject({
     roster: z.looseObject({ expected_enabled_unit_count: z.int() }),
-    rendering: z.looseObject({ allowed_rows: z.array(z.int()) }),
+    rendering: z.looseObject({ allowed_sprite_keys: z.array(z.string()) }),
   }),
 });
 
@@ -121,11 +122,11 @@ export type Units = Readonly<Record<string, Unit>>;
 /** Count of units that must be enabled for the MVP roster (`units.yaml`). */
 const REQUIRED_ENABLED_UNITS = 19;
 
-/** The sprite rows a unit occupies (one, or two for a diver). */
-function spriteRowsOf(r: Unit["rendering"]): number[] {
-  return "sprite_rows" in r
-    ? [r.sprite_rows.surfaced, r.sprite_rows.submerged]
-    : [r.sprite_row];
+/** The atlas sprite families a unit binds to (one, or two for a diver). */
+function spriteKeysOf(r: Unit["rendering"]): string[] {
+  return "sprite_keys" in r
+    ? [r.sprite_keys.surfaced, r.sprite_keys.submerged]
+    : [r.sprite_key];
 }
 
 /** Assert a unit's declared `validation.expected_*` self-checks match its values. */
@@ -229,8 +230,8 @@ export function parseUnits(raw: unknown): Units {
     "produced units must start with full ammo",
   );
 
-  const allowedRows = new Set(
-    file.cross_unit_constraints.rendering.allowed_rows,
+  const allowedSpriteKeys = new Set(
+    file.cross_unit_constraints.rendering.allowed_sprite_keys,
   );
 
   for (const [key, u] of entries) {
@@ -270,16 +271,16 @@ export function parseUnits(raw: unknown): Units {
       }
     }
 
-    // Every occupied sprite row is on the approved list.
-    for (const row of spriteRowsOf(u.rendering)) {
+    // Every bound sprite family is on the approved list.
+    for (const key of spriteKeysOf(u.rendering)) {
       c.check(
-        allowedRows.has(row),
+        allowedSpriteKeys.has(key),
         at("rendering"),
-        `sprite row ${row} is not an approved row`,
+        `sprite key "${key}" is not an approved key`,
       );
     }
 
-    // Special-state (diver) units carry per-state daily fuel and sprite rows.
+    // Special-state (diver) units carry per-state daily fuel and sprite keys.
     const hasStates = u.special_states.length > 0;
     c.check(
       hasStates === "surfaced" in u.logistics.daily_fuel,
@@ -287,9 +288,9 @@ export function parseUnits(raw: unknown): Units {
       "special-state units need per-state daily fuel; stateless units need a single value",
     );
     c.check(
-      hasStates === "sprite_rows" in u.rendering,
+      hasStates === "sprite_keys" in u.rendering,
       at("rendering"),
-      "special-state units need per-state sprite rows; stateless units need a single row",
+      "special-state units need per-state sprite keys; stateless units need a single key",
     );
 
     checkExpectedValues(c, key, u);

@@ -69,7 +69,9 @@ function view(
     visibleTiles: [],
     units,
     properties,
-    unitRender: { tank: { spriteRow: 9, submergedRow: null, isAir: false } },
+    unitRender: {
+      tank: { spriteKey: "tank", submergedSpriteKey: null, isAir: false },
+    },
     you: {
       playerId: "me",
       factionId: "blue",
@@ -311,7 +313,7 @@ function combatGameData(): GameData {
         combat,
         capabilities: { can_capture: false },
         logistics: { primary_ammo_per_attack: 1 },
-        rendering: { sprite_row: 9, row_id: "unit_r09" },
+        rendering: { sprite_key: "tank" },
       },
       infantry: {
         category: "ground",
@@ -329,7 +331,7 @@ function combatGameData(): GameData {
         combat,
         capabilities: { can_capture: true },
         logistics: { primary_ammo_per_attack: 0 },
-        rendering: { sprite_row: 0, row_id: "unit_r00" },
+        rendering: { sprite_key: "infantry" },
       },
       apc: {
         category: "ground",
@@ -339,7 +341,7 @@ function combatGameData(): GameData {
         movement: { ...move },
         capabilities: { can_supply: true, can_transport: true },
         transport: { capacity: 1, allowed_cargo: ["infantry"] },
-        rendering: { sprite_row: 3, row_id: "unit_r03" },
+        rendering: { sprite_key: "apc" },
       },
       submarine: {
         category: "naval",
@@ -350,7 +352,7 @@ function combatGameData(): GameData {
         combat,
         capabilities: { can_dive: true },
         logistics: { primary_ammo_per_attack: 1 },
-        rendering: { sprite_row: 20, row_id: "unit_r20" },
+        rendering: { sprite_key: "submarine" },
       },
     },
     properties: {
