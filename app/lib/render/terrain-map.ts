@@ -103,13 +103,21 @@ function pair(
   return hits.length === 2 ? [hits[0]!, hits[1]!] : null;
 }
 
-/** Coast edge for a water cell (`SeaLocation`). */
+/**
+ * Coast edge for a water cell (`SeaLocation`).
+ *
+ * Off-map neighbours count as water: the ocean is understood to continue past
+ * the border, so a map that ends on sea does not get a ring of cliffs facing
+ * outward. Only real land raises a shoreline.
+ */
 export function seaTile(map: MapView, x: number, y: number): string {
   const c = cross(map, x, y);
+  const openWater = (t: string | undefined): boolean =>
+    t === undefined || isNaval(t);
   const groundCount = c.filter(isGround).length;
 
   if (groundCount === 2) {
-    const naval = pair(c, isNaval);
+    const naval = pair(c, openWater);
     if (naval !== null) {
       const [i, j] = naval;
       const sum = i + j;
@@ -122,10 +130,10 @@ export function seaTile(map: MapView, x: number, y: number): string {
     }
   }
   if (groundCount === 1) {
-    if (!isNaval(c[0])) return "terrain_sea_top";
-    if (!isNaval(c[1])) return "terrain_sea_right";
-    if (!isNaval(c[2])) return "terrain_sea_bottom";
-    if (!isNaval(c[3])) return "terrain_sea_left";
+    if (!openWater(c[0])) return "terrain_sea_top";
+    if (!openWater(c[1])) return "terrain_sea_right";
+    if (!openWater(c[2])) return "terrain_sea_bottom";
+    if (!openWater(c[3])) return "terrain_sea_left";
   }
   return "terrain_sea";
 }
@@ -350,11 +358,12 @@ export function layersForCell(map: MapView, x: number, y: number): TileLayer[] {
       break;
   }
 
-  // Land: grass, plus whatever stands on it.
+  // Land: grass, plus whatever stands on it. Raised features cast their shadow
+  // east, so the shaded grass variant belongs to the tile to their right.
   const raised = new Set(["forest", "mountain", "hill"]);
-  const east = terrainAt(map, x + 1, y);
+  const west = terrainAt(map, x - 1, y);
   const base: TileLayer = {
-    key: raised.has(east ?? "") ? "terrain_plain_shadow" : "terrain_plain",
+    key: raised.has(west ?? "") ? "terrain_plain_shadow" : "terrain_plain",
   };
   if (raised.has(terrainId)) {
     return [base, { key: renderTileFor(terrainId) }];

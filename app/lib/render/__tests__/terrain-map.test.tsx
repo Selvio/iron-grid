@@ -206,14 +206,18 @@ describe("layersForCell", () => {
 
   it("stacks grass under raised features", () => {
     const map = view([["forest", "mountain", "road"]]);
-    expect(keys(map, 0, 0)).toEqual(["terrain_plain_shadow", "terrain_forest"]);
-    expect(keys(map, 1, 0)).toEqual(["terrain_plain", "terrain_mountain"]);
+    expect(keys(map, 0, 0)).toEqual(["terrain_plain", "terrain_forest"]);
+    expect(keys(map, 1, 0)).toEqual([
+      "terrain_plain_shadow",
+      "terrain_mountain",
+    ]);
     expect(keys(map, 2, 0)).toEqual(["terrain_road_horizontal"]);
   });
 
-  it("shades the plain west of a raised feature", () => {
-    const map = view([["plain", "mountain"]]);
-    expect(keys(map, 0, 0)).toEqual(["terrain_plain_shadow"]);
+  it("shades the plain east of a raised feature, where its shadow falls", () => {
+    const map = view([["mountain", "plain", "plain"]]);
+    expect(keys(map, 1, 0)).toEqual(["terrain_plain_shadow"]);
+    expect(keys(map, 2, 0)).toEqual(["terrain_plain"]);
   });
 
   it("draws bare grass under a property, which the property layer covers", () => {
