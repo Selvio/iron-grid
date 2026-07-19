@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -172,11 +172,18 @@ describe("BattlefieldView", () => {
     });
   });
 
-  it("ends the turn, submitting an end_turn action then refetching", async () => {
+  it("confirms end turn through the dialog, then submits + refetches", async () => {
     const fetchMock = stubFetch(view());
 
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    // The board button opens a no-undo confirmation dialog.
     await userEvent.click(screen.getByRole("button", { name: /end turn/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(within(dialog).getByText("End your turn?")).toBeInTheDocument();
+    // Confirm from inside the dialog.
+    await userEvent.click(
+      within(dialog).getByRole("button", { name: /end turn/i }),
+    );
 
     await waitFor(() => {
       const submit = fetchMock.mock.calls.find((c) =>
@@ -187,6 +194,19 @@ describe("BattlefieldView", () => {
         JSON.parse((submit![1] as RequestInit).body as string),
       ).toMatchObject({ type: "end_turn", expectedStateVersion: 4 });
     });
+  });
+
+  it("does not end the turn when the dialog is dismissed with Not yet", async () => {
+    const fetchMock = stubFetch(view());
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByRole("button", { name: /end turn/i }));
+    await userEvent.click(screen.getByRole("button", { name: "Not yet" }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.some((c) => String(c[0]).includes("/actions")),
+    ).toBe(false);
   });
 
   it("walks the moved unit (with its path) before reconciling", async () => {

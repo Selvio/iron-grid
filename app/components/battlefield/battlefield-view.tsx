@@ -28,6 +28,7 @@ import {
   type DestinationOptions,
 } from "@/app/lib/preview/actions";
 import { computePath } from "@/app/lib/preview/path";
+import { formatCountdown } from "@/app/lib/format";
 import {
   prefersReducedMotion,
   submittedAttackPlan,
@@ -95,6 +96,7 @@ export function BattlefieldView({
   const [hovered, setHovered] = useState<Coordinate | null>(null);
   const [banner, setBanner] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
+  const [confirmEnd, setConfirmEnd] = useState(false);
   const sceneRef = useRef<BattlefieldHandle | null>(null);
   const turnKeyRef = useRef(
     `${matchView.currentDay}:${matchView.activePlayerId}`,
@@ -114,6 +116,16 @@ export function BattlefieldView({
     const timer = setTimeout(() => setBanner(null), 2200);
     return () => clearTimeout(timer);
   }, [view.currentDay, view.activePlayerId, isMyTurn]);
+
+  // Escape closes the end-turn confirmation dialog.
+  useEffect(() => {
+    if (!confirmEnd) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setConfirmEnd(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [confirmEnd]);
 
   function ownSelectableAt(x: number, y: number) {
     const unit = view.units.find(
@@ -588,7 +600,7 @@ export function BattlefieldView({
           type="button"
           className="pointer-events-auto absolute bottom-4 right-4 flex items-center gap-2 rounded-2xl border-4 border-[#1c2b45] bg-gradient-to-b from-[#ffd94a] to-[#f5b820] px-6 py-3.5 font-display text-lg font-extrabold text-[#1c2b45] shadow-[0_6px_0_rgba(28,43,69,0.35)] transition-[filter] hover:brightness-105 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60"
           disabled={busy}
-          onClick={() => void endTurn()}
+          onClick={() => setConfirmEnd(true)}
         >
           <Flag className="size-5" aria-hidden="true" />
           End turn
@@ -628,6 +640,58 @@ export function BattlefieldView({
           <span className="rounded-2xl border-[3px] border-[#1c2b45] bg-[#fff6e0] px-6 py-2 font-display text-xl font-extrabold text-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
             {banner}
           </span>
+        </div>
+      )}
+
+      {/* End-turn confirmation (no undo) — mirrors the design's dialog. */}
+      {confirmEnd && (
+        <div
+          role="presentation"
+          onClick={() => setConfirmEnd(false)}
+          className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-[#1c2b45]/55 p-6"
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="end-turn-title"
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md rounded-[22px] border-[3px] border-[#1c2b45] bg-[#fff6e0] p-7 text-center shadow-[0_8px_0_rgba(28,43,69,0.35)]"
+          >
+            <div className="mx-auto mb-4 grid size-16 place-items-center rounded-2xl border-[3px] border-[#1c2b45] bg-gradient-to-b from-[#ffd94a] to-[#f5b820] shadow-[0_4px_0_rgba(28,43,69,0.3)]">
+              <Flag className="size-8 text-[#1c2b45]" aria-hidden="true" />
+            </div>
+            <h2
+              id="end-turn-title"
+              className="font-display text-2xl font-extrabold text-[#1c2b45]"
+            >
+              End your turn?
+            </h2>
+            <p className="mx-auto mt-3 max-w-sm text-sm font-semibold text-[#7a6f57]">
+              {view.turnDeadlineAt
+                ? `Your opponent is notified and has until the deadline (${formatCountdown(view.turnDeadlineAt, new Date())}) to respond. You can't act again until then.`
+                : "Your opponent is notified and can respond in their own time. You can't act again until then."}
+            </p>
+            <div className="mt-6 flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmEnd(false)}
+                className="flex-1 rounded-xl border-[3px] border-[#1c2b45] bg-white px-5 py-3 font-display text-base font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.22)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5"
+              >
+                Not yet
+              </button>
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => {
+                  setConfirmEnd(false);
+                  void endTurn();
+                }}
+                className="flex-1 rounded-xl border-[3px] border-[#1c2b45] bg-gradient-to-b from-[#ffd94a] to-[#f5b820] px-5 py-3 font-display text-base font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.3)] transition-[filter,transform] hover:brightness-105 active:translate-y-0.5 disabled:opacity-60"
+              >
+                End turn
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

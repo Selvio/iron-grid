@@ -351,6 +351,30 @@
       </div>
       </sc-if>
 
+      <!-- ===== BUILD POPUP ===== -->
+      <sc-if value="{{ buildOpen }}" hint-placeholder-val="{{ false }}">
+      <div onClick="{{ closeBuild }}" style="position:absolute;inset:0;z-index:46;background:rgba(12,22,40,.45);display:flex;align-items:center;justify-content:center;padding:20px">
+        <div onClick="{{ stop }}" style="width:342px;max-height:88%;display:flex;flex-direction:column;background:#fdf1d3;border:4px solid #1c2b45;border-radius:20px;box-shadow:0 8px 0 rgba(28,43,69,.35);overflow:hidden;animation:{{ popAnim }}">
+          <div style="padding:16px 18px 10px;flex:0 0 auto">
+            <div style="font-weight:800;font-size:23px;color:#1c2b45;line-height:1">Build</div>
+            <div style="font-size:12px;color:#8a7a4a;font-weight:600;margin-top:5px">At (2, 6) · no undo</div>
+          </div>
+          <div style="flex:1;min-height:0;overflow:auto;padding:4px 14px;display:flex;flex-direction:column;gap:10px">
+            <sc-for list="{{ buildItems }}" as="u" hint-placeholder-count="11">
+              <button onClick="{{ u.onClick }}" style="display:flex;align-items:center;gap:14px;width:100%;padding:11px 16px;border-radius:14px;border:3px solid {{ u.border }};background:{{ u.bg }};cursor:{{ u.cursor }};font-family:inherit;box-shadow:{{ u.shadow }};opacity:{{ u.opacity }}" style-hover="{{ u.hover }}">
+                <span style="flex:0 0 auto;width:34px;display:flex;justify-content:center">{{ u.sprite }}</span>
+                <span style="flex:1;text-align:left;font-weight:800;font-size:16px;color:{{ u.fg }}">{{ u.name }}</span>
+                <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:14px;color:{{ u.priceFg }}">{{ u.price }} <span style="font-size:11px">G</span></span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="padding:12px 14px 16px;flex:0 0 auto">
+            <button onClick="{{ closeBuild }}" style="width:100%;padding:14px;border-radius:14px;border:3px solid #1c2b45;background:#fff;color:#1c2b45;font-family:inherit;font-weight:800;font-size:16px;cursor:pointer;box-shadow:0 4px 0 rgba(28,43,69,.25)" style-active="transform:translateY(2px);box-shadow:0 2px 0 rgba(28,43,69,.25)">Cancel</button>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+
       <!-- ===== DEVELOPER MODE DRAWER ===== -->
       <sc-if value="{{ devOpen }}" hint-placeholder-val="{{ false }}">
       <div onClick="{{ toggleDev }}" style="position:absolute;inset:0;z-index:40;background:rgba(12,22,40,.3)"></div>
@@ -715,7 +739,7 @@
 </x-dc>
 <script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1440,&quot;height&quot;:900},&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;reducedMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;},&quot;annotations&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Display&quot;}}">
 class Component extends DCLogic {
-  state = { screen: 'battlefield', bf: 'selected', gameMenu:false, devOpen:false, objOpen:false, endConfirm:false, zoom:1.15 };
+  state = { screen: 'battlefield', bf: 'selected', gameMenu:false, devOpen:false, objOpen:false, endConfirm:false, buildOpen:false, zoom:1.15 };
 
   get mono(){ return "'JetBrains Mono',ui-monospace,monospace"; }
   get FAC(){ return {
@@ -1102,11 +1126,12 @@ class Component extends DCLogic {
     const bluePortrait=this.coPortrait('B',52), redPortrait=this.coPortrait('R',52);
     const phaseMap={idle:'Select a unit',selected:'Unit selected',menu:'Choose action',combat:'Combat preview',post:'Action resolved',fog:'Fog of war',loaded:'Transport loaded',capturing:'Capturing'};
     const phaseLabel=phaseMap[bf]||'Your turn';
-    const gmIcon={resume:'M5 4l14 8-14 8z',obj:'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7',units:'M4 6h16M4 12h16M4 18h16',matches:'M3 3h8v6H3zM13 3h8v10h-8zM13 16h8v5h-8zM3 12h8v9H3z',invite:'M4 6h16v12H4zM4 7l8 6 8-6',cmdr:'M12 3l7 3v5c0 5-7 8-7 8s-7-3-7-8V6z',ready:'M21 12a9 9 0 1 1-4.2-7.6M9 12l2.5 2.5L22 4',opts:'M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',resign:'M4 15V3M4 3l16 8-16 8'};
+    const gmIcon={resume:'M5 4l14 8-14 8z',obj:'M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1zM4 22v-7',units:'M4 6h16M4 12h16M4 18h16',matches:'M3 3h8v6H3zM13 3h8v10h-8zM13 16h8v5h-8zM3 12h8v9H3z',invite:'M4 6h16v12H4zM4 7l8 6 8-6',cmdr:'M12 3l7 3v5c0 5-7 8-7 8s-7-3-7-8V6z',ready:'M21 12a9 9 0 1 1-4.2-7.6M9 12l2.5 2.5L22 4',opts:'M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2',resign:'M4 15V3M4 3l16 8-16 8',build:'M14 7l6 6-8 8-6-6zM3 21l3-3M14 7l3-3 3 3-3 3'};
     const gameMenuItems=[
       {label:'Resume', icon:gmIcon.resume, color:'#1c2b45', onClick:()=>this.setState({gameMenu:false})},
       {label:'Objectives', icon:gmIcon.obj, color:'#1c2b45', onClick:()=>this.setState({gameMenu:false,objOpen:true})},
       {label:'Unit list', icon:gmIcon.units, color:'#1c2b45', onClick:()=>this.setState({gameMenu:false})},
+      {label:'Build unit', icon:gmIcon.build, color:'#1c2b45', onClick:()=>this.setState({gameMenu:false,buildOpen:true})},
       {label:'Matches', icon:gmIcon.matches, color:'#1c2b45', onClick:()=>this.setState({screen:'dashboard',gameMenu:false})},
       {label:'Invite / Join', icon:gmIcon.invite, color:'#1c2b45', onClick:()=>this.setState({screen:'invite',gameMenu:false})},
       {label:'Commander', icon:gmIcon.cmdr, color:'#1c2b45', onClick:()=>this.setState({screen:'commander',gameMenu:false})},
@@ -1114,11 +1139,20 @@ class Component extends DCLogic {
       {label:'Options', icon:gmIcon.opts, color:'#1c2b45', onClick:()=>this.setState({gameMenu:false})},
       {label:'Resign', icon:gmIcon.resign, color:'#d33f3a', onClick:()=>this.setState({gameMenu:false})}
     ];
+    const buildOpen=!!this.state.buildOpen; const buildFunds=6000;
+    const buildDefs=[['INF','Infantry',1000],['MCH','Mech',3000],['REC','Recon',4000],['APC','APC',5000],['ART','Artillery',6000],['TNK','Tank',7000],['AA','Anti-Air',8000],['MSL','Missiles',12000],['RKT','Rockets',15000],['MDT','Medium Tank',16000],['NEO','Neotank',22000]];
+    const buildItems=buildDefs.map(([t,name,price])=>{ const ok=price<=buildFunds; return {
+      name, price:price.toLocaleString('en-US'), sprite:this.unitSprite({t,fac:'B',hp:10},{size:28}),
+      cursor: ok?'pointer':'not-allowed', onClick:()=>{ if(ok) this.setState({buildOpen:false}); },
+      border: ok?'#1c2b45':'#cdbb8a', bg: ok?'#ffffff':'#efe6cd', fg: ok?'#1c2b45':'#b0a074', priceFg: ok?'#1c2b45':'#b0a074',
+      shadow: ok?'0 4px 0 rgba(28,43,69,.2)':'none', opacity: ok?'1':'.85', hover: ok?'transform:translateY(-1px)':''
+    };});
 
     return {
       rootStyle, nav, bfTabs, pulseAnim, dashAnim, showAnno:anno,
       showNav, gameMenuOpen, devOpen, objOpen, endConfirm, zoomVal, zoomPct, objChev, popAnim,
       bluePips, redPips, bluePortrait, redPortrait, phaseLabel, gameMenuItems,
+      buildOpen, buildItems,
       isBattlefield: screen==='battlefield',
       isDashboard: screen==='dashboard', isCreate: screen==='create', isInvite: screen==='invite',
       isCommander: screen==='commander', isReady: screen==='ready', isReplay: screen==='replay', isCompleted: screen==='completed',
@@ -1142,6 +1176,8 @@ class Component extends DCLogic {
       zoomIn:()=>this.setState(s=>({zoom:Math.min(1.5,(s.zoom||1.15)+0.1)})),
       zoomOut:()=>this.setState(s=>({zoom:Math.max(0.75,(s.zoom||1.15)-0.1)})),
       stop:(e)=>{ if(e&&e.stopPropagation) e.stopPropagation(); },
+      openBuild:()=>this.setState({buildOpen:true}),
+      closeBuild:()=>this.setState({buildOpen:false}),
       toggleFog:()=>this.setState(s=>({fog: s.fog===false?true:false}))
     };
   }
