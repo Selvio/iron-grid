@@ -2,6 +2,7 @@ import type { Coordinate } from "game-engine";
 import Phaser from "phaser";
 
 import {
+  ANIMATION_COLUMNS,
   FACTION_SHEETS,
   TERRAIN_TILE_PX,
   UNIT_ROW_HEIGHT_PX,
@@ -105,6 +106,10 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private readonly unitModels = new Map<string, UnitSprite>();
   /** Every unit/property/shadow/bar object — cleared and redrawn by syncModel. */
   private dynamicObjects: Phaser.GameObjects.GameObject[] = [];
+  /** Current frame of the shared idle loop (Advance-Wars-style unit breathing). */
+  private idleFrame = 0;
+  /** Unit ids playing a one-shot combat clip; the idle loop leaves them alone. */
+  private readonly animating = new Set<string>();
 
   constructor(
     data: BattlefieldData,
@@ -288,6 +293,40 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
 
     this.syncModel(this.model); // initial dynamic draw
     this.onReady?.(this);
+
+    // Advance-Wars-style idle loop: cycle the unit idle frames so the board
+    // never feels frozen. Honored off under OS reduced-motion (`frontend.md` §10);
+    // acted/dived/mid-walk units are left still by `tickIdle`.
+    const reduce =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduce) {
+      this.time.addEvent({
+        delay: 230,
+        loop: true,
+        callback: () => this.tickIdle(),
+      });
+    }
+  }
+
+  /** Advance one shared idle frame across every unit sprite. */
+  private tickIdle(): void {
+    this.idleFrame = (this.idleFrame + 1) % ANIMATION_COLUMNS.idle.length;
+    for (const [unitId, sprite] of this.unitSprites) {
+      const model = this.unitModels.get(unitId);
+      if (model === undefined) continue;
+      // Every unit breathes (acted/greyed and dived included); a walking or
+      // combat-clip sprite is left alone, since that animation owns its texture.
+      if (this.animating.has(unitId) || this.tweens.isTweening(sprite))
+        continue;
+      const spriteRow =
+        (model.frame.y - UNIT_SHEET_HEADER_PX) / UNIT_ROW_HEIGHT_PX;
+      const key = `units-${model.faction}`;
+      const rect = unitFrame(spriteRow, "idle", this.idleFrame);
+      sprite.setTexture(key, this.ensureFrame(key, rect.x, rect.y));
+      sprite.setFlipX(model.faceLeft);
+    }
   }
 
   /** Resize the canvas + camera; tile size stays on whole CSS pixels. */
@@ -308,6 +347,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     this.dynamicObjects = [];
     this.unitSprites.clear();
     this.unitModels.clear();
+    this.animating.clear();
     this.model = data;
     this.drawProperties();
     this.drawUnits();
@@ -318,14 +358,135 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       if (step.kind === "move") {
         await this.walkUnit(step.unitId, step.path);
       } else if (step.kind === "attack") {
-        this.unitSprites.get(step.defenderUnitId)?.setTint(0xffffff);
+        await this.playAttack(step.attackerUnitId, step.defenderUnitId);
       } else if (step.kind === "destroy") {
-        const sprite = this.unitSprites.get(step.unitId);
-        if (sprite !== undefined) {
-          this.tweens.add({ targets: sprite, alpha: 0, duration: 200 });
-        }
+        await this.playDestroy(step.unitId);
       }
     }
+  }
+
+  /** The sprite row backing a unit model (idle[0] rect → row index). */
+  private rowOf(model: UnitSprite): number {
+    return (model.frame.y - UNIT_SHEET_HEADER_PX) / UNIT_ROW_HEIGHT_PX;
+  }
+
+  /** Reset a sprite to its resting idle frame, facing the enemy base. */
+  private restIdle(sprite: Phaser.GameObjects.Image, model: UnitSprite): void {
+    this.setWalkFrame(
+      sprite,
+      model.faction,
+      this.rowOf(model),
+      "idle",
+      model.faceLeft,
+      0,
+    );
+  }
+
+  /** Play a one-shot frame clip on a sprite over `duration` ms. */
+  private playClip(
+    unitId: string,
+    sprite: Phaser.GameObjects.Image,
+    model: UnitSprite,
+    animation: UnitAnimation,
+    duration: number,
+    flipX: boolean,
+  ): Promise<void> {
+    this.animating.add(unitId);
+    const spriteRow = this.rowOf(model);
+    const frames = ANIMATION_COLUMNS[animation].length;
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = (): void => {
+        if (done) return;
+        done = true;
+        this.animating.delete(unitId);
+        resolve();
+      };
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, finish);
+      this.events.once(Phaser.Scenes.Events.DESTROY, finish);
+      this.tweens.addCounter({
+        from: 0,
+        to: 1,
+        duration,
+        onUpdate: (tween) => {
+          const index = Math.min(
+            frames - 1,
+            Math.floor(tween.progress * frames),
+          );
+          this.setWalkFrame(
+            sprite,
+            model.faction,
+            spriteRow,
+            animation,
+            flipX,
+            index,
+          );
+        },
+        onComplete: finish,
+      });
+    });
+  }
+
+  /** Attacker swings (`attack`) while the defender recoils (`hit`). */
+  private async playAttack(
+    attackerId: string,
+    defenderId: string,
+  ): Promise<void> {
+    const attacker = this.unitSprites.get(attackerId);
+    const attackerModel = this.unitModels.get(attackerId);
+    const defender = this.unitSprites.get(defenderId);
+    const defenderModel = this.unitModels.get(defenderId);
+    const clips: Promise<void>[] = [];
+
+    if (attacker !== undefined && attackerModel !== undefined) {
+      // Face the defender for the swing (post-move world positions are accurate).
+      const flip =
+        defender !== undefined
+          ? defender.x < attacker.x
+          : attackerModel.faceLeft;
+      clips.push(
+        this.playClip(attackerId, attacker, attackerModel, "attack", 360, flip),
+      );
+    }
+    if (defender !== undefined && defenderModel !== undefined) {
+      clips.push(
+        this.playClip(
+          defenderId,
+          defender,
+          defenderModel,
+          "hit",
+          300,
+          defenderModel.faceLeft,
+        ),
+      );
+    }
+    await Promise.all(clips);
+
+    if (attacker !== undefined && attackerModel !== undefined) {
+      this.restIdle(attacker, attackerModel);
+    }
+    if (defender !== undefined && defenderModel !== undefined) {
+      this.restIdle(defender, defenderModel);
+    }
+  }
+
+  /** Play the death clip, then fade the sprite out. */
+  private async playDestroy(unitId: string): Promise<void> {
+    const sprite = this.unitSprites.get(unitId);
+    if (sprite === undefined) return;
+    const model = this.unitModels.get(unitId);
+    if (model !== undefined) {
+      await this.playClip(unitId, sprite, model, "death", 360, model.faceLeft);
+    }
+    await new Promise<void>((resolve) => {
+      this.events.once(Phaser.Scenes.Events.SHUTDOWN, resolve);
+      this.tweens.add({
+        targets: sprite,
+        alpha: 0,
+        duration: 160,
+        onComplete: () => resolve(),
+      });
+    });
   }
 
   /** Walks a unit tile-by-tile along its path with directional walk frames. */

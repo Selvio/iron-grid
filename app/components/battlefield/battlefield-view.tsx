@@ -334,6 +334,19 @@ export function BattlefieldView({
     const path = pathTo(state.unitId, state.destination);
     if (path === null) return void dispatch({ type: "deselect" });
     const reducedMotion = prefersReducedMotion();
+    const plan = submittedAttackPlan(state.unitId, path, state.targetUnitId, {
+      reducedMotion,
+    });
+    // Animate the defender's death only when it is a *guaranteed* kill — the min
+    // (luck-0) forecast already meets its HP — so the speculative destroy can
+    // never contradict the authoritative result the refetch brings back.
+    if (
+      !reducedMotion &&
+      state.defender !== undefined &&
+      state.preview.minDamage >= state.defender.trueHp
+    ) {
+      plan.push({ kind: "destroy", unitId: state.targetUnitId });
+    }
     void runSubmit(
       {
         type: "attack",
@@ -342,9 +355,7 @@ export function BattlefieldView({
         path,
         ...envelope(),
       },
-      submittedAttackPlan(state.unitId, path, state.targetUnitId, {
-        reducedMotion,
-      }),
+      plan,
     );
   }
 

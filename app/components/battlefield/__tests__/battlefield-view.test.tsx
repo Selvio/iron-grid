@@ -453,6 +453,26 @@ describe("BattlefieldView · combat", () => {
     ]);
   });
 
+  it("appends a death beat when the forecast guarantees the kill", async () => {
+    // A near-dead defender: even the luck-0 forecast wipes it, so the plan may
+    // safely play the death clip before the refetch confirms the removal.
+    const doomed = { ...ENEMY_TANK, trueHp: 5 };
+    const v = view([MY_TANK, doomed]);
+    stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select my tank
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
+    await userEvent.click(screen.getByRole("button", { name: "Attack" }));
+    await userEvent.click(screen.getByRole("button", { name: "Attack" }));
+
+    await waitFor(() => expect(scene.playAnimation).toHaveBeenCalledOnce());
+    expect(scene.playAnimation).toHaveBeenCalledWith([
+      expect.objectContaining({ kind: "attack", defenderUnitId: "e1" }),
+      expect.objectContaining({ kind: "destroy", unitId: "e1" }),
+    ]);
+  });
+
   it("highlights the attackable enemy tile during target select", async () => {
     // Two enemies flanking the tank force the explicit target picker.
     const west = { ...ENEMY_TANK, id: "e2", position: { x: 1, y: 1 } };
