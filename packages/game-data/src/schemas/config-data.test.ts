@@ -36,9 +36,9 @@ describe("commanders (design-blocked) contract", () => {
 });
 
 describe("maps: the first official map (M10)", () => {
-  const map = data.maps["crossfire-basin"];
+  const map = data.maps["spann-island"];
 
-  it("loads crossfire-basin, pending its balance sign-off", () => {
+  it("loads spann-island, pending its balance sign-off", () => {
     expect(map).toBeDefined();
     // Not published — the two-human balance review is the owner's to record.
     expect(map!.status).toBe("review");

@@ -15,7 +15,7 @@ import { users } from "@/app/server/db/schema/users";
  * Dev-only seed: a **practice / hotseat** match you play solo (M10 testing aid).
  *
  * Creates (or reuses) a user for the given email, a login session, and an ACTIVE
- * `crossfire-basin` match where the SAME user owns both sides. The action
+ * `spann-island` match where the SAME user owns both sides. The action
  * pipeline resolves the caller to whichever side is active (see
  * `requireMatchMembership` `preferPlayerId`), so you move blue, End turn, move
  * red, and so on. Prints the session cookie to set and the /play URL.
@@ -26,7 +26,7 @@ import { users } from "@/app/server/db/schema/users";
  */
 
 const email = process.argv[2] ?? "dev@iron-grid.test";
-const MAP_ID = "crossfire-basin";
+const MAP_ID = "spann-island";
 
 async function main(): Promise<void> {
   const db = createDatabase();
@@ -133,7 +133,7 @@ async function main(): Promise<void> {
 ✅ Practice match seeded.
 
   User:   ${email} (${user.id})
-  Match:  ${matchId}  (crossfire-basin, active, hotseat)
+  Match:  ${matchId}  (spann-island, active, hotseat)
 
 To log in without email, set this cookie in your browser (DevTools → Application →
 Cookies → http://localhost:3000):

@@ -6,7 +6,7 @@ import { loadGameData, type GameData } from "game-data";
  * Production keeps one parsed copy (the YAML is immutable per deploy). In
  * development every call re-reads `docs/02-data/*.yaml` so map/atlas edits show
  * up without restarting `pnpm dev` — a module-level `??=` cache was leaving the
- * play page on a stale `crossfire-basin` layout after YAML changes.
+ * play page on a stale `spann-island` layout after YAML changes.
  */
 
 let cached: GameData | undefined;

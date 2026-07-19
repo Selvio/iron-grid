@@ -266,7 +266,7 @@ runs on the `setup.ts` test fixture map. No battlefield UI exists.
 > enumerated only `move_and_wait` + `end_turn`, so the menu could offer only "move
 > here" and the combat-preview path stayed out of the live controller (see §4/§6 — the fixture game
 > data has no weapons/damage tables). With the **practice/hotseat seed** loading the
-> **real** `crossfire-basin` game data, the enumerator was extended to emit `attack`
+> **real** `spann-island` game data, the enumerator was extended to emit `attack`
 > (firing-tile → target pairs) and `capture` (capturable-property tiles) via pure
 > `canAttackFrom` / `canCaptureAt` predicates that mirror `validateAttack` /
 > `validateCapture`. The panel became a **selectable** Wait/Capture/Attack menu and
@@ -401,7 +401,7 @@ M10 is complete when, from a clean checkout:
    + the forecast panel) before the final confirm — this path is now **wired into
    the live controller** and unit-tested over combat-capable fixtures (see the
    §M10-T6 amendment). Live combat needs real weapons/damage tables, which the
-   **practice/hotseat** match supplies (real `crossfire-basin` game data).
+   **practice/hotseat** match supplies (real `spann-island` game data).
 4. Committing a **move / capture / attack / produce** **submits** through
    `POST …/actions` with `expectedStateVersion` + `idempotencyKey` (produce sends
    only `propertyId` + `unitTypeId`; the server assigns `newUnitId`); the client
@@ -445,7 +445,7 @@ M10 is complete when, from a clean checkout:
   unit) and `produce` (per owned production property), the action + build menus are
   selectable, and the choose-target → forecast → submit `attack`, `capture`, and
   `produce` paths are wired and unit-tested over combat/production-capable fixtures.
-  It became runnable once the **practice/hotseat** seed loaded real `crossfire-basin`
+  It became runnable once the **practice/hotseat** seed loaded real `spann-island`
   weapons/damage/economy tables. A later amendment (see §M10-T7) added the logistics /
   state actions — **supply, join, load, unload, dive, surface** — likewise enumerated
   and wired. What remains deferred is only **activate_power** (CO powers, design-gated)

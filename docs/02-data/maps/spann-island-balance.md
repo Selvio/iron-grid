@@ -1,6 +1,6 @@
-# Crossfire Basin — balance rationale (M10-T10)
+# Spann Island — balance rationale (M10-T10)
 
-**Map:** `official_maps.crossfire-basin` · 15×10 · `status: review` · `version: 2.0.0`
+**Map:** `official_maps.spann-island` · 15×10 · `status: review` · `version: 2.0.0`
 **Balance status:** `pending_review` — candidate + evidence produced by
 implementation; the formal **two-human balance sign-off**
 (`maps.yaml` `official_map_release_gates`) is recorded by the project owner. This

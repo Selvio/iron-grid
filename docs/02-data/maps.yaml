@@ -7,7 +7,7 @@ document_purpose: >
   are declared per map and must match the terrain grid), player starts,
   terrain grid, render layers, property instances, starting units, starting
   funds, supported settings, balance requirements, map versioning, and
-  release gates. The first official map is `crossfire-basin` (15×10 island).
+  release gates. The first official map is `spann-island` (15×10 island).
 
 game_reference:
   inspiration: "Advance Wars 2: Black Hole Rising"
@@ -527,8 +527,8 @@ official_maps:
   # player_1 starts NE (Blue), player_2 SW (Red). The northern inlet and the
   # south-eastern bay are `sea`; each road crossing them is a logical `bridge`,
   # which the art pack draws with its own deck sprite.
-  crossfire-basin:
-    id: "crossfire-basin"
+  spann-island:
+    id: "spann-island"
     version: "3.0.1"
     display_name: null
     status: "review"
@@ -592,11 +592,11 @@ publication_state:
   mvp_minimum_required: 1
   status: "blocked"
   blockers:
-    - "crossfire-basin balance is pending the two-human sign-off (status: review)."
+    - "spann-island balance is pending the two-human sign-off (status: review)."
     - "Reef, Pipe, Pipe Seam and Missile Silo remain asset-gated."
     - "Day-limit scoring is not implemented."
   allowed_next_step: >
-    Complete the two-human balance review of crossfire-basin, then flip it to
+    Complete the two-human balance review of spann-island, then flip it to
     status: published / balance: approved to enable it.
 
 cross_file_contracts:

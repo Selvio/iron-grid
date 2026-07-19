@@ -105,7 +105,7 @@ function fixtureMap(
   };
 }
 
-// The first official map (crossfire-basin, M10) exercises the per-map reference
+// The first official map (spann-island, M10) exercises the per-map reference
 // checks on the success path (it loads and validates). These synthetic fixtures
 // exercise the same checks through the FAILURES they must catch — a property on
 // the wrong terrain, a blocked terrain, a unit that cannot occupy its tile.
