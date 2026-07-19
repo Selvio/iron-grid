@@ -527,6 +527,31 @@ describe("BattlefieldView · combat", () => {
     });
   });
 
+  it("cycles between attackable targets with the arrows, not free-roaming", async () => {
+    const west = { ...ENEMY_TANK, id: "e2", position: { x: 1, y: 1 } };
+    const v = view([MY_TANK, ENEMY_TANK, west]);
+    stubFetch(v);
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await user.click(screen.getByLabelText("Tile 2, 1")); // select
+    await user.click(screen.getByLabelText("Tile 2, 1")); // in-place menu
+    await user.click(screen.getByRole("button", { name: "Attack" }));
+
+    // Only the two enemies are legal, so the cursor jumps between them instead
+    // of stepping onto the empty tiles in between.
+    screen.getByLabelText("Tile 2, 1").focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByLabelText("Tile 3, 1")).toHaveFocus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByLabelText("Tile 1, 1")).toHaveFocus();
+    await user.keyboard("{ArrowLeft}");
+    expect(screen.getByLabelText("Tile 3, 1")).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByText("Combat")).toBeInTheDocument();
+  });
+
   it("captures an enemy property in place", async () => {
     const infantry = {
       ...TANK,

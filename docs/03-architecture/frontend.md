@@ -230,6 +230,42 @@ Canonical in `game-specification.md` §27.1, §27.4.
   must exist as accessible HTML outside or over the canvas (§27.4).
 - **Reduced-motion** preference reduces nonessential animation (§27.4, §7).
 
+## 10.1 Keyboard model
+
+The battlefield is fully operable from the keyboard. Three rules decide where a
+key is handled, so precedence never depends on the order effects happen to
+register in:
+
+1. **The board grid owns the arrows** (`InteractionOverlay`). It is a *roving
+   tabindex*: exactly one cell is tabbable and the arrows move between them, so
+   the grid costs one `Tab` to cross instead of `width × height`. Focus *is* the
+   cursor — the path preview and the terrain read-out follow focus and hover
+   alike. The controller gets first refusal on each arrow press
+   (`onArrowKey`), which is how target selection cycles between legal enemies
+   rather than free-roaming.
+2. **The controller owns the global keys** (`BattlefieldView`), in one handler
+   that ignores modifier chords and typing in form fields.
+3. **Each modal owns its own keys** and traps `Tab` inside itself, restoring
+   focus to whatever opened it (`useDialogFocus`).
+
+| Key | Meaning |
+|---|---|
+| Arrows | Move the cursor · walk a menu · cycle attack targets |
+| `Enter` | Select / confirm the focused item |
+| `Esc` | Step back exactly one state (`interactionReducer`'s `cancel`); closes a dialog first |
+| `Space` | Toggle the selected unit's attack range |
+| `N` | Jump to the next unit that has not acted |
+| `E` | End turn (opens the confirmation, never submits) |
+| `+` `-` `0` | Zoom in / out / reset |
+| `?` | The shortcut list (`ShortcutsHelp`) |
+
+`Space` never activates a tile: the grid cancels its default so one press cannot
+both toggle the range and fire the tile under the cursor. `Esc` never confirms
+anything.
+
+Because the board is a canvas, state changes that are only visible as pixels
+(selection, turn changes) are mirrored into an `aria-live` region.
+
 ---
 
 # 11. Cross-references

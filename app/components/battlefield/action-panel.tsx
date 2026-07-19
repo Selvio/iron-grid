@@ -1,6 +1,7 @@
 "use client";
 
 import { displayHp, type Coordinate } from "game-engine";
+import { useEffect } from "react";
 
 import type { InteractionState } from "@/app/lib/battlefield/machine";
 import { Button } from "@/app/components/ui/button";
@@ -68,6 +69,36 @@ function damageRange(min: number, max: number): string {
   return min === max ? `${max}%` : `${min}–${max}%`;
 }
 
+/**
+ * The post-move menu takes focus as soon as it opens, so Enter commits without
+ * a hunt. The menu only appears in response to a deliberate choice of
+ * destination, so taking focus is what the player just asked for.
+ */
+function useActionMenuFocus(open: boolean): void {
+  useEffect(() => {
+    if (!open) return;
+    document
+      .querySelector<HTMLButtonElement>("[data-action-menu] button")
+      ?.focus();
+  }, [open]);
+}
+
+/** Arrows walk the menu's actions; the list is read off the event's own node. */
+function onMenuKeyDown(event: React.KeyboardEvent<HTMLDivElement>): void {
+  if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+  const buttons = [
+    ...event.currentTarget.querySelectorAll<HTMLButtonElement>("button"),
+  ];
+  if (buttons.length === 0) return;
+  event.preventDefault();
+  const at = buttons.indexOf(document.activeElement as HTMLButtonElement);
+  const step = event.key === "ArrowDown" ? 1 : -1;
+  const next =
+    (((at === -1 ? 0 : at + step) % buttons.length) + buttons.length) %
+    buttons.length;
+  buttons[next]!.focus();
+}
+
 /** Label for ending activation: "Move" when relocating, "Wait" when staying. */
 function commitLabel(
   destination: Coordinate,
@@ -95,6 +126,8 @@ export function ActionPanel({
   /** The viewer's funds — shown in the build popup's roster header. */
   funds?: number;
 }) {
+  useActionMenuFocus(state.kind === "action-menu");
+
   if (state.kind === "production-menu") {
     return (
       <BuildMenu
@@ -178,9 +211,9 @@ export function ActionPanel({
             : `To (${state.destination.x}, ${state.destination.y}) · no undo`}
         </CardDescription>
       </CardHeader>
-      <CardContent className="flex flex-col gap-3">
+      <CardContent className="flex flex-col gap-3" onKeyDown={onMenuKeyDown}>
         {state.kind === "action-menu" && (
-          <div className="flex flex-col gap-1.5">
+          <div data-action-menu className="flex flex-col gap-1.5">
             {state.options.canWait && (
               <Button variant="secondary" onClick={handlers.onWait}>
                 {commitLabel(state.destination, unitOrigin)}

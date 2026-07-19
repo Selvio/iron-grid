@@ -85,6 +85,89 @@ describe("battlefield acceptance", () => {
     expect(tile).not.toBeDisabled();
   });
 
+  it("gives the board a single tab stop and moves it with the arrows", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    // Exactly one cell is tabbable — 150 tab stops is not a board.
+    const tabbable = screen
+      .getAllByRole("button")
+      .filter((b) => b.getAttribute("aria-label")?.startsWith("Tile "))
+      .filter((b) => b.tabIndex === 0);
+    expect(tabbable).toHaveLength(1);
+
+    screen.getByLabelText("Tile 2, 1").focus();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByLabelText("Tile 3, 1")).toHaveFocus();
+    await user.keyboard("{ArrowDown}");
+    expect(screen.getByLabelText("Tile 3, 2")).toHaveFocus();
+    // The cursor stops at the board's edge instead of wrapping.
+    await user.keyboard("{ArrowUp}{ArrowUp}{ArrowUp}");
+    expect(screen.getByLabelText("Tile 3, 0")).toHaveFocus();
+  });
+
+  it("cancels one step at a time with Escape", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await user.click(screen.getByLabelText("Tile 2, 1")); // select
+    await user.click(screen.getByLabelText("Tile 3, 1")); // action menu
+    expect(screen.getByText("Actions")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}"); // menu → selected unit
+    expect(screen.queryByText("Actions")).not.toBeInTheDocument();
+    expect(screen.getByText("Tank")).toBeInTheDocument();
+
+    await user.keyboard("{Escape}"); // selected unit → idle
+    expect(screen.queryByText("Tank")).not.toBeInTheDocument();
+  });
+
+  it("opens and closes the shortcut help with ? and Escape", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await user.keyboard("?");
+    expect(
+      screen.getByRole("dialog", { name: /keyboard/i }),
+    ).toBeInTheDocument();
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("jumps to the next unit that has not acted with N", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await user.keyboard("n");
+    expect(screen.getByLabelText("Tile 2, 1")).toHaveFocus();
+  });
+
+  it("asks before ending the turn from the keyboard, and Escape backs out", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await user.keyboard("e");
+    const dialog = screen.getByRole("dialog", { name: /end your turn/i });
+    expect(dialog).toBeInTheDocument();
+    // The dialog takes focus, so Enter cannot land on the board behind it.
+    expect(dialog.contains(document.activeElement)).toBe(true);
+
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("announces selection and turn changes to assistive tech", async () => {
+    const { container } = render(
+      <BattlefieldView matchView={view()} gameData={fixtureGameData()} />,
+    );
+    const live = container.querySelector('[aria-live="polite"]')!;
+    expect(live).toBeInTheDocument();
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1"));
+    expect(live.textContent).toMatch(/tank selected/i);
+  });
+
   it("selects a unit and confirms a move entirely from the keyboard", async () => {
     vi.stubGlobal(
       "fetch",

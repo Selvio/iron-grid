@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Eye, Plane, Ship, Truck } from "lucide-react";
 
 import type { ProductionOption, UnitStats } from "@/app/lib/preview/actions";
 
 import { AtlasSprite, PixelSprite } from "./pixel-sprite";
+import { useDialogFocus } from "./use-dialog-focus";
 import { formatFunds } from "@/app/lib/format";
 
 /**
@@ -150,6 +151,17 @@ export function BuildMenu({
 }) {
   const [selected, setSelected] = useState(0);
   const option = options[selected] ?? options[0];
+  const dialog = useRef<HTMLDivElement>(null);
+  useDialogFocus(dialog, true);
+
+  /** Move the highlight and take focus with it, so Enter builds what is shown. */
+  function moveSelection(delta: number): void {
+    const next = Math.min(options.length - 1, Math.max(0, selected + delta));
+    setSelected(next);
+    dialog.current
+      ?.querySelector<HTMLButtonElement>(`[data-roster-index="${next}"]`)
+      ?.focus();
+  }
 
   // Escape backs out of the popup, as it does from every other menu state.
   useEffect(() => {
@@ -170,10 +182,23 @@ export function BuildMenu({
       className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-[#0c1628]/50 p-6"
     >
       <div
+        ref={dialog}
         role="dialog"
         aria-modal="true"
         aria-label="Build unit"
         onClick={(e) => e.stopPropagation()}
+        onKeyDown={(event) => {
+          // The roster is a list: arrows walk it, Enter commits the unit whose
+          // intel is on screen. Without this the only way through eleven units
+          // is eleven presses of Tab.
+          if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+            event.preventDefault();
+            moveSelection(event.key === "ArrowDown" ? 1 : -1);
+          } else if (event.key === "Enter" && option?.affordable) {
+            event.preventDefault();
+            onProduce(option.unitTypeId);
+          }
+        }}
         className="flex max-h-[92%] gap-4"
       >
         {/* Roster */}
@@ -196,6 +221,8 @@ export function BuildMenu({
               <button
                 key={o.unitTypeId}
                 type="button"
+                data-roster-index={index}
+                tabIndex={index === selected ? 0 : -1}
                 aria-pressed={index === selected}
                 onClick={() => setSelected(index)}
                 onDoubleClick={() =>

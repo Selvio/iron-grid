@@ -55,6 +55,58 @@ function handlers(
   };
 }
 
+/** The build popup's state: one affordable unit and one the player cannot pay for. */
+function productionState(): InteractionState {
+  return {
+    kind: "production-menu",
+    property: { id: "b1", position: { x: 2, y: 3 } },
+    options: [
+      {
+        unitTypeId: "infantry",
+        displayName: "Infantry",
+        cost: 1000,
+        affordable: true,
+        sprite: {
+          sheetUrl: "/game-assets/units/blue/sprites.png",
+          frameX: 9,
+          frameY: 95,
+          frameWidth: 14,
+          frameHeight: 16,
+        },
+        stats: {
+          move: 3,
+          vision: 2,
+          gas: 99,
+          ammo: null,
+          weapon1: "M Gun",
+          weapon2: null,
+          mobility: "Foot",
+          mobilityKey: "hud_mobility_foot",
+          domain: "ground",
+        },
+      },
+      {
+        unitTypeId: "neotank",
+        displayName: "Neotank",
+        cost: 22000,
+        affordable: false,
+        sprite: null,
+        stats: {
+          move: 6,
+          vision: 1,
+          gas: 99,
+          ammo: 9,
+          weapon1: "Neo Gun",
+          weapon2: "M Gun",
+          mobility: "Treads",
+          mobilityKey: "hud_mobility_treads",
+          domain: "ground",
+        },
+      },
+    ],
+  };
+}
+
 describe("ActionPanel", () => {
   it("renders nothing before a destination is chosen", () => {
     const { container } = render(
@@ -169,54 +221,7 @@ describe("ActionPanel", () => {
   });
 
   it("renders the build popup, shows the selected unit's intel, and builds it", async () => {
-    const state: InteractionState = {
-      kind: "production-menu",
-      property: { id: "b1", position: { x: 2, y: 3 } },
-      options: [
-        {
-          unitTypeId: "infantry",
-          displayName: "Infantry",
-          cost: 1000,
-          affordable: true,
-          sprite: {
-            sheetUrl: "/game-assets/units/blue/sprites.png",
-            frameX: 9,
-            frameY: 95,
-            frameWidth: 14,
-            frameHeight: 16,
-          },
-          stats: {
-            move: 3,
-            vision: 2,
-            gas: 99,
-            ammo: null,
-            weapon1: "M Gun",
-            weapon2: null,
-            mobility: "Foot",
-            mobilityKey: "hud_mobility_foot",
-            domain: "ground",
-          },
-        },
-        {
-          unitTypeId: "neotank",
-          displayName: "Neotank",
-          cost: 22000,
-          affordable: false,
-          sprite: null,
-          stats: {
-            move: 6,
-            vision: 1,
-            gas: 99,
-            ammo: 9,
-            weapon1: "Neo Gun",
-            weapon2: "M Gun",
-            mobility: "Treads",
-            mobilityKey: "hud_mobility_treads",
-            domain: "ground",
-          },
-        },
-      ],
-    };
+    const state = productionState();
     const onProduce = vi.fn();
     render(
       <ActionPanel
@@ -243,6 +248,54 @@ describe("ActionPanel", () => {
       screen.getByRole("button", { name: /Build · 1,000 G/ }),
     );
     expect(onProduce).toHaveBeenCalledWith("infantry");
+  });
+
+  it("walks the build roster with the arrows and commits with Enter", async () => {
+    const state = productionState();
+    const onProduce = vi.fn();
+    render(
+      <ActionPanel
+        state={state}
+        funds={4200}
+        handlers={handlers({ onProduce })}
+      />,
+    );
+
+    // The roster opens focused on the first unit, so the arrows work at once.
+    const infantry = screen.getByRole("button", { name: /Infantry/ });
+    expect(infantry).toHaveFocus();
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(screen.getByRole("button", { name: /Neotank/ })).toHaveFocus();
+    expect(screen.getByText("Neo Gun")).toBeInTheDocument();
+
+    // Enter on an unaffordable unit does nothing; back up and it builds.
+    await userEvent.keyboard("{Enter}");
+    expect(onProduce).not.toHaveBeenCalled();
+    await userEvent.keyboard("{ArrowUp}{Enter}");
+    expect(onProduce).toHaveBeenCalledWith("infantry");
+  });
+
+  it("opens the action menu focused, and the arrows walk it", async () => {
+    const state: InteractionState = {
+      kind: "action-menu",
+      unitId: "u1",
+      menu: MENU,
+      destination: { x: 3, y: 2 },
+      options: opts({ canWait: true, canCapture: true }),
+    };
+    const onCapture = vi.fn();
+    render(
+      <ActionPanel
+        state={state}
+        unitOrigin={{ x: 1, y: 2 }}
+        handlers={handlers({ onCapture })}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Move" })).toHaveFocus();
+    await userEvent.keyboard("{ArrowDown}{Enter}");
+    expect(onCapture).toHaveBeenCalledOnce();
   });
 
   it("shows logistics buttons only when legal and fires their handlers", async () => {

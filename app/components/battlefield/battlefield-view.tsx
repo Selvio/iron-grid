@@ -40,6 +40,8 @@ import {
 } from "@/app/lib/render/animation-plan";
 
 import { ActionPanel } from "./action-panel";
+import { ShortcutsHelp } from "./shortcuts-help";
+import { useDialogFocus } from "./use-dialog-focus";
 import { Battlefield } from "./battlefield";
 import type { BattlefieldHandle } from "./create-game";
 import { Hud, type HudTerrain, type HudUnit } from "./hud/hud";
@@ -95,10 +97,17 @@ export function BattlefieldView({
   const [view, setView] = useState(matchView);
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
   const [busy, setBusy] = useState(false);
-  const [hovered, setHovered] = useState<Coordinate | null>(null);
+  // The cursor is wherever attention is: the pointer sets it on hover, the
+  // keyboard sets it on focus. Everything that used to follow the mouse — the
+  // path preview, the terrain read-out — follows this instead.
+  const [cursor, setCursor] = useState<Coordinate | null>(null);
+  const [helpOpen, setHelpOpen] = useState(false);
+  /** Spoken to screen readers; the board itself is a canvas (§27.4). */
+  const [announcement, setAnnouncement] = useState("");
   const [banner, setBanner] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [confirmEnd, setConfirmEnd] = useState(false);
+  const endTurnDialog = useRef<HTMLDivElement>(null);
   // The attack-range hatch is off until the player asks for it with Space; it
   // resets with every selection so the board starts clean.
   const [showRange, setShowRange] = useState(false);
@@ -108,6 +117,13 @@ export function BattlefieldView({
   );
   const isMyTurn = view.activePlayerId === view.viewerPlayerId;
   const tilePx = tilePxForZoom(zoom);
+
+  useDialogFocus(endTurnDialog, confirmEnd);
+
+  /** Announce a change the board shows visually but the canvas cannot expose. */
+  function announce(message: string): void {
+    setAnnouncement(message);
+  }
   const artScale = tilePx / TERRAIN_TILE_PX;
 
   // A transient Advance-Wars turn banner whenever the day or active player flips.
@@ -115,36 +131,141 @@ export function BattlefieldView({
     const key = `${view.currentDay}:${view.activePlayerId}`;
     if (key === turnKeyRef.current) return;
     turnKeyRef.current = key;
-    setBanner(
-      `Day ${view.currentDay} · ${isMyTurn ? "Your turn" : "Opponent's turn"}`,
-    );
+    const text = `Day ${view.currentDay} · ${isMyTurn ? "Your turn" : "Opponent's turn"}`;
+    setBanner(text);
+    setAnnouncement(text);
     const timer = setTimeout(() => setBanner(null), 2200);
     return () => clearTimeout(timer);
   }, [view.currentDay, view.activePlayerId, isMyTurn]);
 
-  // Escape closes the end-turn confirmation dialog.
-  useEffect(() => {
-    if (!confirmEnd) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setConfirmEnd(false);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [confirmEnd]);
+  // --- Keyboard -----------------------------------------------------------
+  // One global handler, so precedence is decided in one place instead of
+  // emerging from the order effects happen to be registered in. The grid's own
+  // arrow keys live in the overlay (see `InteractionOverlay`), which owns focus.
 
-  // Space toggles the attack-range hatch for the selected unit, the way Advance
-  // Wars shows a range on demand.
-  const selectedUnitId = state.kind === "unit-selected" ? state.unitId : null;
+  /** The next own unit that has not acted, after the one under the cursor. */
+  function nextIdleUnit(): (typeof view.units)[number] | undefined {
+    const mine = view.units
+      .filter(
+        (u) =>
+          u.ownerPlayerId === view.viewerPlayerId &&
+          u.position !== null &&
+          !u.hasActed,
+      )
+      .sort(
+        (a, b) =>
+          a.position!.y - b.position!.y || a.position!.x - b.position!.x,
+      );
+    if (mine.length === 0) return undefined;
+    const after =
+      cursor === null
+        ? undefined
+        : mine.find(
+            (u) =>
+              u.position!.y > cursor.y ||
+              (u.position!.y === cursor.y && u.position!.x > cursor.x),
+          );
+    return after ?? mine[0];
+  }
+
   useEffect(() => {
-    if (selectedUnitId === null) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key !== " ") return;
-      e.preventDefault(); // Space would otherwise scroll the board
-      setShowRange((previous) => !previous);
+    const onKey = (event: KeyboardEvent): void => {
+      // Never shadow the browser's own chords, and never fire while typing.
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      if (event.key === "Escape") {
+        event.preventDefault();
+        // Innermost surface first: a dialog, then the board's own state, which
+        // the reducer already steps back exactly one level at a time.
+        if (helpOpen) setHelpOpen(false);
+        else if (confirmEnd) setConfirmEnd(false);
+        else dispatch({ type: "cancel" });
+        return;
+      }
+      if (helpOpen || confirmEnd) return; // a dialog owns the rest of the keys
+
+      switch (event.key) {
+        case " ":
+          event.preventDefault(); // Space would otherwise scroll the board
+          setShowRange((previous) => !previous);
+          return;
+        case "?":
+          event.preventDefault();
+          setHelpOpen(true);
+          return;
+        case "e":
+        case "E":
+          if (isMyTurn && !busy && state.kind === "idle") setConfirmEnd(true);
+          return;
+        case "n":
+        case "N": {
+          const next = nextIdleUnit();
+          if (next?.position == null) return;
+          setCursor(next.position);
+          focusTile(next.position);
+          announce(
+            `${gameData.units[next.typeId]?.display_name ?? next.typeId} at ${next.position.x}, ${next.position.y}`,
+          );
+          return;
+        }
+        case "+":
+        case "=":
+          setZoom((z) => clampZoom(z + ZOOM_STEP));
+          return;
+        case "-":
+          setZoom((z) => clampZoom(z - ZOOM_STEP));
+          return;
+        case "0":
+          setZoom(1);
+          return;
+        default:
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedUnitId]);
+  });
+
+  /** Put DOM focus on a tile, so the cursor and the focus ring stay together. */
+  function focusTile(tile: Coordinate): void {
+    document
+      .querySelector<HTMLButtonElement>(
+        `[data-x="${tile.x}"][data-y="${tile.y}"]`,
+      )
+      ?.focus();
+  }
+
+  /**
+   * In target selection the cursor may not wander: only the highlighted enemies
+   * are legal, so the arrows cycle through them instead.
+   */
+  function cycleTargets(dx: number, dy: number): boolean {
+    if (state.kind !== "select-target") return false;
+    const tiles = state.targets
+      .map((id) => view.units.find((u) => u.id === id)?.position ?? null)
+      .filter((t): t is Coordinate => t !== null);
+    if (tiles.length === 0) return false;
+    const forward = dx > 0 || dy > 0;
+    const current = tiles.findIndex(
+      (t) => cursor !== null && t.x === cursor.x && t.y === cursor.y,
+    );
+    const next =
+      tiles[
+        (((current === -1 ? 0 : current + (forward ? 1 : -1)) % tiles.length) +
+          tiles.length) %
+          tiles.length
+      ]!;
+    setCursor(next);
+    focusTile(next);
+    return true;
+  }
 
   function ownSelectableAt(x: number, y: number) {
     const unit = view.units.find(
@@ -161,6 +282,12 @@ export function BattlefieldView({
   function select(unitId: string): void {
     const menu = previewUnitMenu(view, unitId, gameData);
     setShowRange(false); // a fresh selection starts with the board clean
+    const unit = view.units.find((u) => u.id === unitId);
+    if (unit !== undefined) {
+      announce(
+        `${gameData.units[unit.typeId]?.display_name ?? unit.typeId} selected`,
+      );
+    }
     dispatch({
       type: "select",
       unitId,
@@ -554,7 +681,7 @@ export function BattlefieldView({
         : [];
 
   // Advance-Wars terrain read-out for the tile under the cursor.
-  const terrainId = hovered && view.map.logicalTerrain[hovered.y]?.[hovered.x];
+  const terrainId = cursor && view.map.logicalTerrain[cursor.y]?.[cursor.x];
   const terrainDef = terrainId ? gameData.terrain[terrainId] : undefined;
   const hudTerrain: HudTerrain | null = terrainDef
     ? { name: terrainDef.display_name, defenseStars: terrainDef.defense_stars }
@@ -563,11 +690,11 @@ export function BattlefieldView({
   // The move-path arrow to the reachable tile under the cursor, while selecting.
   const hoverPath =
     state.kind === "unit-selected" &&
-    hovered &&
+    cursor &&
     state.menu.moveDestinations.some(
-      (c) => c.x === hovered.x && c.y === hovered.y,
+      (c) => c.x === cursor.x && c.y === cursor.y,
     )
-      ? (computePath(view, state.unitId, hovered, gameData) ?? [])
+      ? (computePath(view, state.unitId, cursor, gameData) ?? [])
       : [];
 
   return (
@@ -610,8 +737,10 @@ export function BattlefieldView({
               targets={targetTiles}
               reticles={reticleTiles}
               path={hoverPath}
+              cursor={cursor ?? selectedUnit?.position ?? { x: 0, y: 0 }}
               onTileClick={handleTileClick}
-              onTileHover={(x, y) => setHovered({ x, y })}
+              onTileHover={(x, y) => setCursor({ x, y })}
+              onArrowKey={cycleTargets}
             />
           </div>
         </div>
@@ -706,6 +835,13 @@ export function BattlefieldView({
       )}
 
       {/* End-turn confirmation (no undo) — mirrors the design's dialog. */}
+      {helpOpen && <ShortcutsHelp onClose={() => setHelpOpen(false)} />}
+
+      {/* The board is a canvas; this is where its state reaches assistive tech. */}
+      <p aria-live="polite" className="sr-only">
+        {announcement}
+      </p>
+
       {confirmEnd && (
         <div
           role="presentation"
@@ -713,6 +849,7 @@ export function BattlefieldView({
           className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-[#1c2b45]/55 p-6"
         >
           <div
+            ref={endTurnDialog}
             role="dialog"
             aria-modal="true"
             aria-labelledby="end-turn-title"
