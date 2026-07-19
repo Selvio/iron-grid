@@ -755,6 +755,10 @@ export function createBattlefieldGame(
     parent: container,
     backgroundColor: "#0d1117",
     pixelArt: true,
+    // Phaser builds an AudioContext at boot, before the page has seen a gesture,
+    // which Chrome warns about on every load. The game's sound goes through
+    // `app/lib/audio` instead, so there is nothing here to keep.
+    audio: { noAudio: true },
     scale: {
       // Fixed size — CSS zoom must not drive Phaser.Scale.RESIZE (it desyncs the
       // canvas from the board after non-1.0 zoom).

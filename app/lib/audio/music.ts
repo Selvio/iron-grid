@@ -1,23 +1,25 @@
-import { audioContext, audioUrl } from "./sfx";
+import { audioUrl } from "./sfx";
 import { isMuted, subscribeMuted } from "./settings";
 
 /**
  * Background music (M12 audio).
  *
- * A single looping track, held behind its own gain so it sits under the effects
- * rather than competing with them. It is an `<audio>` element routed into the
- * shared context instead of a decoded buffer: two and a half minutes of AAC
- * would cost several megabytes of decoded PCM in memory, and the element streams
- * it instead.
+ * A single looping track at its own volume, so it sits under the effects rather
+ * than competing with them. It is a plain `<audio>` element rather than a
+ * decoded buffer, and deliberately not routed through the shared `AudioContext`:
+ * two and a half minutes of AAC would cost megabytes of decoded PCM, and
+ * touching the context here would build it at mount — before the page has seen
+ * a gesture — which is exactly what browsers warn about.
  *
  * Muting **pauses** rather than silences: an inaudible track still burns battery
  * decoding. The subscription means the toggle works while the music is playing,
  * not only when it next starts.
  *
- * @see docs/01-specification/assets-inventory.md §7
+ * @see docs/01-specification/assets-inventory.md §8
  */
 
-const MUSIC_GAIN = 0.35;
+/** Under the effects, so a shot always cuts through the track. */
+const MUSIC_VOLUME = 0.35;
 
 let element: HTMLAudioElement | null = null;
 let unsubscribe: (() => void) | null = null;
@@ -45,17 +47,7 @@ export function startMusic(): void {
     element = new Audio(audioUrl("music_main"));
     element.loop = true;
     element.preload = "none";
-    const ctx = audioContext();
-    if (ctx !== null && typeof ctx.createMediaElementSource === "function") {
-      const gain = ctx.createGain();
-      gain.gain.value = MUSIC_GAIN;
-      ctx
-        .createMediaElementSource(element)
-        .connect(gain)
-        .connect(ctx.destination);
-    } else {
-      element.volume = MUSIC_GAIN;
-    }
+    element.volume = MUSIC_VOLUME;
     unsubscribe = subscribeMuted(() => {
       if (element === null) return;
       if (isMuted()) element.pause();

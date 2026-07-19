@@ -13,7 +13,7 @@ import type { SfxId } from "./sfx";
  * Keyed by sprite key, which equals the unit id (ADR-0005), so the same function
  * serves the React controller and the Phaser scene.
  *
- * @see docs/01-specification/assets-inventory.md §7
+ * @see docs/01-specification/assets-inventory.md §8
  */
 
 export interface UnitSounds {

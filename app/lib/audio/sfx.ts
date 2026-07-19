@@ -15,7 +15,7 @@ import { isMuted } from "./settings";
  * `prefersReducedMotion` uses in `app/lib/render/animation-plan.ts` — so jsdom,
  * SSR and locked-down browsers get a silent no-op rather than an exception.
  *
- * @see docs/01-specification/assets-inventory.md §7
+ * @see docs/01-specification/assets-inventory.md §8
  */
 
 /** Every effect the board can make, and the file it comes from. */
