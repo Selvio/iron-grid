@@ -245,16 +245,18 @@ terrains:
       destructible: false
       special_behavior: null
     rendering:
-      asset_status: "mapping_required"
+      asset_status: "confirmed"
       atlas_regions:
-        - "road segments composed over river or water"
-      preferred_base_tile: null
+        - "terrain_bridge_horizontal"
+        - "terrain_bridge_vertical"
+      preferred_base_tile: "terrain_bridge_horizontal"
       requires_overlay: true
       notes:
-        - "No separately labeled bridge object exists in the package."
-        - "Visual composition must preserve the logical Bridge terrain ID."
-    official_map_allowed: false
-    unlock_condition: "Approve horizontal and vertical bridge compositions."
+        - "The art pack ships a dedicated bridge deck in both orientations."
+        - "The deck is drawn over the water tile it spans; orientation follows
+          the water it crosses (ADR-0005)."
+    official_map_allowed: true
+    unlock_condition: null
 
   river:
     id: "river"

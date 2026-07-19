@@ -292,13 +292,17 @@ export function roadTile(map: MapView, x: number, y: number): string {
   return "terrain_road_horizontal";
 }
 
-/** A bridge runs with the water it spans. */
+/**
+ * A bridge deck lies across the water it spans: water to the east or west means
+ * the channel runs that way, so the deck runs north–south (vertical).
+ */
 export function bridgeTile(map: MapView, x: number, y: number): string {
   const c = cross(map, x, y);
-  const water = (t: string | undefined) => t === "sea" || t === "river";
-  return water(c[3]) || water(c[1])
-    ? "terrain_bridge_horizontal"
-    : "terrain_bridge_vertical";
+  const water = (t: string | undefined) =>
+    t === "sea" || t === "river" || t === "reef";
+  return water(c[1]) || water(c[3])
+    ? "terrain_bridge_vertical"
+    : "terrain_bridge_horizontal";
 }
 
 /** The single tile a terrain falls back to, ignoring its neighbours. */
@@ -353,7 +357,9 @@ export function layersForCell(map: MapView, x: number, y: number): TileLayer[] {
     case "road":
       return [{ key: roadTile(map, x, y) }];
     case "bridge":
-      return [{ key: bridgeTile(map, x, y) }];
+      // The deck is opaque but its corners are not: the water it spans shows
+      // through, so draw the water first.
+      return [{ key: "terrain_sea" }, { key: bridgeTile(map, x, y) }];
     default:
       break;
   }

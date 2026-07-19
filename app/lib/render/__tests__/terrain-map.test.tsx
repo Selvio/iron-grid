@@ -185,12 +185,21 @@ describe("roadTile", () => {
 });
 
 describe("bridgeTile", () => {
-  it("lies along the water it spans", () => {
-    const acrossRiver = view([["river", "bridge", "river"]]);
-    expect(bridgeTile(acrossRiver, 1, 0)).toBe("terrain_bridge_horizontal");
+  it("lays the deck across the water it spans", () => {
+    // Water to the east and west: the channel runs that way, deck north-south.
+    const eastWestChannel = view([["sea", "bridge", "sea"]]);
+    expect(bridgeTile(eastWestChannel, 1, 0)).toBe("terrain_bridge_vertical");
 
-    const alongRoad = view([["road", "bridge", "road"]]);
-    expect(bridgeTile(alongRoad, 1, 0)).toBe("terrain_bridge_vertical");
+    // Water above and below: deck east-west, carrying the road across.
+    const northSouthChannel = view([["sea"], ["bridge"], ["sea"]]);
+    expect(bridgeTile(northSouthChannel, 0, 1)).toBe(
+      "terrain_bridge_horizontal",
+    );
+  });
+
+  it("draws the water under the deck", () => {
+    const map = view([["sea", "bridge", "sea"]]);
+    expect(keys(map, 1, 0)).toEqual(["terrain_sea", "terrain_bridge_vertical"]);
   });
 });
 

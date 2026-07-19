@@ -62,7 +62,7 @@ kill plays the pack's explosion.
 
 **5. The pack is prototype-only.** The sprites are the intellectual property of
 Nintendo and Intelligent Systems. They are placeholders for development and
-**must be replaced before anything is deployed publicly**. `game-assets/license.txt`
+**must be replaced before anything is deployed publicly**. `public/game-assets/license.txt`
 records the provenance and the restriction; `CREDITS.md` and `/credits` say the
 same in the product.
 

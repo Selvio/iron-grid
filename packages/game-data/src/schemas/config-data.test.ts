@@ -57,10 +57,13 @@ describe("maps: the first official map (M10)", () => {
       expect(row[0]).toBe("sea");
       expect(row[14]).toBe("sea");
     }
-    // Central lake enclosed by the road loop (the reference's signature).
-    expect(m.logical_terrain[2]![4]).toBe("sea"); // lake
-    expect(m.logical_terrain[2]![3]).toBe("road"); // loop left
-    expect(m.logical_terrain[1]![6]).toBe("road"); // loop top/right
+    // The reference's signature: a central lake fed by a northern inlet, with
+    // the ring road crossing that inlet on a bridge.
+    expect(m.logical_terrain[3]![6]).toBe("sea"); // lake
+    expect(m.logical_terrain[2]![6]).toBe("sea"); // inlet feeding it
+    expect(m.logical_terrain[1]![6]).toBe("bridge"); // the ring road crosses it
+    expect(m.logical_terrain[3]![3]).toBe("road"); // ring road, west side
+    expect(m.logical_terrain[5]![10]).toBe("road"); // ring road, east side
 
     const byOwner = (owner: string, type: string) =>
       m.properties.filter(

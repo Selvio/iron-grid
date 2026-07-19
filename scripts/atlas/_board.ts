@@ -110,8 +110,9 @@ for (const unit of map.starting_units as {
     SLOT_COLOR[unit.owner] ?? "blue",
   );
   const src = sheet(file);
-  const originX = (unit.x * TILE + (TILE - entry.w) / 2) * zoom;
-  const originY = ((unit.y + 1) * TILE - entry.h) * zoom;
+  // Round: a half-pixel origin would shift the RGBA writes and scramble colors.
+  const originX = Math.round((unit.x * TILE + (TILE - entry.w) / 2) * zoom);
+  const originY = Math.round(((unit.y + 1) * TILE - entry.h) * zoom);
   for (let y = 0; y < entry.h * zoom; y++) {
     for (let x = 0; x < entry.w * zoom; x++) {
       const si =

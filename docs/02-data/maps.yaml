@@ -523,11 +523,13 @@ map_template:
     acceptance_tests: []
 
 official_maps:
-  # Island skirmish reconstructed from the visual reference (15×10). player_1
-  # starts NE (Blue), player_2 SW (Red). Visual bridges are logical `road`.
+  # Island skirmish transcribed tile-for-tile from the visual reference (15x10).
+  # player_1 starts NE (Blue), player_2 SW (Red). The northern inlet and the
+  # south-eastern bay are `sea`; each road crossing them is a logical `bridge`,
+  # which the art pack draws with its own deck sprite.
   crossfire-basin:
     id: "crossfire-basin"
-    version: "2.0.0"
+    version: "3.0.0"
     display_name: null
     status: "review"
     dimensions:
@@ -542,41 +544,42 @@ official_maps:
         headquarters_property_id: "hq_p2"
     logical_terrain:
       - ["sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
-      - ["sea", "sea", "forest", "road", "road", "road", "road", "road", "road", "road", "road", "road", "base", "headquarters", "sea"]
-      - ["sea", "plain", "plain", "road", "sea", "sea", "road", "plain", "city", "plain", "road", "base", "base", "base", "sea"]
-      - ["sea", "city", "city", "road", "sea", "sea", "road", "forest", "plain", "mountain", "road", "plain", "plain", "plain", "sea"]
-      - ["sea", "plain", "base", "road", "road", "road", "road", "plain", "plain", "mountain", "road", "road", "road", "plain", "sea"]
-      - ["sea", "base", "headquarters", "plain", "plain", "forest", "forest", "plain", "city", "plain", "road", "city", "plain", "plain", "sea"]
-      - ["sea", "base", "base", "plain", "plain", "forest", "plain", "plain", "plain", "plain", "road", "sea", "sea", "city", "sea"]
-      - ["sea", "plain", "plain", "plain", "plain", "plain", "mountain", "mountain", "plain", "plain", "road", "road", "road", "city", "sea"]
-      - ["sea", "sea", "sea", "city", "city", "road", "forest", "road", "city", "road", "road", "plain", "plain", "plain", "sea"]
+      - ["sea", "sea", "plain", "forest", "road", "road", "bridge", "road", "road", "plain", "forest", "base", "plain", "base", "sea"]
+      - ["sea", "plain", "plain", "forest", "road", "forest", "sea", "plain", "road", "city", "plain", "plain", "headquarters", "base", "sea"]
+      - ["sea", "city", "city", "road", "road", "sea", "sea", "sea", "road", "plain", "mountain", "plain", "road", "base", "sea"]
+      - ["sea", "plain", "plain", "road", "plain", "sea", "sea", "sea", "road", "city", "mountain", "city", "road", "plain", "sea"]
+      - ["sea", "base", "plain", "road", "city", "sea", "sea", "forest", "road", "road", "road", "road", "road", "city", "sea"]
+      - ["sea", "base", "headquarters", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "sea", "sea", "bridge", "sea", "sea"]
+      - ["sea", "sea", "base", "base", "plain", "plain", "plain", "plain", "plain", "plain", "sea", "sea", "plain", "plain", "sea"]
+      - ["sea", "sea", "sea", "sea", "mountain", "city", "mountain", "forest", "city", "plain", "bridge", "plain", "city", "city", "sea"]
       - ["sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
     properties:
-      - { id: "hq_p1", type_id: "headquarters", x: 13, y: 1, initial_owner: "player_1" }
-      - { id: "base_p1_a", type_id: "base", x: 12, y: 1, initial_owner: "player_1" }
-      - { id: "base_p1_b", type_id: "base", x: 12, y: 2, initial_owner: "player_1" }
-      - { id: "base_p1_c", type_id: "base", x: 11, y: 2, initial_owner: "player_1" }
-      - { id: "base_p1_d", type_id: "base", x: 13, y: 2, initial_owner: "player_1" }
-      - { id: "hq_p2", type_id: "headquarters", x: 2, y: 5, initial_owner: "player_2" }
+      - { id: "hq_p1", type_id: "headquarters", x: 12, y: 2, initial_owner: "player_1" }
+      - { id: "base_p1_a", type_id: "base", x: 11, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_b", type_id: "base", x: 13, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_c", type_id: "base", x: 13, y: 2, initial_owner: "player_1" }
+      - { id: "base_p1_d", type_id: "base", x: 13, y: 3, initial_owner: "player_1" }
+      - { id: "hq_p2", type_id: "headquarters", x: 2, y: 6, initial_owner: "player_2" }
       - { id: "base_p2_a", type_id: "base", x: 1, y: 5, initial_owner: "player_2" }
       - { id: "base_p2_b", type_id: "base", x: 1, y: 6, initial_owner: "player_2" }
-      - { id: "base_p2_c", type_id: "base", x: 2, y: 6, initial_owner: "player_2" }
-      - { id: "base_p2_d", type_id: "base", x: 2, y: 4, initial_owner: "player_2" }
-      - { id: "city_n1", type_id: "city", x: 1, y: 3, initial_owner: "neutral" }
-      - { id: "city_n2", type_id: "city", x: 2, y: 3, initial_owner: "neutral" }
-      - { id: "city_n3", type_id: "city", x: 8, y: 2, initial_owner: "neutral" }
-      - { id: "city_n4", type_id: "city", x: 8, y: 5, initial_owner: "neutral" }
-      - { id: "city_n5", type_id: "city", x: 11, y: 5, initial_owner: "neutral" }
-      - { id: "city_n6", type_id: "city", x: 3, y: 8, initial_owner: "neutral" }
-      - { id: "city_n7", type_id: "city", x: 4, y: 8, initial_owner: "neutral" }
-      - { id: "city_n8", type_id: "city", x: 8, y: 8, initial_owner: "neutral" }
-      - { id: "city_n9", type_id: "city", x: 13, y: 6, initial_owner: "neutral" }
-      - { id: "city_n10", type_id: "city", x: 13, y: 7, initial_owner: "neutral" }
+      - { id: "base_p2_c", type_id: "base", x: 2, y: 7, initial_owner: "player_2" }
+      - { id: "base_p2_d", type_id: "base", x: 3, y: 7, initial_owner: "player_2" }
+      - { id: "city_n1", type_id: "city", x: 9, y: 2, initial_owner: "neutral" }
+      - { id: "city_n2", type_id: "city", x: 1, y: 3, initial_owner: "neutral" }
+      - { id: "city_n3", type_id: "city", x: 2, y: 3, initial_owner: "neutral" }
+      - { id: "city_n4", type_id: "city", x: 9, y: 4, initial_owner: "neutral" }
+      - { id: "city_n5", type_id: "city", x: 11, y: 4, initial_owner: "neutral" }
+      - { id: "city_n6", type_id: "city", x: 4, y: 5, initial_owner: "neutral" }
+      - { id: "city_n7", type_id: "city", x: 13, y: 5, initial_owner: "neutral" }
+      - { id: "city_n8", type_id: "city", x: 5, y: 8, initial_owner: "neutral" }
+      - { id: "city_n9", type_id: "city", x: 8, y: 8, initial_owner: "neutral" }
+      - { id: "city_n10", type_id: "city", x: 12, y: 8, initial_owner: "neutral" }
+      - { id: "city_n11", type_id: "city", x: 13, y: 8, initial_owner: "neutral" }
     starting_units:
       - { id: "inf_p1", type_id: "infantry", owner: "player_1", x: 11, y: 3 }
       - { id: "tank_p1", type_id: "tank", owner: "player_1", x: 12, y: 3 }
-      - { id: "inf_p2", type_id: "infantry", owner: "player_2", x: 3, y: 5 }
-      - { id: "tank_p2", type_id: "tank", owner: "player_2", x: 3, y: 6 }
+      - { id: "inf_p2", type_id: "infantry", owner: "player_2", x: 3, y: 6 }
+      - { id: "tank_p2", type_id: "tank", owner: "player_2", x: 4, y: 6 }
     starting_funds:
       player_1: 0
       player_2: 0
