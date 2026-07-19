@@ -20,6 +20,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "prepare": "husky",
+    "atlas": "tsx scripts/build-atlas.ts",
     "seed:match": "tsx --env-file=.env scripts/seed-practice-match.ts"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/node": "^20",
+    "@types/pngjs": "^6.0.5",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^6.0.3",
@@ -63,6 +65,7 @@
     "husky": "^9.1.7",
     "jsdom": "^29.1.1",
     "lint-staged": "^17.0.8",
+    "pngjs": "^7.0.0",
     "prettier": "^3.9.5",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
