@@ -53,6 +53,36 @@ describe("notification enqueue on gameplay events", () => {
       );
   }
 
+  it("keeps notification scheduling off the response path when deferred", async () => {
+    // Production hands the scheduling to Next's `after`; here the deferral is
+    // captured so the test can prove the response did not wait for it.
+    const deferred: (() => Promise<void>)[] = [];
+    const response = await handleSubmitAction(
+      request({
+        type: "end_turn",
+        expectedStateVersion: 0,
+        idempotencyKey: "deferred-1",
+      }),
+      active.matchId,
+      {
+        ...deps(active.hostId),
+        deferAfterResponse: (task) => {
+          deferred.push(task);
+        },
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(deferred).toHaveLength(1);
+    // Nothing was written for the opponent's new turn until the deferral runs.
+    expect(await jobsFor(active.guestPlayerId)).toHaveLength(0);
+    await deferred[0]!();
+    const guest = Object.fromEntries(
+      (await jobsFor(active.guestPlayerId)).map((j) => [j.type, j.status]),
+    );
+    expect(guest.turn_started).toBe("pending");
+  });
+
   it("schedules the first player's turn jobs at activation", async () => {
     const jobs = await jobsFor(active.hostPlayerId);
     const byType = Object.fromEntries(jobs.map((j) => [j.type, j.status]));

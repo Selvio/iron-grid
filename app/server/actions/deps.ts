@@ -41,4 +41,12 @@ export interface ActionDeps<
   readonly generateUnitId?: () => string;
   /** Action rate limiter (defaults to the process-wide limiter). */
   readonly rateLimiter?: InvitationRateLimiter;
+  /**
+   * Runs work that must not delay the response — notification scheduling, whose
+   * own contract is `gameplay_authority: false`. Production passes Next's
+   * `after`, which runs it once the response has been flushed; the default
+   * awaits inline so tests (and any caller that forgets) keep the old ordering
+   * and stay deterministic.
+   */
+  readonly deferAfterResponse?: (task: () => Promise<void>) => void;
 }

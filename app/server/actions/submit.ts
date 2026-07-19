@@ -160,14 +160,20 @@ export async function handleSubmitAction<
     });
 
     // Notifications never block gameplay — schedule after the commit, swallowing
-    // any failure (`notifications.gameplay_authority: false`).
+    // any failure (`notifications.gameplay_authority: false`). Two more writes
+    // on the way out is latency the player feels for something they never see,
+    // so production hands them to `after` and answers now.
     if (result.enqueue !== null) {
-      await safelyEnqueue(() =>
-        scheduleForCommittedAction(deps.db, matchId, {
-          ...result.enqueue,
-          now: now(),
-        }),
-      );
+      const enqueue = result.enqueue;
+      const schedule = () =>
+        safelyEnqueue(() =>
+          scheduleForCommittedAction(deps.db, matchId, {
+            ...enqueue,
+            now: now(),
+          }),
+        );
+      if (deps.deferAfterResponse === undefined) await schedule();
+      else deps.deferAfterResponse(schedule);
     }
 
     return Response.json(result.result);

@@ -1,3 +1,5 @@
+import { after } from "next/server";
+
 import { getGameData } from "@/app/server/load-game-data";
 
 import { handleSubmitAction } from "@/app/server/actions/submit";
@@ -30,5 +32,8 @@ export async function POST(
   return handleSubmitAction(request, id, {
     db: database(),
     gameData: getGameData(),
+    // Notification scheduling runs once the response is on the wire: the player
+    // waits for their move to resolve, not for their opponent's email.
+    deferAfterResponse: (task) => after(task),
   });
 }

@@ -247,6 +247,39 @@ describe("BattlefieldView", () => {
     );
   });
 
+  it("starts the walk without waiting for the server to answer", async () => {
+    // The submit hangs: the animation must still run, so the round trip is
+    // spent watching the move rather than waiting for it.
+    let resolveSubmit: (() => void) | undefined;
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >(async (url) => {
+      const ok = {
+        ok: true,
+        status: 200,
+        json: async () =>
+          url.includes("/actions")
+            ? { stateVersion: 5, status: "active" }
+            : view(),
+      } as Response;
+      if (!url.includes("/actions")) return ok;
+      await new Promise<void>((resolve) => {
+        resolveSubmit = resolve;
+      });
+      return ok;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1"));
+    await userEvent.click(screen.getByLabelText("Tile 3, 1"));
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
+
+    await waitFor(() => expect(scene.playAnimation).toHaveBeenCalledOnce());
+    expect(resolveSubmit).toBeDefined(); // still in flight while it animated
+    resolveSubmit!();
+  });
+
   it("skips the walk (empty plan) under reduced motion", async () => {
     vi.stubGlobal("matchMedia", (q: string) => ({
       matches: q.includes("reduce"),

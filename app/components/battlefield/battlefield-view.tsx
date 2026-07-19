@@ -417,24 +417,36 @@ export function BattlefieldView({
     dispatch({ type: "deselect" });
   }
 
-  /** Submit an action, play its animation, then reconcile by refetch. */
+  /**
+   * Submit an action, animate it, then reconcile with the authoritative view.
+   *
+   * The request is **started before the animation and awaited after it**, so the
+   * server's round trip hides behind a beat the player was going to watch
+   * anyway. This does not give the client authority (§28.2): the animation only
+   * ever replays a decision the shared pure engine already found legal, the
+   * server still resolves it, and any disagreement — including a stale-version
+   * 409 — lands on the refetch below, which overwrites whatever was drawn.
+   *
+   * Input reopens when the animation ends rather than when the refetch returns:
+   * the reconcile is a correction, not a gate.
+   */
   async function runSubmit(
     body: ActionBody,
     plan: AnimationStep[],
   ): Promise<void> {
     setBusy(true);
+    const submitted = apiClient.submitAction(view.matchId, body);
+    // Nothing may reject before we attach the real handler below.
+    submitted.catch(() => undefined);
     try {
-      await apiClient.submitAction(view.matchId, body);
-      // Animate the committed action before reconciling; input stays blocked via
-      // `busy`. Animation never gates the authoritative state — the refetch below
-      // reconciles regardless (§28.2).
       await sceneRef.current?.playAnimation(plan);
+      await submitted;
+      setBusy(false);
       await refetch();
     } catch (error) {
+      setBusy(false);
       // A stale-version conflict (or any error) reconciles by refetching.
       if (error instanceof ApiError) await refetch();
-    } finally {
-      setBusy(false);
     }
   }
 

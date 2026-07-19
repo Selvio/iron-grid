@@ -1,4 +1,3 @@
-import { eq } from "drizzle-orm";
 import type { GameData } from "game-data";
 import {
   applyAction,
@@ -14,7 +13,6 @@ import {
   persistMatchSnapshot,
   recordIdempotentResult,
 } from "../db";
-import { matchPlayers } from "../db/schema/match-players";
 import type { MatchSettings } from "../db/schema/matches";
 import type { NewPlayerEventRow } from "../db/schema/player-events";
 import { createInvitationRateLimiter } from "../lifecycle/rate-limit";
@@ -132,14 +130,14 @@ export async function commitAction<
     events.map((event) => ({ type: event.type, payload: event })),
   );
   // Interim: per-player rows are written unprojected (fog is blocked at create).
-  const players = await tx
-    .select({ id: matchPlayers.id })
-    .from(matchPlayers)
-    .where(eq(matchPlayers.matchId, matchId));
+  // The recipients come from the state rather than a `match_players` query: the
+  // roster was built from those same rows at activation, so the ids are the
+  // same set, and every round trip inside this transaction is latency the
+  // player waits through.
   const projections: NewPlayerEventRow[] = appended.flatMap((ev) =>
-    players.map((p) => ({
+    committedState.players.map((player) => ({
       matchId,
-      playerId: p.id,
+      playerId: player.playerId,
       sequence: ev.sequence,
       type: ev.type,
       payload: ev.payload,
