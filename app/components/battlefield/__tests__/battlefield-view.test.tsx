@@ -381,6 +381,19 @@ function combatGameData(): GameData {
         transport: { capacity: 1, allowed_cargo: ["infantry"] },
         rendering: { sprite_key: "apc" },
       },
+      artillery: {
+        category: "ground",
+        cost: 6000,
+        enabled_in_mvp: true,
+        display_name: "Artillery",
+        // Indirect: it fires from where it stands, so it is the only kind of
+        // unit with a range the board can draw.
+        movement: { ...move, can_move_and_attack: false },
+        combat: { type: "indirect", min_range: 2, max_range: 3 },
+        capabilities: { can_capture: false },
+        logistics: { primary_ammo_per_attack: 1 },
+        rendering: { sprite_key: "artillery" },
+      },
       submarine: {
         category: "naval",
         cost: 20000,
@@ -791,14 +804,15 @@ describe("BattlefieldView · logistics", () => {
     expect(hatch("Tile 2, 3")).toBeNull();
   });
 
-  it("toggles the attack range with Space (and the Range chip)", async () => {
-    const v = view();
+  it("toggles an indirect unit's attack range with Space (and the Range chip)", async () => {
+    const artillery = { ...TANK, typeId: "artillery" };
+    const v = view([artillery]);
     stubFetch(v);
     render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
     const hatch = (label: string) =>
       screen.getByLabelText(label).getAttribute("data-attack-range");
 
-    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select the tank
+    await userEvent.click(screen.getByLabelText("Tile 2, 1"));
     const chip = screen.getByRole("button", { name: /Range/ });
     expect(chip).toHaveAttribute("aria-pressed", "false");
     // (0,2) is 3 tiles away: outside the fuel-2 move range, inside its threat.
@@ -819,6 +833,20 @@ describe("BattlefieldView · logistics", () => {
       "aria-pressed",
       "false",
     );
+  });
+
+  it("offers no range at all for a unit that moves and fires", async () => {
+    const v = view();
+    stubFetch(v);
+    render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
+
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select the tank
+    expect(screen.queryByRole("button", { name: /Range/ })).toBeNull();
+
+    await userEvent.keyboard(" ");
+    expect(
+      screen.getByLabelText("Tile 0, 2").getAttribute("data-attack-range"),
+    ).toBeNull();
   });
 
   it("unloads a single cargo unit onto an adjacent tile", async () => {

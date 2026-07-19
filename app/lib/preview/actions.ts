@@ -247,57 +247,63 @@ export function actionsAtDestination(
 }
 
 /**
- * The tiles a selected unit threatens, as the Advance-Wars red hatch.
+ * Whether a unit shoots from where it stands (§12.4) — artillery, rockets,
+ * battleships.
  *
- * An indirect unit cannot move and fire (§12.4), so its range is a fixed ring
- * around the tile it stands on — that ring *is* its turn, which is why the board
- * shows it by default. A direct unit instead threatens everything one step off
- * its move range, which `menu` supplies; that view buries the board in hatch, so
- * the controller only asks for it when the player toggles the range on. Passing
- * `menu: null` therefore yields nothing for direct units. Unarmed units (APC,
- * transports) always return nothing.
+ * Only these have a range worth drawing. A direct unit's threat is just "its
+ * move range, plus one", which the blue wash already tells the player; hatching
+ * it buries the board in red and answers a question nobody asked.
  */
-export function attackRangeTiles(
-  view: MatchView,
-  gameData: GameData,
-  unitId: string,
-  menu: UnitMenu | null = null,
-): Coordinate[] {
-  const unit = view.units.find((u) => u.id === unitId);
-  if (unit === undefined || unit.position === null) return [];
-  const def = gameData.units[unit.typeId] as
+export function isIndirect(gameData: GameData, typeId: string): boolean {
+  const def = gameData.units[typeId] as
     | {
         combat?: { min_range?: number | null; max_range?: number | null };
         movement?: { can_move_and_attack?: boolean };
       }
     | undefined;
-  const minRange = def?.combat?.min_range ?? null;
-  const maxRange = def?.combat?.max_range ?? null;
-  if (minRange === null || maxRange === null) return [];
-
-  const movesAndFires = def?.movement?.can_move_and_attack !== false;
-  if (movesAndFires && menu === null) return [];
-  const firingTiles = movesAndFires ? menu!.moveDestinations : [unit.position];
-  // Tiles it can move onto stay blue — the hatch is only what it can shoot.
-  const moveable = new Set(
-    movesAndFires ? firingTiles.map((c) => `${c.x},${c.y}`) : [],
+  if (def?.movement?.can_move_and_attack !== false) return false;
+  return (
+    (def.combat?.min_range ?? null) !== null &&
+    (def.combat?.max_range ?? null) !== null
   );
+}
+
+/**
+ * The tiles an indirect unit threatens, as the Advance-Wars red hatch.
+ *
+ * Because it cannot move and fire, its range is a fixed ring around the tile it
+ * stands on — that ring *is* its turn, and it is the one thing the board cannot
+ * otherwise show. Anything else, direct or unarmed, returns nothing: see
+ * `isIndirect`.
+ */
+export function attackRangeTiles(
+  view: MatchView,
+  gameData: GameData,
+  unitId: string,
+): Coordinate[] {
+  const unit = view.units.find((u) => u.id === unitId);
+  if (unit === undefined || unit.position === null) return [];
+  if (!isIndirect(gameData, unit.typeId)) return [];
+  const combat = (
+    gameData.units[unit.typeId] as {
+      combat?: { min_range?: number | null; max_range?: number | null };
+    }
+  ).combat;
+  const minRange = combat?.min_range ?? 0;
+  const maxRange = combat?.max_range ?? 0;
+
   const tiles = new Map<string, Coordinate>();
-  for (const from of firingTiles) {
-    for (let dy = -maxRange; dy <= maxRange; dy++) {
-      const span = maxRange - Math.abs(dy);
-      for (let dx = -span; dx <= span; dx++) {
-        const distance = Math.abs(dx) + Math.abs(dy);
-        if (distance < minRange) continue;
-        const x = from.x + dx;
-        const y = from.y + dy;
-        if (x < 0 || y < 0 || x >= view.map.width || y >= view.map.height) {
-          continue;
-        }
-        const key = `${x},${y}`;
-        if (moveable.has(key)) continue;
-        tiles.set(key, { x, y });
+  for (let dy = -maxRange; dy <= maxRange; dy++) {
+    const span = maxRange - Math.abs(dy);
+    for (let dx = -span; dx <= span; dx++) {
+      const distance = Math.abs(dx) + Math.abs(dy);
+      if (distance < minRange) continue;
+      const x = unit.position.x + dx;
+      const y = unit.position.y + dy;
+      if (x < 0 || y < 0 || x >= view.map.width || y >= view.map.height) {
+        continue;
       }
+      tiles.set(`${x},${y}`, { x, y });
     }
   }
   return [...tiles.values()];

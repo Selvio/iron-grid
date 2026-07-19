@@ -253,7 +253,7 @@ register in:
 | Arrows | Move the cursor · walk a menu · cycle attack targets |
 | `Enter` | Select / confirm the focused item |
 | `Esc` | Step back exactly one state (`interactionReducer`'s `cancel`); closes a dialog first |
-| `Space` | Toggle the selected unit's attack range |
+| `Space` | Toggle the attack range of a selected **indirect** unit (§12.4); nothing for anyone else |
 | `N` | Jump to the next unit that has not acted |
 | `E` | End turn (opens the confirmation, never submits) |
 | `+` `-` `0` | Zoom in / out / reset |

@@ -20,6 +20,7 @@ import {
 import {
   actionsAtDestination,
   attackRangeTiles,
+  isIndirect,
   previewCombat,
   previewProduction,
   previewUnitMenu,
@@ -174,6 +175,15 @@ export function BattlefieldView({
     return after ?? mine[0];
   }
 
+  // Only an indirect unit has a range worth drawing, so it is the only one
+  // whose Space toggle and Range chip exist at all.
+  const rangedUnit =
+    state.kind === "unit-selected"
+      ? (view.units.find((u) => u.id === state.unitId) ?? null)
+      : null;
+  const canShowRange =
+    rangedUnit !== null && isIndirect(gameData, rangedUnit.typeId);
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent): void => {
       // Never shadow the browser's own chords, and never fire while typing.
@@ -201,7 +211,7 @@ export function BattlefieldView({
       switch (event.key) {
         case " ":
           event.preventDefault(); // Space would otherwise scroll the board
-          setShowRange((previous) => !previous);
+          if (canShowRange) setShowRange((previous) => !previous);
           return;
         case "?":
           event.preventDefault();
@@ -692,12 +702,12 @@ export function BattlefieldView({
       : "menu" in state
         ? state.menu.moveDestinations
         : [];
-  // The red firing hatch, only while the player is holding it open with Space:
-  // hatching every selection would swamp the board, and an indirect unit's ring
-  // is as much of an interruption as a direct unit's threat range.
+  // The red firing hatch, only for an indirect unit and only while the player
+  // holds it open with Space. Ranged units are the ones whose reach the board
+  // cannot otherwise show; for everyone else the blue move wash already says it.
   const attackRange =
-    state.kind === "unit-selected" && showRange
-      ? attackRangeTiles(view, gameData, state.unitId, state.menu)
+    canShowRange && showRange
+      ? attackRangeTiles(view, gameData, rangedUnit.id)
       : [];
   const tileOf = (unitId: string): Coordinate | null =>
     view.units.find((u) => u.id === unitId)?.position ?? null;
@@ -832,8 +842,8 @@ export function BattlefieldView({
         </button>
       )}
       {/* The range toggle is only discoverable if it is on screen — a chip
-          while a unit is selected, clickable for pointer-only players. */}
-      {state.kind === "unit-selected" && (
+          while a ranged unit is selected, clickable for pointer-only players. */}
+      {canShowRange && (
         <button
           type="button"
           aria-pressed={showRange}

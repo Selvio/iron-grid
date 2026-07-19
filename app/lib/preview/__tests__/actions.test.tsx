@@ -6,6 +6,7 @@ import { fixtureGameData } from "@/app/server/lifecycle/__tests__/fixtures";
 import {
   actionsAtDestination,
   attackRangeTiles,
+  isIndirect,
   previewProduction,
   previewUnitMenu,
   productionTargetAt,
@@ -167,9 +168,6 @@ describe("attackRangeTiles", () => {
       },
     }) as unknown as GameData;
 
-  const menu = (moveDestinations: { x: number; y: number }[]) =>
-    ({ moveDestinations }) as unknown as ReturnType<typeof previewUnitMenu>;
-
   it("rings an indirect unit's origin between min and max range", () => {
     const tiles = attackRangeTiles(
       rangeView({}),
@@ -185,25 +183,12 @@ describe("attackRangeTiles", () => {
     expect(keys.every((k) => !k.startsWith("-"))).toBe(true); // clipped to the map
   });
 
-  it("returns nothing for a unit that can move and fire until a menu is passed", () => {
-    const view = rangeView({});
+  it("returns nothing for a unit that moves and fires", () => {
+    // A direct unit's threat is its move range plus one, which the blue wash
+    // already shows; hatching it would bury the board in red.
     const gd = rangeGameData({ min_range: 1, max_range: 1 }, true);
-    expect(attackRangeTiles(view, gd, "u1")).toEqual([]);
-
-    // With the move menu (the player toggled the range on) it is the move range
-    // grown by the unit's reach, minus the move range itself.
-    const keys = attackRangeTiles(
-      view,
-      gd,
-      "u1",
-      menu([
-        { x: 2, y: 1 },
-        { x: 3, y: 1 },
-      ]),
-    ).map((c) => `${c.x},${c.y}`);
-    expect(keys).toContain("4,1"); // adjacent to the far move destination
-    expect(keys).toContain("1,1"); // adjacent to the origin
-    expect(keys).not.toContain("3,1"); // reachable tiles stay blue
+    expect(attackRangeTiles(rangeView({}), gd, "u1")).toEqual([]);
+    expect(isIndirect(gd, "tank")).toBe(false);
   });
 
   it("returns nothing for an unarmed unit", () => {
@@ -214,6 +199,12 @@ describe("attackRangeTiles", () => {
         "u1",
       ),
     ).toEqual([]);
+    expect(
+      isIndirect(
+        rangeGameData({ min_range: null, max_range: null }, false),
+        "tank",
+      ),
+    ).toBe(false);
   });
 });
 

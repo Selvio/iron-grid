@@ -22,7 +22,7 @@ export const SHORTCUTS: readonly {
   { keys: ["←", "↑", "→", "↓"], description: "Move the cursor" },
   { keys: ["Enter"], description: "Select · confirm the highlighted action" },
   { keys: ["Esc"], description: "Cancel one step back · deselect" },
-  { keys: ["Space"], description: "Show the selected unit's attack range" },
+  { keys: ["Space"], description: "Show a ranged unit's attack range" },
   { keys: ["N"], description: "Jump to the next unit that has not acted" },
   { keys: ["E"], description: "End turn (asks first)" },
   { keys: ["M"], description: "Mute · unmute" },
