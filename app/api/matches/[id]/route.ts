@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import { handleGetMatch } from "@/app/server/actions/read";
 import { createDatabase, type Database } from "@/app/server/db";
@@ -20,16 +20,10 @@ function database(): Database {
   return cachedDatabase;
 }
 
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export async function GET(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await context.params;
-  return handleGetMatch(id, { db: database(), gameData: gameData() });
+  return handleGetMatch(id, { db: database(), gameData: getGameData() });
 }

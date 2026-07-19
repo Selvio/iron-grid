@@ -10,6 +10,7 @@ import {
   renderTileFor,
   riverTile,
   roadTile,
+  seaChannelEdges,
   seaCorners,
   seaTile,
 } from "../terrain-map";
@@ -100,7 +101,7 @@ describe("seaTile", () => {
       ["sea", "sea", "sea"],
     ]);
     expect(seaCorners(map, 1, 1)).toEqual([
-      { key: "terrain_sea_corner_top_left", dx: 0, dy: 0 },
+      { key: "terrain_sea_corner_top_left", dx: 0, dy: -8 },
     ]);
     // With the land orthogonally adjacent the edge tile draws the shore instead.
     const orthogonal = view([
@@ -109,6 +110,45 @@ describe("seaTile", () => {
       ["sea", "sea", "sea"],
     ]);
     expect(seaCorners(orthogonal, 1, 1)).toEqual([]);
+  });
+
+  it("layers half-edge shores on a 1-tile channel between opposite land", () => {
+    // Land north+south, water east+west → horizontal channel.
+    const ns = view([
+      ["plain", "plain", "plain"],
+      ["sea", "sea", "sea"],
+      ["plain", "plain", "plain"],
+    ]);
+    expect(seaTile(ns, 1, 1)).toBe("terrain_sea");
+    expect(seaChannelEdges(ns, 1, 1)).toEqual([
+      { key: "terrain_sea_edge_top", dx: 0, dy: -8 },
+      { key: "terrain_sea_edge_bottom", dx: 0, dy: 0 },
+    ]);
+    expect(keys(ns, 1, 1)).toEqual([
+      "terrain_sea",
+      "terrain_sea_edge_top",
+      "terrain_sea_edge_bottom",
+    ]);
+
+    // Land east+west, water north+south → vertical channel.
+    const ew = view([
+      ["sea", "plain", "sea"],
+      ["sea", "plain", "sea"],
+      ["sea", "plain", "sea"],
+    ]);
+    // Center of the middle row is land; use the water cell west of it.
+    expect(seaTile(ew, 0, 1)).toBe("terrain_sea_right");
+    // A true E+W land channel: water with plain on both sides.
+    const vertical = view([
+      ["sea", "sea", "sea"],
+      ["plain", "sea", "plain"],
+      ["sea", "sea", "sea"],
+    ]);
+    expect(seaTile(vertical, 1, 1)).toBe("terrain_sea");
+    expect(seaChannelEdges(vertical, 1, 1)).toEqual([
+      { key: "terrain_sea_edge_left", dx: 0, dy: 0 },
+      { key: "terrain_sea_edge_right", dx: 8, dy: 0 },
+    ]);
   });
 });
 

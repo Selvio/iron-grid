@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import {
   CreateMatchForm,
@@ -17,16 +17,9 @@ import { requireSessionUser } from "@/app/lib/session";
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T5)
  */
 
-// Reference data is immutable per process; load once and reuse.
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export default async function NewMatchPage() {
   await requireSessionUser();
-  const maps: MapOption[] = Object.values(gameData().maps).map((map) => ({
+  const maps: MapOption[] = Object.values(getGameData().maps).map((map) => ({
     id: map.id,
     label: `${map.id} · ${map.dimensions.width}×${map.dimensions.height}`,
   }));

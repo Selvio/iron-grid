@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import { handleGetEvents } from "@/app/server/actions/read";
 import { createDatabase, type Database } from "@/app/server/db";
@@ -20,12 +20,6 @@ function database(): Database {
   return cachedDatabase;
 }
 
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export async function GET(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -35,6 +29,6 @@ export async function GET(
   const since = Number.parseInt(sinceParam ?? "0", 10);
   return handleGetEvents(id, Number.isNaN(since) ? 0 : since, {
     db: database(),
-    gameData: gameData(),
+    gameData: getGameData(),
   });
 }

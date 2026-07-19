@@ -529,7 +529,7 @@ official_maps:
   # which the art pack draws with its own deck sprite.
   crossfire-basin:
     id: "crossfire-basin"
-    version: "3.0.0"
+    version: "3.0.1"
     display_name: null
     status: "review"
     dimensions:
@@ -548,7 +548,7 @@ official_maps:
       - ["sea", "plain", "plain", "forest", "road", "forest", "sea", "plain", "road", "city", "plain", "plain", "headquarters", "base", "sea"]
       - ["sea", "city", "city", "road", "road", "sea", "sea", "sea", "road", "plain", "mountain", "plain", "road", "base", "sea"]
       - ["sea", "plain", "plain", "road", "plain", "sea", "sea", "sea", "road", "city", "mountain", "city", "road", "plain", "sea"]
-      - ["sea", "base", "plain", "road", "city", "sea", "sea", "forest", "road", "road", "road", "road", "road", "city", "sea"]
+      - ["sea", "base", "road", "road", "city", "sea", "sea", "forest", "road", "road", "road", "road", "road", "city", "sea"]
       - ["sea", "base", "headquarters", "plain", "plain", "plain", "plain", "forest", "forest", "plain", "sea", "sea", "bridge", "sea", "sea"]
       - ["sea", "sea", "base", "base", "plain", "plain", "plain", "plain", "plain", "plain", "sea", "sea", "plain", "plain", "sea"]
       - ["sea", "sea", "sea", "sea", "mountain", "city", "mountain", "forest", "city", "plain", "bridge", "plain", "city", "city", "sea"]

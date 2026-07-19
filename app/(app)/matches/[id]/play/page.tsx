@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 import { eq } from "drizzle-orm";
 import { notFound, redirect } from "next/navigation";
 
@@ -24,12 +24,6 @@ let cachedDatabase: Database | undefined;
 function database(): Database {
   cachedDatabase ??= createDatabase();
   return cachedDatabase;
-}
-
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
 }
 
 export default async function PlayPage({
@@ -64,7 +58,7 @@ export default async function PlayPage({
     notFound();
   }
 
-  const data = gameData();
+  const data = getGameData();
   const matchView = projectMatchView(row.state, viewerPlayerId, data);
 
   return (

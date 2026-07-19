@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import type { FactionId } from "@/app/components/faction-badge";
 import {
@@ -17,12 +17,6 @@ import { requireSessionUser } from "@/app/lib/session";
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T6)
  */
 
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export default async function CommanderPage({
   params,
 }: {
@@ -31,7 +25,7 @@ export default async function CommanderPage({
   await requireSessionUser();
   const { id } = await params;
   const commanders: CommanderOption[] = Object.values(
-    gameData().commanders.commanders,
+    getGameData().commanders.commanders,
   ).map((commander) => ({
     id: commander.id,
     faction: commander.faction_id as FactionId,

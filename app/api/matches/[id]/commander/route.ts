@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import { handleSelectCommander } from "@/app/server/lifecycle/commander";
 import { createDatabase, type Database } from "@/app/server/db";
@@ -20,12 +20,6 @@ function database(): Database {
   return cachedDatabase;
 }
 
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
@@ -33,6 +27,6 @@ export async function POST(
   const { id } = await context.params;
   return handleSelectCommander(request, id, {
     db: database(),
-    gameData: gameData(),
+    gameData: getGameData(),
   });
 }

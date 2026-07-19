@@ -46,7 +46,8 @@ export const TERRAIN: Readonly<Record<string, readonly [string, Position]>> = {
   plain_shadow: ["lowland_shadow.png", "top_left"],
   hill: ["hill.png", "top_left"],
   forest: ["forest.png", "top_left"],
-  mountain: ["mountain.png", "top_left"],
+  // Mountain is a tall standalone sprite (16×21), not a 16×16 autotile cell —
+  // see TERRAIN_OVERRIDE_BOXES so the peak is not cropped.
   reef: ["cliffs.png", "center"],
 
   // Open water plus the cliff edges that frame it (`SeaLocation`).
@@ -117,6 +118,23 @@ export const TERRAIN: Readonly<Record<string, readonly [string, Position]>> = {
 };
 
 export const terrainRect = (position: Position): Box => T[position];
+
+/**
+ * Standalone terrain files whose native size is not a 16×16 autotile cell.
+ * Keys here are omitted from `TERRAIN` and registered with these exact boxes.
+ */
+export const TERRAIN_OVERRIDE_BOXES: Readonly<
+  Record<string, readonly [string, Box]>
+> = {
+  mountain: ["mountain.png", { x: 0, y: 0, w: 16, h: 21 }],
+  // Half-edges for 1-tile sea channels (land on opposite sides). Full edge
+  // tiles are opaque, so stacking left+right or top+bottom would erase one
+  // coast — these 8×16 / 16×8 crops keep both shores.
+  sea_edge_top: ["cliffs.png", { x: 17, y: 0, w: 16, h: 8 }],
+  sea_edge_bottom: ["cliffs.png", { x: 17, y: 42, w: 16, h: 8 }],
+  sea_edge_left: ["cliffs.png", { x: 0, y: 17, w: 8, h: 16 }],
+  sea_edge_right: ["cliffs.png", { x: 42, y: 17, w: 8, h: 16 }],
+};
 
 // --- Buildings -----------------------------------------------------------------
 

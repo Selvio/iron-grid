@@ -1,4 +1,4 @@
-import { loadGameData } from "game-data";
+import { getGameData } from "@/app/server/load-game-data";
 
 import { handleCreateMatch } from "@/app/server/lifecycle/create";
 import { handleListMatches } from "@/app/server/lifecycle/list";
@@ -23,15 +23,11 @@ function database(): Database {
   return cachedDatabase;
 }
 
-// Reference data is immutable per process; load once and reuse across requests.
-let cachedGameData: ReturnType<typeof loadGameData> | undefined;
-function gameData(): ReturnType<typeof loadGameData> {
-  cachedGameData ??= loadGameData();
-  return cachedGameData;
-}
-
 export async function POST(request: Request): Promise<Response> {
-  return handleCreateMatch(request, { db: database(), gameData: gameData() });
+  return handleCreateMatch(request, {
+    db: database(),
+    gameData: getGameData(),
+  });
 }
 
 /**

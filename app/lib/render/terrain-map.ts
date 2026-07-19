@@ -22,7 +22,12 @@ import type { MapView } from "@/app/server/actions/read";
 /** One atlas tile of a cell's stack, optionally inset within the tile. */
 export interface TileLayer {
   readonly key: string;
-  /** Offset from the tile's top-left, in source pixels (default 0). */
+  /**
+   * Offset added to the sprite's bottom-left anchor inside the tile, in source
+   * pixels (default 0). Full tiles leave this unset so tall art (mountains,
+   * buildings) can overhang upward; 8×8 sea-corner stickers use it to pick a
+   * quadrant (`dy: -8` top row, `dy: 0` bottom row).
+   */
   readonly dx?: number;
   readonly dy?: number;
 }
@@ -109,6 +114,9 @@ function pair(
  * Off-map neighbours count as water: the ocean is understood to continue past
  * the border, so a map that ends on sea does not get a ring of cliffs facing
  * outward. Only real land raises a shoreline.
+ *
+ * When land sits on opposite sides (a 1-tile channel), returns `"terrain_sea"`
+ * — callers should layer `seaChannelEdges` on top so both shores still draw.
  */
 export function seaTile(map: MapView, x: number, y: number): string {
   const c = cross(map, x, y);
@@ -126,7 +134,7 @@ export function seaTile(map: MapView, x: number, y: number): string {
         return i === 0 ? "terrain_sea_bottom_right" : "terrain_sea_top_left";
       }
       if (sum === 5) return "terrain_sea_top_right";
-      return "terrain_sea"; // opposite sides: a channel, no corner art
+      return "terrain_sea"; // opposite sides: a channel — see seaChannelEdges
     }
   }
   if (groundCount === 1) {
@@ -139,15 +147,52 @@ export function seaTile(map: MapView, x: number, y: number): string {
 }
 
 /**
+ * Half-edge overlays for a 1-tile sea channel (land on two opposite sides).
+ * Empty when the cell is not such a channel.
+ */
+export function seaChannelEdges(
+  map: MapView,
+  x: number,
+  y: number,
+): TileLayer[] {
+  const c = cross(map, x, y);
+  const openWater = (t: string | undefined): boolean =>
+    t === undefined || isNaval(t);
+  if (c.filter(isGround).length !== 2) return [];
+  const naval = pair(c, openWater);
+  if (naval === null) return [];
+  const sum = naval[0]! + naval[1]!;
+  // Naval N+S (sum 2) → land east+west → vertical channel.
+  if (sum === 2) {
+    return [
+      { key: "terrain_sea_edge_left", dx: 0, dy: 0 },
+      { key: "terrain_sea_edge_right", dx: 8, dy: 0 },
+    ];
+  }
+  // Naval E+W (sum 4) → land north+south → horizontal channel.
+  if (sum === 4) {
+    return [
+      // 8px strips under bottom-anchoring: dy -8 = top half, dy 0 = bottom half.
+      { key: "terrain_sea_edge_top", dx: 0, dy: -8 },
+      { key: "terrain_sea_edge_bottom", dx: 0, dy: 0 },
+    ];
+  }
+  return [];
+}
+
+/**
  * The 8×8 corner stickers that round off a coast where land only touches the
  * tile diagonally — without them a diagonal shoreline reads as a staircase.
+ *
+ * `dx`/`dy` are bottom-anchor adjustments (see `TileLayer`): an 8×8 sticker with
+ * `dy: 0` sits in the bottom half of the tile, `dy: -8` in the top half.
  */
 export function seaCorners(map: MapView, x: number, y: number): TileLayer[] {
   const diagonals: [number, number, string, number, number][] = [
-    [-1, -1, "terrain_sea_corner_top_left", 0, 0],
-    [1, -1, "terrain_sea_corner_top_right", 8, 0],
-    [1, 1, "terrain_sea_corner_bottom_right", 8, 8],
-    [-1, 1, "terrain_sea_corner_bottom_left", 0, 8],
+    [-1, -1, "terrain_sea_corner_top_left", 0, -8],
+    [1, -1, "terrain_sea_corner_top_right", 8, -8],
+    [1, 1, "terrain_sea_corner_bottom_right", 8, 0],
+    [-1, 1, "terrain_sea_corner_bottom_left", 0, 0],
   ];
   const layers: TileLayer[] = [];
   for (const [dx, dy, key, ox, oy] of diagonals) {
@@ -346,6 +391,7 @@ export function layersForCell(map: MapView, x: number, y: number): TileLayer[] {
     case "sea":
     case "reef": {
       const layers: TileLayer[] = [{ key: seaTile(map, x, y) }];
+      layers.push(...seaChannelEdges(map, x, y));
       layers.push(...seaCorners(map, x, y));
       if (terrainId === "reef") layers.push({ key: "terrain_reef" });
       return layers;

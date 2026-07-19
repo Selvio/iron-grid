@@ -17,6 +17,7 @@ import {
   SPLASH_TOPS,
   SUBMERGED_ALIAS,
   TERRAIN,
+  TERRAIN_OVERRIDE_BOXES,
   UNITS,
   terrainRect,
 } from "./atlas/tables";
@@ -54,6 +55,9 @@ function put(key: string, file: string, box: Box): void {
 
 for (const [name, [file, position]] of Object.entries(TERRAIN)) {
   put(`terrain_${name}`, `terrain/${file}`, terrainRect(position));
+}
+for (const [name, [file, box]] of Object.entries(TERRAIN_OVERRIDE_BOXES)) {
+  put(`terrain_${name}`, `terrain/${file}`, box);
 }
 
 const BUILDING_FILE = "buildings/colored_buildings.png";
