@@ -19,7 +19,6 @@ import {
 import {
   actionsAtDestination,
   attackRangeTiles,
-  isIndirectUnit,
   previewCombat,
   previewProduction,
   previewUnitMenu,
@@ -101,9 +100,9 @@ export function BattlefieldView({
   const [banner, setBanner] = useState<string | null>(null);
   const [zoom, setZoom] = useState(1);
   const [confirmEnd, setConfirmEnd] = useState(false);
-  // Space overrides the default range view for the selected unit; null follows
-  // the default (shown for indirect units, hidden for everyone else).
-  const [rangeOverride, setRangeOverride] = useState<boolean | null>(null);
+  // The attack-range hatch is off until the player asks for it with Space; it
+  // resets with every selection so the board starts clean.
+  const [showRange, setShowRange] = useState(false);
   const sceneRef = useRef<BattlefieldHandle | null>(null);
   const turnKeyRef = useRef(
     `${matchView.currentDay}:${matchView.activePlayerId}`,
@@ -134,22 +133,19 @@ export function BattlefieldView({
     return () => window.removeEventListener("keydown", onKey);
   }, [confirmEnd]);
 
-  // Space toggles the attack-range hatch for the selected unit (Advance Wars
-  // shows the same range on demand); it flips whichever view is on screen.
+  // Space toggles the attack-range hatch for the selected unit, the way Advance
+  // Wars shows a range on demand.
   const selectedUnitId = state.kind === "unit-selected" ? state.unitId : null;
   useEffect(() => {
     if (selectedUnitId === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== " ") return;
       e.preventDefault(); // Space would otherwise scroll the board
-      setRangeOverride(
-        (previous) =>
-          !(previous ?? isIndirectUnit(view, gameData, selectedUnitId)),
-      );
+      setShowRange((previous) => !previous);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [selectedUnitId, view, gameData]);
+  }, [selectedUnitId]);
 
   function ownSelectableAt(x: number, y: number) {
     const unit = view.units.find(
@@ -165,7 +161,7 @@ export function BattlefieldView({
 
   function select(unitId: string): void {
     const menu = previewUnitMenu(view, unitId, gameData);
-    setRangeOverride(null); // each unit starts at its own default
+    setShowRange(false); // a fresh selection starts with the board clean
     dispatch({
       type: "select",
       unitId,
@@ -534,14 +530,9 @@ export function BattlefieldView({
       : "menu" in state
         ? state.menu.moveDestinations
         : [];
-  // The red firing hatch. Indirect units show it as soon as they are selected —
-  // they can only shoot from where they stand, so it is the whole decision;
-  // everyone else shows it on demand (Space), because a direct unit's threat
-  // range covers its move range plus a ring and would swamp the board.
-  const selectedIsIndirect =
-    state.kind === "unit-selected" &&
-    isIndirectUnit(view, gameData, state.unitId);
-  const showRange = rangeOverride ?? selectedIsIndirect;
+  // The red firing hatch, only while the player is holding it open with Space:
+  // hatching every selection would swamp the board, and an indirect unit's ring
+  // is as much of an interruption as a direct unit's threat range.
   const attackRange =
     state.kind === "unit-selected" && showRange
       ? attackRangeTiles(view, gameData, state.unitId, state.menu)
@@ -662,7 +653,7 @@ export function BattlefieldView({
         <button
           type="button"
           aria-pressed={showRange}
-          onClick={() => setRangeOverride(!showRange)}
+          onClick={() => setShowRange(!showRange)}
           className={cn(
             "pointer-events-auto absolute bottom-4 left-4 flex items-center gap-2 rounded-2xl border-[3px] border-[#1c2b45] px-3 py-1.5 font-display text-sm font-extrabold shadow-[0_4px_0_rgba(28,43,69,0.3)] transition-[filter] hover:brightness-105 active:translate-y-0.5",
             showRange

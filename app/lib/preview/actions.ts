@@ -303,19 +303,6 @@ export function attackRangeTiles(
   return [...tiles.values()];
 }
 
-/** True when the unit fires only from where it stands (its hatch shows by default). */
-export function isIndirectUnit(
-  view: MatchView,
-  gameData: GameData,
-  unitId: string,
-): boolean {
-  const unit = view.units.find((u) => u.id === unitId);
-  if (unit === undefined) return false;
-  const def = gameData.units[unit.typeId] as
-    { movement?: { can_move_and_attack?: boolean } } | undefined;
-  return def?.movement?.can_move_and_attack === false;
-}
-
 /**
  * The owned, empty production property at a tile (base/airport/port), or null.
  * The `isMyTurn` gate stays in the controller (like `ownSelectableAt`); this only

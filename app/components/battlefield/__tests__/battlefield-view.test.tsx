@@ -699,7 +699,7 @@ describe("BattlefieldView · logistics", () => {
     expect(container.querySelector("[data-path]")).not.toBeNull();
   });
 
-  it("hatches the firing ring of an indirect unit, and nothing for a direct one", async () => {
+  it("hatches an indirect unit's firing ring, but only once Space asks for it", async () => {
     const gd = combatGameData();
     const artillery = {
       ...gd.units.tank,
@@ -715,19 +715,16 @@ describe("BattlefieldView · logistics", () => {
     const hatch = (label: string) =>
       screen.getByLabelText(label).querySelector("[data-attack-range]");
 
-    const { unmount } = render(
-      <BattlefieldView matchView={v} gameData={indirect} />,
-    );
+    render(<BattlefieldView matchView={v} gameData={indirect} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select
+    expect(hatch("Tile 2, 3")).toBeNull(); // the board starts clean
+
+    await userEvent.keyboard(" ");
     expect(hatch("Tile 2, 3")).not.toBeNull(); // distance 2 — in the ring
     expect(hatch("Tile 2, 2")).toBeNull(); // distance 1 — inside the minimum
 
+    // Selecting again starts clean, even though the range was left open.
     await userEvent.click(screen.getByLabelText("Tile 0, 3")); // deselect
-    expect(hatch("Tile 2, 3")).toBeNull();
-    unmount();
-
-    // A direct unit shows no hatch — its blue move range already says it all.
-    render(<BattlefieldView matchView={v} gameData={gd} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1"));
     expect(hatch("Tile 2, 3")).toBeNull();
   });
@@ -752,7 +749,7 @@ describe("BattlefieldView · logistics", () => {
     await userEvent.keyboard(" ");
     expect(hatch("Tile 0, 2")).toBeNull();
 
-    // A fresh selection returns to the unit's own default (hidden, here).
+    // A fresh selection starts hidden again, even with the range left open.
     await userEvent.keyboard(" ");
     await userEvent.click(screen.getByLabelText("Tile 0, 3")); // deselect
     await userEvent.click(screen.getByLabelText("Tile 2, 1"));
