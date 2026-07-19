@@ -112,8 +112,11 @@ describe("BattlefieldView", () => {
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // the tank
 
     expect(screen.getByText("Tank")).toBeInTheDocument();
-    // A reachable neighbor is highlighted.
-    expect(screen.getByLabelText("Tile 3, 1").className).toMatch(/bg-primary/);
+    // A reachable neighbor is flagged in range (the scene paints the wash).
+    expect(screen.getByLabelText("Tile 3, 1")).toHaveAttribute(
+      "data-in-range",
+      "true",
+    );
   });
 
   it("clears the selection when clicking empty ground", async () => {
@@ -713,14 +716,14 @@ describe("BattlefieldView · logistics", () => {
     const v = view();
     stubFetch(v);
     const hatch = (label: string) =>
-      screen.getByLabelText(label).querySelector("[data-attack-range]");
+      screen.getByLabelText(label).getAttribute("data-attack-range");
 
     render(<BattlefieldView matchView={v} gameData={indirect} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select
     expect(hatch("Tile 2, 3")).toBeNull(); // the board starts clean
 
     await userEvent.keyboard(" ");
-    expect(hatch("Tile 2, 3")).not.toBeNull(); // distance 2 — in the ring
+    expect(hatch("Tile 2, 3")).toBe("true"); // distance 2 — in the ring
     expect(hatch("Tile 2, 2")).toBeNull(); // distance 1 — inside the minimum
 
     // Selecting again starts clean, even though the range was left open.
@@ -734,7 +737,7 @@ describe("BattlefieldView · logistics", () => {
     stubFetch(v);
     render(<BattlefieldView matchView={v} gameData={combatGameData()} />);
     const hatch = (label: string) =>
-      screen.getByLabelText(label).querySelector("[data-attack-range]");
+      screen.getByLabelText(label).getAttribute("data-attack-range");
 
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select the tank
     const chip = screen.getByRole("button", { name: /Range/ });
@@ -744,7 +747,7 @@ describe("BattlefieldView · logistics", () => {
 
     await userEvent.keyboard(" ");
     expect(chip).toHaveAttribute("aria-pressed", "true");
-    expect(hatch("Tile 0, 2")).not.toBeNull(); // threat range now painted
+    expect(hatch("Tile 0, 2")).toBe("true"); // threat range now painted
 
     await userEvent.keyboard(" ");
     expect(hatch("Tile 0, 2")).toBeNull();

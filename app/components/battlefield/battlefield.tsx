@@ -1,5 +1,6 @@
 "use client";
 
+import type { Coordinate } from "game-engine";
 import { useEffect, useMemo, useRef } from "react";
 
 import type { MatchView } from "@/app/lib/api-client";
@@ -23,12 +24,18 @@ import type { BattlefieldData, BattlefieldHandle } from "./create-game";
  */
 export function Battlefield({
   matchView,
-  artScale = 2,
+  artScale = 3,
+  moveRange = [],
+  attackRange = [],
   onSceneReady,
 }: {
   matchView: MatchView;
-  /** Integer multiple of the 24px source tile at 100% (may be fractional when zoomed). */
+  /** Integer multiple of the 16px source tile at 100% (may be fractional when zoomed). */
   artScale?: number;
+  /** Tiles the selected unit may move to — drawn under the units. */
+  moveRange?: readonly Coordinate[];
+  /** Tiles it threatens — drawn under the units. */
+  attackRange?: readonly Coordinate[];
   onSceneReady?: (handle: BattlefieldHandle) => void;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,6 +52,19 @@ export function Battlefield({
     [matchView],
   );
 
+  // Ranges are pushed separately from the board model: they change on every
+  // selection (and the arrays are rebuilt on every render), while syncModel
+  // tears down and redraws every sprite — which would kill a walk animation
+  // mid-step and reset the idle loop each time the cursor moves.
+  const rangeKey = useMemo(
+    () =>
+      [moveRange, attackRange]
+        .map((tiles) => tiles.map((t) => `${t.x},${t.y}`).join("|"))
+        .join("#"),
+    [moveRange, attackRange],
+  );
+  const rangesRef = useRef({ moveRange, attackRange });
+
   // Latest values read by the create-once effect without re-running it. Seeded
   // from the first render (useRef) and refreshed after each render (never in
   // render — the async create callback may fire after a later render).
@@ -55,6 +75,7 @@ export function Battlefield({
     dataRef.current = data;
     onReadyRef.current = onSceneReady;
     artScaleRef.current = artScale;
+    rangesRef.current = { moveRange, attackRange };
   });
 
   // Create the game ONCE; destroy only on unmount.
@@ -72,6 +93,11 @@ export function Battlefield({
         dataRef.current,
         (handle) => {
           handleRef.current = handle;
+          // The scene boots after the range effect has already run once.
+          handle.setRanges(
+            rangesRef.current.moveRange,
+            rangesRef.current.attackRange,
+          );
           onReadyRef.current?.(handle);
         },
         artScaleRef.current,
@@ -90,6 +116,12 @@ export function Battlefield({
   useEffect(() => {
     handleRef.current?.syncModel(data);
   }, [data]);
+
+  useEffect(() => {
+    handleRef.current?.setRanges(moveRange, attackRange);
+    // `rangeKey` is the content of the two arrays, which are new on every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rangeKey]);
 
   // Re-render at the chosen art scale (integer tile pixels — no CSS transform).
   useEffect(() => {

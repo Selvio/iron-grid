@@ -5,13 +5,16 @@ import { cn } from "@/app/lib/utils";
 /**
  * Interaction overlay (M10-T5/T6).
  *
- * The DOM grid that sits over the Phaser canvas (`design-reference.md` §6: range,
- * path and tooltips are DOM overlays over the board). It renders one cell per
- * tile, highlights the movement range (blue) and attackable targets (red), draws
- * the Advance-Wars move **path arrow** and the target **reticle**, reports tile
- * clicks and hovers up to the interaction controller. Being DOM, the whole
- * interaction surface is testable in jsdom — the canvas beneath is not. Pixel
- * alignment with the canvas is tuned visually in M12.
+ * The DOM grid that sits over the Phaser canvas: one cell per tile, reporting
+ * clicks and hovers to the interaction controller and drawing what belongs
+ * *above* the pieces — the move **path arrow**, the target **reticle** and the
+ * attackable-enemy markers.
+ *
+ * The move and attack ranges are painted by the scene instead, between the
+ * board and the units (`create-game.ts`), because in Advance Wars a range
+ * covers the ground and passes under the units standing on it — which a DOM
+ * layer over the canvas cannot do. Each cell still carries the range state as
+ * data attributes, so the interaction surface stays assertable in jsdom.
  *
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T5)
  */
@@ -70,25 +73,15 @@ export function InteractionOverlay({
           aria-label={`Tile ${x}, ${y}`}
           onClick={() => onTileClick(x, y)}
           onMouseEnter={() => onTileHover?.(x, y)}
+          data-in-range={highlighted ? "true" : undefined}
+          data-attack-range={isThreatened ? "true" : undefined}
           className={cn(
             "relative border border-transparent transition-colors",
-            highlighted && "bg-primary/30 hover:bg-primary/40",
+            highlighted && "hover:bg-primary/20",
             isTarget &&
               "border-destructive bg-destructive/40 hover:bg-destructive/50",
           )}
         >
-          {isThreatened && (
-            <span
-              aria-hidden
-              data-attack-range="true"
-              className="pointer-events-none absolute inset-0"
-              style={{
-                // The Advance-Wars threat hatch: red diagonal stripes over the
-                // terrain, sized off the tile so the angle reads at any zoom.
-                backgroundImage: `repeating-linear-gradient(45deg, rgba(226,58,58,0.55) 0, rgba(226,58,58,0.55) ${tilePx / 8}px, rgba(255,255,255,0.30) ${tilePx / 8}px, rgba(255,255,255,0.30) ${tilePx / 4}px)`,
-              }}
-            />
-          )}
           {isAimed && (
             <span
               aria-hidden

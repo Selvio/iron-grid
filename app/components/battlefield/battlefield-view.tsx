@@ -593,6 +593,8 @@ export function BattlefieldView({
             <Battlefield
               matchView={view}
               artScale={artScale}
+              moveRange={reachable}
+              attackRange={attackRange}
               onSceneReady={(handle) => {
                 sceneRef.current = handle;
               }}

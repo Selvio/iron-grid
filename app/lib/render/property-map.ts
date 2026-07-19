@@ -1,5 +1,6 @@
 import type { FactionId } from "@/app/components/faction-badge";
 import type { MatchView } from "@/app/lib/api-client";
+import { keysWithPrefix } from "@/app/lib/render/atlas";
 
 /**
  * Property render model (M10-T9, re-based on the colored building art in M12).
@@ -8,7 +9,9 @@ import type { MatchView } from "@/app/lib/api-client";
  * in whose colors, and how far a capture has progressed. The art pack draws
  * every property in five ownership palettes, so ownership is a different sprite
  * rather than the programmatic tint ADR-0004 settled for — that ADR is
- * superseded. Capture progress stays a drawn bar.
+ * superseded. Capture progress stays a drawn bar. Owned buildings also carry a
+ * two-frame flag loop (`building_*_*_0` / `_1`) that the scene cycles on its
+ * own slower timer.
  *
  * @see docs/04-development/milestones/m10-battlefield.md (M10-T9)
  * @see docs/decisions/0005-advance-wars-asset-pack.md
@@ -42,6 +45,27 @@ export function buildingTileId(
   // back to a city so a mis-seeded map still renders something.
   const color = ownerFaction ?? (family === "headquarters" ? "red" : "neutral");
   return `building_${family}_${color}_${frame}`;
+}
+
+/** Strip the trailing frame index from a building atlas key. */
+export function buildingBaseKey(tileId: string): string {
+  return tileId.replace(/_\d+$/, "");
+}
+
+/**
+ * How many flag-loop frames the pack has for this building key. Returns 0 for
+ * unnumbered keys such as `building_silo_spent`.
+ */
+export function buildingFrameCount(tileId: string): number {
+  return keysWithPrefix(`${buildingBaseKey(tileId)}_`).length;
+}
+
+/** Atlas key for one frame of a building's flag loop. */
+export function buildingFrameId(tileId: string, frame: number): string {
+  const count = buildingFrameCount(tileId);
+  if (count === 0) return tileId;
+  const index = ((frame % count) + count) % count;
+  return `${buildingBaseKey(tileId)}_${index}`;
 }
 
 export interface PropertySprite {

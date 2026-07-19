@@ -7,7 +7,11 @@ import { Battlefield } from "../battlefield";
 // The Phaser bootstrap is mocked: jsdom has no WebGL. The mock invokes the
 // onReady callback with a handle so we can assert the in-place reconcile.
 const destroy = vi.fn();
-const handle = { syncModel: vi.fn(), playAnimation: vi.fn() };
+const handle = {
+  syncModel: vi.fn(),
+  setRanges: vi.fn(),
+  playAnimation: vi.fn(),
+};
 type Data = { terrain: { x: number; y: number; visible: boolean }[] };
 const createBattlefieldGame = vi.fn<
   (
@@ -62,6 +66,29 @@ describe("Battlefield", () => {
     await waitFor(() => expect(createBattlefieldGame).toHaveBeenCalled());
     unmount();
     expect(destroy).toHaveBeenCalledWith(true);
+  });
+
+  it("pushes ranges without rebuilding the board", async () => {
+    const { rerender } = render(
+      <Battlefield matchView={MATCH_VIEW} moveRange={[{ x: 0, y: 0 }]} />,
+    );
+    await waitFor(() => expect(createBattlefieldGame).toHaveBeenCalledOnce());
+    expect(handle.setRanges).toHaveBeenCalledWith([{ x: 0, y: 0 }], []);
+
+    // A re-render with the same tiles (new array identity) must not redraw.
+    handle.setRanges.mockClear();
+    rerender(
+      <Battlefield matchView={MATCH_VIEW} moveRange={[{ x: 0, y: 0 }]} />,
+    );
+    expect(handle.setRanges).not.toHaveBeenCalled();
+    expect(handle.syncModel).not.toHaveBeenCalled();
+
+    // Different tiles do reach the scene — still without a board rebuild.
+    rerender(
+      <Battlefield matchView={MATCH_VIEW} attackRange={[{ x: 1, y: 0 }]} />,
+    );
+    expect(handle.setRanges).toHaveBeenCalledWith([], [{ x: 1, y: 0 }]);
+    expect(handle.syncModel).not.toHaveBeenCalled();
   });
 
   it("creates the game once and reconciles in place on a view change", async () => {

@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 
 import type { MatchView } from "@/app/lib/api-client";
-import { buildPropertyRenderModel } from "../property-map";
+import {
+  buildingBaseKey,
+  buildingFrameCount,
+  buildingFrameId,
+  buildPropertyRenderModel,
+} from "../property-map";
 
 function view(properties: unknown[], units: unknown[] = []): MatchView {
   return {
@@ -82,5 +87,28 @@ describe("buildPropertyRenderModel", () => {
     expect(property.ownerFaction).toBeNull();
     expect(property.capturingFaction).toBe("blue");
     expect(property.captureProgress).toBeCloseTo(0.5);
+  });
+});
+
+describe("building flag frames", () => {
+  it("counts the two atlas frames for an owned building", () => {
+    expect(buildingFrameCount("building_city_blue_0")).toBe(2);
+    expect(buildingFrameId("building_city_blue_0", 0)).toBe(
+      "building_city_blue_0",
+    );
+    expect(buildingFrameId("building_city_blue_0", 1)).toBe(
+      "building_city_blue_1",
+    );
+    expect(buildingFrameId("building_city_blue_0", 2)).toBe(
+      "building_city_blue_0",
+    );
+  });
+
+  it("leaves unnumbered keys such as the spent silo alone", () => {
+    expect(buildingBaseKey("building_silo_spent")).toBe("building_silo_spent");
+    expect(buildingFrameCount("building_silo_spent")).toBe(0);
+    expect(buildingFrameId("building_silo_spent", 3)).toBe(
+      "building_silo_spent",
+    );
   });
 });

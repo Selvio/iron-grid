@@ -11,7 +11,11 @@ import {
 import { ATLAS, assetUrl, keysWithPrefix } from "@/app/lib/render/atlas";
 import type { FactionId } from "@/app/components/faction-badge";
 import type { AnimationStep } from "@/app/lib/render/animation-plan";
-import type { PropertySprite } from "@/app/lib/render/property-map";
+import {
+  buildingFrameCount,
+  buildingFrameId,
+  type PropertySprite,
+} from "@/app/lib/render/property-map";
 import type { TerrainCell } from "@/app/lib/render/terrain-map";
 import type { UnitSprite } from "@/app/lib/render/unit-map";
 import { stepDirection, walkFrameSpec } from "@/app/lib/render/walk-frames";
@@ -43,12 +47,30 @@ const FACTION_COLOR: Record<FactionId, number> = {
  * @see docs/decisions/0005-advance-wars-asset-pack.md
  */
 
+/**
+ * Draw order. Explicit depths, because the range washes are refreshed on their
+ * own (a hover must not force the whole board to be rebuilt) and so can be
+ * created after the units they have to sit under.
+ */
+const DEPTH = {
+  property: 1,
+  range: 2,
+  unit: 3,
+  badge: 4,
+  capture: 5,
+  effect: 6,
+} as const;
+
 const RENDER_SCALE = 3;
 const WALK_MS_PER_TILE = 120;
 const ART_SCALE_MIN = 1;
 const ART_SCALE_MAX = 6;
 /** How long one explosion frame holds when a unit dies. */
 const EXPLOSION_MS_PER_FRAME = 45;
+/** Unit idle breathing cadence. */
+const UNIT_IDLE_MS = 230;
+/** Building flag flap — slower than unit idle so the board doesn't flash. */
+const BUILDING_IDLE_MS = 650;
 
 /** Snap camera zoom so each tile lands on a whole CSS pixel. */
 function clampArtScale(artScale: number): number {
@@ -69,6 +91,11 @@ function displaySize(mapSpan: number, artScale: number): number {
 export interface BattlefieldHandle {
   /** Redraw the dynamic (unit + property) layers from a fresh model, in place. */
   syncModel(data: BattlefieldData): void;
+  /** Repaint just the range washes, leaving the rest of the board alone. */
+  setRanges(
+    moveRange: readonly Coordinate[],
+    attackRange: readonly Coordinate[],
+  ): void;
   /** Play a resolved-event plan; resolves when the animation completes. */
   playAnimation(steps: readonly AnimationStep[]): Promise<void>;
   /**
@@ -97,10 +124,19 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private artScale: number;
   private readonly unitSprites = new Map<string, Phaser.GameObjects.Image>();
   private readonly unitModels = new Map<string, UnitSprite>();
+  private readonly propertySprites = new Map<
+    string,
+    Phaser.GameObjects.Image
+  >();
+  private readonly propertyModels = new Map<string, PropertySprite>();
   /** Every unit/property/shadow/bar object — cleared and redrawn by syncModel. */
   private dynamicObjects: Phaser.GameObjects.GameObject[] = [];
-  /** Current frame of the shared idle loop (Advance-Wars-style unit breathing). */
+  /** The range washes, refreshed on their own by `setRanges`. */
+  private rangeObjects: Phaser.GameObjects.GameObject[] = [];
+  /** Current frame of the unit idle breathing loop. */
   private idleFrame = 0;
+  /** Current frame of the slower building flag loop. */
+  private buildingFrame = 0;
   /** Unit ids playing a one-shot clip; the idle loop leaves them alone. */
   private readonly animating = new Set<string>();
 
@@ -169,18 +205,88 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   }
 
   /**
+   * The two range washes, generated once as 16 px tiles.
+   *
+   * Move range is a translucent blue so the terrain underneath still reads —
+   * you are choosing where to stand. Attack range is the Advance-Wars candy
+   * stripe and is **opaque**: it is a warning, not a survey of the ground.
+   */
+  private highlightTexture(kind: "move" | "attack"): string {
+    const key = `highlight-${kind}`;
+    if (this.textures.exists(key)) return key;
+    const size = TERRAIN_TILE_PX;
+    const texture = this.textures.createCanvas(key, size, size);
+    if (texture === null) return key;
+    const ctx = texture.getContext();
+    if (kind === "move") {
+      ctx.fillStyle = "rgba(74, 147, 247, 0.45)";
+      ctx.fillRect(0, 0, size, size);
+      texture.refresh();
+      return key;
+    }
+    // Painted pixel by pixel rather than stroked: a stroked diagonal is
+    // antialiased, and this tile is magnified with nearest-neighbour, so the
+    // soft edges would smear. The 8 px period divides the tile, so the stripes
+    // run unbroken across neighbouring tiles.
+    const image = ctx.createImageData(size, size);
+    for (let y = 0; y < size; y++) {
+      for (let x = 0; x < size; x++) {
+        const stripe = (((x - y) % 8) + 8) % 8 < 4;
+        const i = (y * size + x) * 4;
+        image.data[i] = stripe ? 0xe2 : 0xf6;
+        image.data[i + 1] = stripe ? 0x45 : 0xd6;
+        image.data[i + 2] = stripe ? 0x3a : 0xd3;
+        image.data[i + 3] = 255;
+      }
+    }
+    ctx.putImageData(image, 0, 0);
+    texture.refresh();
+    return key;
+  }
+
+  /**
+   * Range washes, drawn between the board and the units: terrain and buildings
+   * go under them, units stay on top, as in Advance Wars — the point of a range
+   * is to read the ground it covers, not to bury the pieces standing on it.
+   */
+  setRanges(
+    moveRange: readonly Coordinate[],
+    attackRange: readonly Coordinate[],
+  ): void {
+    for (const object of this.rangeObjects) object.destroy();
+    this.rangeObjects = [];
+    const draw = (tiles: readonly Coordinate[], kind: "move" | "attack") => {
+      const key = this.highlightTexture(kind);
+      for (const tile of tiles) {
+        this.rangeObjects.push(
+          this.add
+            .image(tile.x * TERRAIN_TILE_PX, tile.y * TERRAIN_TILE_PX, key)
+            .setOrigin(0, 0)
+            .setDepth(DEPTH.range),
+        );
+      }
+    };
+    draw(moveRange, "move");
+    draw(attackRange, "attack");
+  }
+
+  /**
    * Draws property buildings in their owner's colors. Buildings are taller than
    * a tile (an HQ is nearly two), so they are anchored to the tile's bottom edge
-   * and allowed to overhang upward.
+   * and allowed to overhang upward. The flag loop is advanced by `tickIdle`.
    */
   private drawProperties(): void {
     for (const property of this.model.properties) {
       const worldX = property.x * TERRAIN_TILE_PX;
       const worldY = (property.y + 1) * TERRAIN_TILE_PX;
       const { key, frame } = this.frameOf(property.renderTileId);
-      this.dynamicObjects.push(
-        this.add.image(worldX, worldY, key, frame).setOrigin(0, 1),
-      );
+      const sprite = this.add
+        .image(worldX, worldY, key, frame)
+        .setOrigin(0, 1)
+        .setDepth(DEPTH.property);
+      this.propertySprites.set(property.propertyId, sprite);
+      this.propertyModels.set(property.propertyId, property);
+      this.dynamicObjects.push(sprite);
     }
   }
 
@@ -214,7 +320,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         this.add
           .rectangle(barX, barY, barWidth, BAR_HEIGHT, 0x0d1117)
           .setOrigin(0, 0)
-          .setStrokeStyle(1, color),
+          .setStrokeStyle(1, color)
+          .setDepth(DEPTH.capture),
       );
       this.dynamicObjects.push(
         this.add
@@ -225,7 +332,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
             BAR_HEIGHT - 2,
             color,
           )
-          .setOrigin(0, 0),
+          .setOrigin(0, 0)
+          .setDepth(DEPTH.capture),
       );
     }
   }
@@ -242,7 +350,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
       const worldY = (unit.y + 1) * TERRAIN_TILE_PX;
       const sprite = this.add
         .image(worldX, worldY, key, frame)
-        .setOrigin(0.5, 1);
+        .setOrigin(0.5, 1)
+        .setDepth(DEPTH.unit);
       sprite.setFlipX(unit.faceLeft); // face the enemy base (left/right only)
       if (unit.greyed) sprite.setTint(0x8a94a3);
       if (unit.submerged) sprite.setAlpha(0.55);
@@ -275,7 +384,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         },
       )
       .setOrigin(1, 1)
-      .setResolution(4);
+      .setResolution(4)
+      .setDepth(DEPTH.badge);
     this.dynamicObjects.push(label);
   }
 
@@ -318,24 +428,29 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     this.syncModel(this.model); // initial dynamic draw
     this.onReady?.(this);
 
-    // Advance-Wars-style idle loop: cycle the unit idle frames so the board
-    // never feels frozen. Honored off under OS reduced-motion (`frontend.md` §10);
-    // acted/dived/mid-walk units are left still by `tickIdle`.
+    // Advance-Wars-style idle loops: unit breathing and a slower building flag
+    // flap so the board never feels frozen. Honored off under OS reduced-motion
+    // (`frontend.md` §10); mid-walk / one-shot unit clips are left still.
     const reduce =
       typeof window !== "undefined" &&
       typeof window.matchMedia === "function" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (!reduce) {
       this.time.addEvent({
-        delay: 230,
+        delay: UNIT_IDLE_MS,
         loop: true,
-        callback: () => this.tickIdle(),
+        callback: () => this.tickUnitIdle(),
+      });
+      this.time.addEvent({
+        delay: BUILDING_IDLE_MS,
+        loop: true,
+        callback: () => this.tickBuildingIdle(),
       });
     }
   }
 
-  /** Advance one shared idle frame across every unit sprite. */
-  private tickIdle(): void {
+  /** Advance one idle frame across every unit sprite. */
+  private tickUnitIdle(): void {
     this.idleFrame += 1;
     for (const [unitId, sprite] of this.unitSprites) {
       const model = this.unitModels.get(unitId);
@@ -353,6 +468,21 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
         this.idleFrame % frames,
         model.faceLeft,
       );
+    }
+  }
+
+  /** Advance one flag-loop frame across every property sprite. */
+  private tickBuildingIdle(): void {
+    this.buildingFrame += 1;
+    for (const [propertyId, sprite] of this.propertySprites) {
+      const model = this.propertyModels.get(propertyId);
+      if (model === undefined) continue;
+      const frames = buildingFrameCount(model.renderTileId);
+      if (frames < 2) continue;
+      const { key, frame } = this.frameOf(
+        buildingFrameId(model.renderTileId, this.buildingFrame),
+      );
+      sprite.setTexture(key, frame);
     }
   }
 
@@ -374,6 +504,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     this.dynamicObjects = [];
     this.unitSprites.clear();
     this.unitModels.clear();
+    this.propertySprites.clear();
+    this.propertyModels.clear();
     this.animating.clear();
     this.model = data;
     this.drawProperties();
@@ -483,7 +615,8 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     const first = this.frameOf(frames[0]!);
     const blast = this.add
       .image(sprite.x, sprite.y, first.key, first.frame)
-      .setOrigin(0.5, 0.8);
+      .setOrigin(0.5, 0.8)
+      .setDepth(DEPTH.effect);
     this.dynamicObjects.push(blast);
 
     await new Promise<void>((resolve) => {
