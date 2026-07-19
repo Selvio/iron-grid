@@ -61,7 +61,7 @@ function matchHref(match: MatchSummary): string | null {
       return `/matches/${match.matchId}/completed`;
     case "active":
       // The battlefield is M10; the row links forward to it.
-      return `/matches/${match.matchId}`;
+      return `/matches/${match.matchId}/play`;
     default:
       // draft / waiting_for_opponent / cancelled have no M9 screen yet.
       return null;

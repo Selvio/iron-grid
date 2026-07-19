@@ -142,7 +142,7 @@ describe("ReadyCheck", () => {
     );
     expect(
       screen.getByRole("link", { name: /enter the battlefield/i }),
-    ).toHaveAttribute("href", "/matches/m1");
+    ).toHaveAttribute("href", "/matches/m1/play");
   });
 
   it("waits for the opponent when only one side is ready", async () => {

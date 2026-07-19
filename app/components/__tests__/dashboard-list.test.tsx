@@ -174,4 +174,16 @@ describe("DashboardList", () => {
       screen.getByRole("link", { name: /choosing commanders/i }),
     ).toHaveAttribute("href", "/matches/xyz/commander");
   });
+
+  it("links an active match to the battlefield play screen", () => {
+    render(
+      <DashboardList
+        nowMs={NOW}
+        matches={[summary({ matchId: "xyz", status: "active" })]}
+      />,
+    );
+    expect(
+      screen.getByRole("link", { name: /your turn|in play/i }),
+    ).toHaveAttribute("href", "/matches/xyz/play");
+  });
 });

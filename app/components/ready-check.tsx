@@ -54,7 +54,7 @@ export function ReadyCheck({ matchId }: { matchId: string }) {
         </CardHeader>
         <CardContent>
           <Button asChild className="w-full">
-            <Link href={`/matches/${matchId}`}>Enter the battlefield</Link>
+            <Link href={`/matches/${matchId}/play`}>Enter the battlefield</Link>
           </Button>
         </CardContent>
       </Card>
