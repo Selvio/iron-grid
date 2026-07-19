@@ -78,7 +78,12 @@
     "Rogultgot",
     "Peaupote",
     "ingame",
-    "pngjs"
+    "pngjs",
+    "autoplay",
+    "afconvert",
+    "transcoded",
+    "Sdfx",
+    "Laughe"
   ],
   "ignorePaths": ["node_modules/**", ".next/**", "pnpm-lock.yaml"]
 }

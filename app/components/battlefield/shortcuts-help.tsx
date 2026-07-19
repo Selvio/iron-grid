@@ -25,6 +25,7 @@ export const SHORTCUTS: readonly {
   { keys: ["Space"], description: "Show the selected unit's attack range" },
   { keys: ["N"], description: "Jump to the next unit that has not acted" },
   { keys: ["E"], description: "End turn (asks first)" },
+  { keys: ["M"], description: "Mute · unmute" },
   { keys: ["+", "-", "0"], description: "Zoom in · out · reset" },
   { keys: ["?"], description: "This list" },
 ];

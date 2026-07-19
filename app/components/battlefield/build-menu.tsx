@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { ArrowRight, Eye, Plane, Ship, Truck } from "lucide-react";
 
+import { playSfx } from "@/app/lib/audio/sfx";
 import type { ProductionOption, UnitStats } from "@/app/lib/preview/actions";
 
 import { AtlasSprite, PixelSprite } from "./pixel-sprite";
@@ -154,6 +155,12 @@ export function BuildMenu({
   const dialog = useRef<HTMLDivElement>(null);
   useDialogFocus(dialog, true);
 
+  /** Commit the highlighted unit, with the confirmation blip. */
+  function build(unitTypeId: string): void {
+    playSfx("ui_confirm");
+    onProduce(unitTypeId);
+  }
+
   /** Move the highlight and take focus with it, so Enter builds what is shown. */
   function moveSelection(delta: number): void {
     const next = Math.min(options.length - 1, Math.max(0, selected + delta));
@@ -196,7 +203,7 @@ export function BuildMenu({
             moveSelection(event.key === "ArrowDown" ? 1 : -1);
           } else if (event.key === "Enter" && option?.affordable) {
             event.preventDefault();
-            onProduce(option.unitTypeId);
+            build(option.unitTypeId);
           }
         }}
         className="flex max-h-[92%] gap-4"
@@ -226,7 +233,7 @@ export function BuildMenu({
                 aria-pressed={index === selected}
                 onClick={() => setSelected(index)}
                 onDoubleClick={() =>
-                  o.affordable ? onProduce(o.unitTypeId) : undefined
+                  o.affordable ? build(o.unitTypeId) : undefined
                 }
                 className={`flex w-full items-center gap-3 rounded-xl px-3 py-2 hover:bg-[#f0d69a] ${
                   index === selected ? "bg-[#f4dfa4]" : "bg-transparent"
@@ -314,7 +321,7 @@ export function BuildMenu({
             <button
               type="button"
               disabled={!option.affordable}
-              onClick={() => onProduce(option.unitTypeId)}
+              onClick={() => build(option.unitTypeId)}
               className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border-[3px] border-[#1c2b45] bg-gradient-to-b from-[#2ee0c8] to-[#1fb3a0] py-3 font-display text-base font-extrabold text-[#08201d] shadow-[0_4px_0_rgba(28,43,69,0.28)] active:translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#cdbb8a] disabled:bg-none disabled:text-[#8a7a4a]"
             >
               Build ·{" "}

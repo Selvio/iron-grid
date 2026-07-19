@@ -1,18 +1,22 @@
-Iron Grid — battlefield art provenance
-======================================
+Iron Grid — battlefield art and audio provenance
+===============================================
 
 STATUS: PRIVATE PROTOTYPE ONLY. DO NOT PUBLISH OR DEPLOY PUBLICLY.
 
-The sprites in this directory are ripped from the Game Boy Advance
-"Advance Wars" games. They are the intellectual property of Nintendo
-and Intelligent Systems, and are used here solely as placeholder art
-while the game's own art is produced.
+The sprites and sounds in this directory are ripped from the Game Boy
+Advance "Advance Wars" games. They are the intellectual property of
+Nintendo and Intelligent Systems, and are used here solely as
+placeholder assets while the game's own art and audio are produced.
 
   terrain/    autotile sets (16 px tiles)
   units/      per-faction unit sheets (sprites / air / sea)
   buildings/  colored_buildings.png — property art in 5 ownership colors
   ui/         things.png — HUD stat icons
   fx/         death / missile / attack effects
+  audio/      unit select / attack sounds, explosion, new-day stings,
+              a UI blip and the menu music, transcoded to AAC from the
+              source project's WAVs:
+                afconvert -f m4af -d aac -b 96000 <in>.wav <out>.m4a
 
 Rips credited by the source sheets:
   - Dr. Phileas Fragg  (AW1Sprites)
@@ -28,7 +32,7 @@ Consequences, binding on this repository:
 
   1. No public deployment, distribution, or asset download may ship
      these files. Anything user-facing must first replace them with
-     original or properly licensed art.
+     original or properly licensed art and audio.
   2. The render pipeline reads geometry from a generated atlas manifest
      (app/lib/render/atlas.generated.ts), so swapping the pack is a
      matter of regenerating that manifest — see

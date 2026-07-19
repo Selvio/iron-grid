@@ -19,6 +19,8 @@ import {
 import type { TerrainCell } from "@/app/lib/render/terrain-map";
 import type { UnitSprite } from "@/app/lib/render/unit-map";
 import { stepDirection, walkFrameSpec } from "@/app/lib/render/walk-frames";
+import { playSfx } from "@/app/lib/audio/sfx";
+import { soundsFor } from "@/app/lib/audio/unit-sounds";
 
 /** Faction colors for the capture-progress bar. */
 const FACTION_COLOR: Record<FactionId, number> = {
@@ -602,6 +604,9 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     const defender = this.unitSprites.get(defenderId);
     const clips: Promise<void>[] = [];
 
+    if (attackerModel !== undefined) {
+      playSfx(soundsFor(attackerModel.spriteKey).attack);
+    }
     if (attacker !== undefined && attackerModel !== undefined && defender) {
       const dx = Math.sign(defender.x - attacker.x) * 3;
       const dy = Math.sign(defender.y - attacker.y) * 3;
@@ -651,6 +656,7 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
   private async playDestroy(unitId: string): Promise<void> {
     const sprite = this.unitSprites.get(unitId);
     if (sprite === undefined) return;
+    playSfx("explosion");
     const frames = keysWithPrefix("fx_explosion_");
     const first = this.frameOf(frames[0]!);
     const blast = this.add

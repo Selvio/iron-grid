@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
+import { playSfx } from "@/app/lib/audio/sfx";
 import type { DestinationOptions, UnitMenu } from "@/app/lib/preview/actions";
 
 import type { ActionPanelHandlers } from "./action-panel";
@@ -220,7 +221,11 @@ function MenuRow({ row, hint }: { row: ActionRow; hint?: string }) {
     <button
       type="button"
       disabled={!row.enabled}
-      onClick={row.onClick}
+      onClick={() => {
+        // The blip the original played on every menu confirmation.
+        playSfx("ui_confirm");
+        row.onClick();
+      }}
       className={`flex w-full items-center gap-2.5 rounded-[9px] px-2.5 py-2 text-left font-display text-sm font-bold enabled:hover:bg-[#ffe9b0] disabled:cursor-not-allowed disabled:opacity-[0.42] ${
         row.danger
           ? "text-[#d33f3a]"

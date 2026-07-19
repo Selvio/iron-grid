@@ -29,6 +29,10 @@ import {
   unitSprite,
   type DestinationOptions,
 } from "@/app/lib/preview/actions";
+import { playNewDay, playSfx } from "@/app/lib/audio/sfx";
+import { startMusic, stopMusic } from "@/app/lib/audio/music";
+import { toggleMuted } from "@/app/lib/audio/settings";
+import { soundsFor } from "@/app/lib/audio/unit-sounds";
 import { computePath } from "@/app/lib/preview/path";
 import { cn } from "@/app/lib/utils";
 import { formatCountdown } from "@/app/lib/format";
@@ -42,6 +46,7 @@ import {
 
 import { ActionPanel } from "./action-panel";
 import { ShortcutsHelp } from "./shortcuts-help";
+import { SoundToggle } from "./sound-toggle";
 import { useDialogFocus } from "./use-dialog-focus";
 import { Battlefield } from "./battlefield";
 import type { BattlefieldHandle } from "./create-game";
@@ -127,6 +132,14 @@ export function BattlefieldView({
   }
   const artScale = tilePx / TERRAIN_TILE_PX;
 
+  // The match has a soundtrack for as long as the board is on screen. The first
+  // attempt is usually refused — browsers want a gesture first — so the toggle
+  // and the next interaction retry it; leaving the match stops it.
+  useEffect(() => {
+    startMusic();
+    return () => stopMusic();
+  }, []);
+
   // A transient Advance-Wars turn banner whenever the day or active player flips.
   useEffect(() => {
     const key = `${view.currentDay}:${view.activePlayerId}`;
@@ -135,6 +148,7 @@ export function BattlefieldView({
     const text = `Day ${view.currentDay} · ${isMyTurn ? "Your turn" : "Opponent's turn"}`;
     setBanner(text);
     setAnnouncement(text);
+    playNewDay();
     const timer = setTimeout(() => setBanner(null), 2200);
     return () => clearTimeout(timer);
   }, [view.currentDay, view.activePlayerId, isMyTurn]);
@@ -201,6 +215,10 @@ export function BattlefieldView({
         case "?":
           event.preventDefault();
           setHelpOpen(true);
+          return;
+        case "m":
+        case "M":
+          toggleMuted();
           return;
         case "e":
         case "E":
@@ -285,6 +303,7 @@ export function BattlefieldView({
     setShowRange(false); // a fresh selection starts with the board clean
     const unit = view.units.find((u) => u.id === unitId);
     if (unit !== undefined) {
+      playSfx(soundsFor(unit.typeId).select);
       announce(
         `${gameData.units[unit.typeId]?.display_name ?? unit.typeId} selected`,
       );
@@ -866,6 +885,8 @@ export function BattlefieldView({
         >
           <Plus className="size-4" aria-hidden="true" />
         </button>
+        <span aria-hidden className="mx-0.5 h-6 w-0.5 rounded bg-[#e0d3ab]" />
+        <SoundToggle />
       </div>
       {banner && (
         <div

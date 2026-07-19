@@ -23,6 +23,14 @@ vi.mock("../create-game", () => ({
   createBattlefieldGame: vi.fn(() => ({ destroy: vi.fn() })),
 }));
 
+// Web Audio does not exist in jsdom; the spy proves the wiring instead.
+const { playSfx } = vi.hoisted(() => ({ playSfx: vi.fn() }));
+vi.mock("@/app/lib/audio/sfx", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@/app/lib/audio/sfx")>()),
+  playSfx,
+  playNewDay: vi.fn(),
+}));
+
 afterEach(() => vi.unstubAllGlobals());
 
 function plainRows(w: number, h: number): string[][] {
@@ -157,6 +165,23 @@ describe("battlefield acceptance", () => {
 
     await user.keyboard("{Escape}");
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("plays the unit's own sound on selection, and M silences everything", async () => {
+    const user = userEvent.setup();
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await user.click(screen.getByLabelText("Tile 2, 1")); // a tank
+    expect(playSfx).toHaveBeenCalledWith("select_treads");
+
+    // M is the same switch as the button: both go through the audio module.
+    const toggle = screen.getByRole("button", { name: "Mute" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+    await user.keyboard("m");
+    expect(screen.getByRole("button", { name: "Unmute" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
   });
 
   it("announces selection and turn changes to assistive tech", async () => {

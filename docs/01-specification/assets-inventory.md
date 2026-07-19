@@ -47,7 +47,8 @@ public/game-assets/
 │   └── sea.png       naval units
 ├── buildings/colored_buildings.png
 ├── ui/things.png
-└── fx/{death,missile,attack}.png
+├── fx/{death,missile,attack}.png
+└── audio/*.m4a       18 effects + the match music (§8)
 ```
 
 The four faction directories are **pixel-identical in layout** — only the
@@ -168,7 +169,60 @@ Notes:
 
 ---
 
-## 8. Gaps
+## 8. Audio
+
+The same source project ships `assets/sound/` — 27 WAVs, 38 MB uncompressed —
+and its Java code says exactly where each one plays (`view/sound/Sdfx.java` for
+global stings, and a `selected` / `attack` / `death` clip per unit renderer in
+`view/render/units/**`). That mapping is transcribed rather than guessed.
+
+Transcoded to AAC on import, which every current browser plays and which turns
+38 MB into 2.6 MB:
+
+```text
+afconvert -f m4af -d aac -b 96000 <in>.wav public/game-assets/audio/<id>.m4a
+```
+
+| Moment | Source file | Atlas of sound (`SfxId`) |
+|---|---|---|
+| Select foot unit | `song069.wav` | `select_foot` |
+| Select wheeled unit | `ReconSelect.wav` | `select_wheels` |
+| Select artillery | `SoldierLaughe.wav` | `select_artillery` |
+| Select tracked unit | `ShermanE8.wav` | `select_treads` |
+| Select air unit | `song021.wav` | `select_air` |
+| Select naval unit | `song056.wav` | `select_naval` |
+| Infantry attack | `ak47plus.wav` | `attack_rifle` |
+| Mech attack | `bazooka.wav` | `attack_bazooka` |
+| Recon attack | `ReconFire.wav` | `attack_recon` |
+| Artillery attack | `CannonFire.wav` | `attack_cannon` |
+| Tank attack | `TankShot.wav` | `attack_tank` |
+| Air attack | `song037.wav` | `attack_air` |
+| Naval attack | `song054.wav` | `attack_naval` |
+| Any other attack | `song025.wav` | `attack_default` |
+| Unit destroyed | `song016.wav` | `explosion` |
+| New day | `song204/207/208/218.wav` (random) | `new_day_1..4` |
+| Menu confirmation | `song124.wav` | `ui_confirm` |
+| Match music (loop) | `main.wav` | `music_main` |
+
+Deliberately **not** imported: `123.wav`, `car-engine.mp3` and `gunfire.mp3`
+(unused by the source project too); `screaming.wav`, which it played for the
+death of *every* unit — a human scream for a destroyed tank does not fit, so the
+explosion it defined but never fired is used instead; and `song022`/`song057`,
+which belong to the Stealth, a unit outside our roster.
+
+The source only voiced ten units. Ours maps by **family** (foot, wheels,
+artillery, treads, air, naval) in `app/lib/audio/unit-sounds.ts`, so a Neotank
+sounds like a tank rather than falling back to the generic beep.
+
+Playback lives in `app/lib/audio/`: the `AudioContext` is built on first play
+(always a click or a key, so the browser's autoplay gate is already satisfied),
+capability is checked before use so jsdom and SSR are silent no-ops, and the mute
+preference is per browser in `localStorage` — sound is a property of the device,
+not of the account.
+
+---
+
+## 9. Gaps
 
 | Asset/system | Status |
 |---|---|
@@ -177,7 +231,7 @@ Notes:
 | Commander portraits | Missing — `ingame/AW1Sprites.png` in the source project has some, not imported |
 | Fog-of-war tiles | Missing — fog renders as a programmatic dark overlay |
 | Weather / snow terrain | Available in the source project (`terrains/snow/`), not imported (no weather in the MVP) |
-| Sound and music | Available in the source project, not imported |
+| Capture / build / movement sounds | The source project never voiced them; the board stays quiet there rather than reusing a clip chosen for something else |
 
 ---
 

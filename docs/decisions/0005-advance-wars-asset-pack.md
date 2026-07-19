@@ -4,6 +4,7 @@
 **Date:** 2026-07-19
 **Supersedes:** ADR-0003 (sprite-row mapping approval), ADR-0004 (programmatic
 property ownership overlay)
+**Amended:** 2026-07-19 — the pack's audio is imported under the same terms (§5).
 **Deciders:** Selvio Perez (project owner)
 
 ## Context
@@ -60,8 +61,15 @@ hit or death frames. Per `game-specification.md` §28.3 the client does not inve
 art: an attack is a lunge toward the defender plus a flash on the target, and a
 kill plays the pack's explosion.
 
-**5. The pack is prototype-only.** The sprites are the intellectual property of
-Nintendo and Intelligent Systems. They are placeholders for development and
+**5. The pack's audio comes with it.** The same source ships the game's sound
+effects and music, and its Java code records where each clip plays, so the
+mapping is transcribed rather than invented (`assets-inventory.md` §8). Playback
+sits behind `app/lib/audio/`, not Phaser's sound manager, because the menus live
+in React and would otherwise be mute; muting is stored per browser, since sound
+is a property of the device and not of the account.
+
+**6. The pack is prototype-only.** The sprites **and sounds** are the intellectual
+property of Nintendo and Intelligent Systems. They are placeholders for development and
 **must be replaced before anything is deployed publicly**. `public/game-assets/license.txt`
 records the provenance and the restriction; `CREDITS.md` and `/credits` say the
 same in the product.
