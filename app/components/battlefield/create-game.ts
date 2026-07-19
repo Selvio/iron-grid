@@ -232,10 +232,10 @@ class BattlefieldScene extends Phaser.Scene implements BattlefieldHandle {
     const ctx = texture.getContext();
     if (kind === "move") {
       // Advance Wars lightens the ground it offers you rather than painting
-      // over it: sampling a reference shot, grass inside the range is the same
-      // grass lifted about a third of the way to white, with the faintest cool
-      // cast. A saturated blue reads as a different surface instead.
-      ctx.fillStyle = "rgba(214, 240, 255, 0.34)";
+      // over it — the grass stays grass — but a wash that only lifts toward
+      // white is hard to find on a bright palette, so this keeps the lift and
+      // leans it cool enough to be unmistakable at a glance.
+      ctx.fillStyle = "rgba(150, 205, 255, 0.42)";
       ctx.fillRect(0, 0, size, size);
       texture.refresh();
       return key;
