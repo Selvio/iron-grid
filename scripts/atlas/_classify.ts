@@ -47,7 +47,14 @@ const SEA = new Set([
 ]);
 const TREE = new Set(["72,176,152", "88,160,152", "64,144,128"]);
 const PEAK = new Set(["248,232,88", "232,176,72", "248,200,72"]);
-const SHOAL = new Set(["248,216,120", "240,184,80", "248,240,192"]);
+/** The beach sand ramp. `248,240,192` is NOT here — that is a neutral
+ * building's highlight, and including it made every neutral city read as sand. */
+const SHOAL = new Set([
+  "248,224,72",
+  "240,168,32",
+  "248,208,56",
+  "248,216,120",
+]);
 /** The bridge deck's railing trim — it appears on no other road tile. */
 const RAILING = new Set(["128,112,192", "96,104,120"]);
 
@@ -98,12 +105,13 @@ for (let ty = 0; ty < rows; ty++) {
     // The deck hides most of the water it spans, so a bridge is identified by
     // its railing trim, not by the sea underneath.
     else if (railing > 20 && road > 40) guess = "bridge";
+    // Sand before sea: a beach tile still carries plenty of shallow water.
+    else if (shoal > 45) guess = "shoal";
     else if (sea > 120) guess = "sea";
     else if (road > 110) guess = "road";
     else if (sea > 40) guess = "sea-edge";
     else if (peak > 12) guess = "mountain";
     else if (tree > 25) guess = "forest";
-    else if (shoal > 30) guess = "shoal";
     else if (plain > 150) guess = "plain";
     else guess = "?";
 
