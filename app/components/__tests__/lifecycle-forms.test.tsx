@@ -146,7 +146,7 @@ describe("CommanderSelect", () => {
     expect(fetchMock.mock.calls[0][0]).toBe("/api/matches/m1/commander");
   });
 
-  it("shows a waiting state when the opponent has not chosen", async () => {
+  it("routes to ready check even when the opponent has not chosen", async () => {
     mockFetch(200, {
       matchId: "m1",
       status: "commander_selection",
@@ -155,12 +155,32 @@ describe("CommanderSelect", () => {
     });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
     await pickAndLockIn("Blue");
-    await waitFor(() =>
-      expect(
-        screen.getByText(/waiting for your opponent/i),
-      ).toBeInTheDocument(),
+    // The choice is final either way — the ready check owns the waiting state.
+    await waitFor(() => expect(push).toHaveBeenCalledWith("/matches/m1/ready"));
+  });
+
+  it("disables a faction the opponent already holds", async () => {
+    const fetchMock = mockFetch(200, {});
+    render(
+      <CommanderSelect
+        matchId="m1"
+        commanders={commanders}
+        takenFactions={["red"]}
+      />,
     );
-    expect(push).not.toHaveBeenCalled();
+    const taken = screen.getByRole("button", {
+      name: "Commander — Red (taken)",
+    });
+    expect(taken).toBeDisabled();
+    await userEvent.click(taken);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: /lock in commander/i }),
+    ).toBeDisabled();
+    // Blue is untouched and still selectable.
+    expect(
+      screen.getByRole("button", { name: "Commander — Blue" }),
+    ).toBeEnabled();
   });
 
   it("surfaces a taken-faction conflict (commander_unavailable)", async () => {
@@ -185,9 +205,24 @@ describe("CommanderSelect", () => {
 });
 
 describe("ReadyCheck", () => {
+  const seats = [
+    {
+      playerId: "p1",
+      faction: "blue" as const,
+      isReady: false,
+      isViewer: true,
+    },
+    {
+      playerId: "p2",
+      faction: "red" as const,
+      isReady: false,
+      isViewer: false,
+    },
+  ];
+
   it("shows the match-started state and a battlefield link when active", async () => {
     mockFetch(200, { matchId: "m1", status: "active" });
-    render(<ReadyCheck matchId="m1" />);
+    render(<ReadyCheck matchId="m1" seats={seats} />);
     await userEvent.click(screen.getByRole("button", { name: /i'm ready/i }));
     await waitFor(() =>
       expect(screen.getByText(/match has begun/i)).toBeInTheDocument(),
@@ -195,16 +230,70 @@ describe("ReadyCheck", () => {
     expect(
       screen.getByRole("link", { name: /enter the battlefield/i }),
     ).toHaveAttribute("href", "/matches/m1/play");
+    // Both seats flip to ready once the server reports activation.
+    expect(screen.getAllByText("Ready")).toHaveLength(2);
   });
 
   it("waits for the opponent when only one side is ready", async () => {
     mockFetch(200, { matchId: "m1", status: "ready_check" });
-    render(<ReadyCheck matchId="m1" />);
+    render(<ReadyCheck matchId="m1" seats={seats} />);
     await userEvent.click(screen.getByRole("button", { name: /i'm ready/i }));
     await waitFor(() =>
       expect(
-        screen.getByText(/waiting for your opponent/i),
+        screen.getByText(/waiting for your opponent to confirm/i),
       ).toBeInTheDocument(),
     );
+    // Only the caller's own seat is known to have changed.
+    expect(screen.getAllByText("Ready")).toHaveLength(1);
+    expect(
+      screen.getByRole("button", { name: /you are ready/i }),
+    ).toBeDisabled();
+  });
+
+  it("renders each seat with its faction insignia and marks the caller", () => {
+    render(
+      <ReadyCheck
+        matchId="m1"
+        seats={seats}
+        summary={{
+          mapName: "Spann Island",
+          turnLength: "3-day",
+          fogEnabled: false,
+        }}
+      />,
+    );
+    expect(screen.getByText(/commander — blue/i)).toBeInTheDocument();
+    expect(screen.getByText(/commander — red/i)).toBeInTheDocument();
+    expect(screen.getByText("(you)")).toBeInTheDocument();
+    expect(
+      screen.getByText(/spann island · 3-day turns · fog of war off/i),
+    ).toBeInTheDocument();
+  });
+
+  it("holds the ready button while the opponent is still choosing", () => {
+    render(
+      <ReadyCheck
+        matchId="m1"
+        seats={[seats[0], { ...seats[1], faction: null }]}
+      />,
+    );
+    expect(
+      screen.getByRole("button", {
+        name: /waiting for your opponent's commander/i,
+      }),
+    ).toBeDisabled();
+    expect(screen.getByText(/choosing a commander/i)).toBeInTheDocument();
+  });
+
+  it("starts in the confirmed state when the caller already readied up", () => {
+    render(
+      <ReadyCheck
+        matchId="m1"
+        seats={[{ ...seats[0], isReady: true }, seats[1]]}
+      />,
+    );
+    expect(
+      screen.getByRole("button", { name: /you are ready/i }),
+    ).toBeDisabled();
   });
 });

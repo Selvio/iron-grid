@@ -4,7 +4,7 @@ import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { MatchState } from "game-engine";
 
 import { matchPlayers } from "../schema/match-players";
-import { matches } from "../schema/matches";
+import { matches, type MatchSettings } from "../schema/matches";
 import { users } from "../schema/users";
 
 /** The other seat in a match, as far as the dashboard is allowed to see it. */
@@ -113,6 +113,90 @@ export async function listMatchesForUser<
         ? row.invitationCode
         : null,
   }));
+}
+
+/** One seat of a match, as the ready-check screen shows it (M9-T6). */
+export interface ReadySeatRow {
+  readonly playerId: string;
+  /** The player's display name, or `null` when they never set one. */
+  readonly name: string | null;
+  /** `blue` | `green` | `red` | `yellow`; never null by `ready_check`. */
+  readonly factionId: string | null;
+  readonly isReady: boolean;
+  /** True for the caller's own seat — the row the design marks "(you)". */
+  readonly isViewer: boolean;
+}
+
+/** The ready-check screen's server data (M9-T6). */
+export interface ReadyCheckRow {
+  readonly matchId: string;
+  readonly status: (typeof matches.status)["_"]["data"];
+  readonly mapId: string;
+  readonly settings: MatchSettings;
+  /** Both seats, the caller's first — the design lists "you" on top. */
+  readonly seats: readonly ReadySeatRow[];
+}
+
+/**
+ * Reads the ready-check screen's data for one match (M9-T6).
+ *
+ * Membership-scoped the same way `listMatchesForUser` is: the seats are only
+ * returned when the caller holds one of them, so a match id guessed from the URL
+ * discloses nothing. Returns `null` for a non-member or an unknown match — the
+ * page turns that into a 404 rather than distinguishing the two.
+ *
+ * Only the fields the screen renders are selected (map, settings, and each
+ * seat's name/faction/ready flag); emails are deliberately not read.
+ *
+ * @see docs/04-development/milestones/m9-app-shell.md (M9-T6)
+ */
+export async function getReadyCheckForUser<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+>(
+  db: PgDatabase<TQuery, TSchema>,
+  matchId: string,
+  userId: string,
+): Promise<ReadyCheckRow | null> {
+  const rows = await db
+    .select({
+      status: matches.status,
+      mapId: matches.mapId,
+      settings: matches.settings,
+      playerId: matchPlayers.id,
+      playerUserId: matchPlayers.userId,
+      role: matchPlayers.role,
+      factionId: matchPlayers.factionId,
+      isReady: matchPlayers.isReady,
+      playerName: users.name,
+    })
+    .from(matchPlayers)
+    .innerJoin(matches, eq(matchPlayers.matchId, matches.id))
+    .leftJoin(users, eq(users.id, matchPlayers.userId))
+    .where(eq(matches.id, matchId));
+
+  const first = rows[0];
+  if (first === undefined) return null;
+  if (!rows.some((row) => row.playerUserId === userId)) return null;
+
+  const seats = rows
+    .map((row) => ({
+      playerId: row.playerId,
+      name: row.playerName,
+      factionId: row.factionId,
+      isReady: row.isReady,
+      isViewer: row.playerUserId === userId,
+    }))
+    // The caller's seat leads; the host takes the second slot otherwise.
+    .sort((a, b) => Number(b.isViewer) - Number(a.isViewer));
+
+  return {
+    matchId,
+    status: first.status,
+    mapId: first.mapId,
+    settings: first.settings,
+    seats,
+  };
 }
 
 /**

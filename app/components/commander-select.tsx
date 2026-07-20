@@ -23,9 +23,12 @@ import { cn } from "@/app/lib/utils";
  * The flow follows the design: picking a card only highlights it, and a separate
  * "Lock in" confirms — the client's no-undo confirmation rule (`frontend.md` §6,
  * `game-specification.md` §10.4). The server owns uniqueness
- * (`duplicate_faction_selection_allowed: false`): a taken faction comes back as a
- * typed error, surfaced for a retry. When the server reports `ready_check` (both
- * chosen) the player is routed to the ready check.
+ * (`duplicate_faction_selection_allowed: false`): a faction the opponent already
+ * holds at render time is shown disabled and marked TAKEN, and one claimed
+ * mid-session still comes back as a typed error, surfaced for a retry — the
+ * disabled state is a courtesy, never the check. A successful lock-in routes to the
+ * ready check — whether or not the opponent has chosen — because the choice is
+ * final and that screen already shows a seat still waiting on its commander.
  *
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T6)
  */
@@ -77,52 +80,40 @@ const FACTION_LABEL: Record<FactionId, string> = {
 export function CommanderSelect({
   matchId,
   commanders,
+  takenFactions = [],
 }: {
   matchId: string;
   commanders: readonly CommanderOption[];
+  /**
+   * Factions the opponent already holds, from the server render. The server
+   * still owns uniqueness — this only spares the player a click that could
+   * only come back as `commander_unavailable`.
+   */
+  takenFactions?: readonly FactionId[];
 }) {
   const router = useRouter();
   const [picked, setPicked] = useState<CommanderOption | null>(null);
   const [pending, setPending] = useState(false);
-  const [selectedFaction, setSelectedFaction] = useState<FactionId | null>(
-    null,
-  );
   const [error, setError] = useState<string | null>(null);
 
   async function lockIn(option: CommanderOption) {
     setPending(true);
     setError(null);
     try {
-      const result = await apiClient.selectCommander(matchId, option.id);
-      setSelectedFaction(option.faction);
-      if (result.status === "ready_check") {
-        router.push(`/matches/${matchId}/ready`);
-      }
+      await apiClient.selectCommander(matchId, option.id);
+      // The choice is made either way — the ready check is the next screen even
+      // when the opponent has not chosen yet, so it (not an interstitial here)
+      // owns the waiting state. `pending` stays set so the button cannot be hit
+      // twice while the navigation resolves.
+      router.push(`/matches/${matchId}/ready`);
     } catch (err) {
       setError(
         err instanceof ApiError && err.code === "commander_unavailable"
           ? "That faction is taken. Choose another."
           : "Something went wrong. Try again.",
       );
-    } finally {
       setPending(false);
     }
-  }
-
-  if (selectedFaction) {
-    return (
-      <div className="flex flex-col items-center gap-4 text-center">
-        <p className="text-muted-foreground">You chose</p>
-        <FactionBadge faction={selectedFaction} className="text-lg" />
-        <p className="text-sm text-muted-foreground">
-          Waiting for your opponent to choose. Refresh to check for the ready
-          check.
-        </p>
-        <Button variant="outline" asChild>
-          <a href={`/matches/${matchId}/ready`}>Go to ready check</a>
-        </Button>
-      </div>
-    );
   }
 
   return (
@@ -147,20 +138,30 @@ export function CommanderSelect({
         {commanders.map((option) => {
           const paint = FACTION_PAINT[option.faction];
           const isPicked = picked?.id === option.id;
+          const isTaken = takenFactions.includes(option.faction);
           return (
             <button
               key={option.id}
               type="button"
               // The card's own name stays the placeholder identity; the trait
               // note below is descriptive text, not part of the choice.
-              aria-label={`Commander — ${FACTION_LABEL[option.faction]}`}
+              aria-label={
+                isTaken
+                  ? `Commander — ${FACTION_LABEL[option.faction]} (taken)`
+                  : `Commander — ${FACTION_LABEL[option.faction]}`
+              }
               aria-pressed={isPicked}
+              disabled={isTaken}
               onClick={() => setPicked(option)}
               className={cn(
-                "overflow-hidden rounded-2xl border-[3px] bg-card text-left transition-[transform,box-shadow,filter] hover:brightness-[1.03]",
+                "overflow-hidden rounded-2xl border-[3px] bg-card text-left transition-[transform,box-shadow,filter]",
+                isTaken
+                  ? "cursor-not-allowed border-border opacity-55 grayscale"
+                  : "hover:brightness-[1.03]",
                 isPicked
                   ? cn(paint.border, paint.glow, "motion-safe:-translate-y-1.5")
-                  : "border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.26)]",
+                  : !isTaken &&
+                      "border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.26)]",
               )}
             >
               <span
@@ -191,6 +192,11 @@ export function CommanderSelect({
                     PICKED
                   </span>
                 )}
+                {isTaken && (
+                  <span className="absolute right-2 top-2 rounded-full border-2 border-[#1c2b45] bg-white px-2 py-0.5 text-[9px] font-extrabold tracking-wide text-[#1c2b45]">
+                    TAKEN
+                  </span>
+                )}
               </span>
 
               <span className="flex flex-col gap-0.5 p-3.5">
@@ -205,7 +211,9 @@ export function CommanderSelect({
                     commander traits are a design blocker (§33.1), and inventing
                     them here would make the mockup canon. */}
                 <span className="mt-3 rounded-lg border-2 border-border bg-secondary px-2.5 py-2 text-[11px] font-semibold leading-snug text-muted-foreground">
-                  Passive trait and CO power are still being designed.
+                  {isTaken
+                    ? "Your opponent already claimed this faction."
+                    : "Passive trait and CO power are still being designed."}
                 </span>
               </span>
             </button>
