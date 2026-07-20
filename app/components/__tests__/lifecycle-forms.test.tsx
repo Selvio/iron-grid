@@ -84,8 +84,16 @@ describe("JoinForm", () => {
 
 describe("CommanderSelect", () => {
   const commanders = [
-    { id: "commander_blue", faction: "blue" as const },
-    { id: "commander_red", faction: "red" as const },
+    {
+      id: "commander_blue",
+      faction: "blue" as const,
+      passive: { name: "Spearhead", description: "Vehicles attack at 115%." },
+    },
+    {
+      id: "commander_red",
+      faction: "red" as const,
+      passive: { name: "Barrage", description: "Indirects attack at 120%." },
+    },
   ];
 
   /** Pick a card, then confirm — the design's two-step lock-in. */
@@ -110,7 +118,24 @@ describe("CommanderSelect", () => {
     // The visible identity is the colour word plus its insignia (§27.4).
     expect(screen.getAllByText("Blue").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Commander")).toHaveLength(2);
-    // Traits are a design blocker (§33.1) — the card says so, never invents one.
+    // The approved passive is shown (ADR-0006); the power is still blocked, so
+    // only its panel says so — one line per card, never an invented power.
+    expect(screen.getByText("Spearhead")).toBeInTheDocument();
+    expect(screen.getByText("Barrage")).toBeInTheDocument();
+    expect(screen.getAllByText(/still being designed/i)).toHaveLength(2);
+  });
+
+  it("says so instead of inventing a trait when a passive is unresolved", () => {
+    mockFetch(200, {});
+    render(
+      <CommanderSelect
+        matchId="m1"
+        commanders={[
+          { id: "commander_blue", faction: "blue" as const, passive: null },
+        ]}
+      />,
+    );
+    // Both panels — passive and power — fall back to the honest placeholder.
     expect(screen.getAllByText(/still being designed/i)).toHaveLength(2);
   });
 

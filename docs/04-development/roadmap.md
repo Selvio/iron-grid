@@ -192,7 +192,8 @@ react-hook-form + Zod (ADR-0001). Screens per `design-reference.md` §5.*
 
 ### M12 · Acceptance, gated features, security & deployment
 - Land the remaining JIT-gated features once their ADRs are accepted: commander
-  effects/powers (§33.1), day-limit scoring (§33.2/§23.4), real sprite/terrain/
+  names and powers (§33.1 — the passives landed with ADR-0006), day-limit scoring
+  (§33.2/§23.4), real sprite/terrain/
   property art (§9.5/§33.3–§33.4), and the §33.5 edge-case decisions.
 - All **30 acceptance scenarios** (`game-specification.md` §35) green; fog
   information-leak, concurrency, and replay-determinism suites (`testing.md`
@@ -204,12 +205,14 @@ react-hook-form + Zod (ADR-0001). Screens per `design-reference.md` §5.*
 # 6. Design-blocker dependencies (just-in-time)
 
 Each blocker is resolved by an Accepted ADR before the milestone that needs it
-(`decisions/README.md`, `definition-of-ready.md` §3.3). Only ADR-0001 exists today;
-all §33 blockers are open.
+(`decisions/README.md`, `definition-of-ready.md` §3.3). Resolved so far: §9.5 and
+§33.4 (ADR-0005, battlefield art) and the **passive half** of §33.1 (ADR-0006).
+The rest are open.
 
 | Blocker | Gates | Resolved before |
 |---|---|---|
-| §33.1 commanders (names / effects / powers / costs) | commander effects, `activate_power`, real commander selection | mechanism in M3; data/selection in M6 |
+| ~~§33.1 commander **passive effects**~~ — resolved by ADR-0006 | passive modifiers applied in play | landed with ADR-0006 |
+| §33.1 commanders (names / faction names / powers / costs / art) | commander names in the UI, `activate_power`, the meter formula | M12 |
 | §33.2 / §23.4 day-limit score | day-limit victory + score display | mechanism in M3; formula + display in M12 |
 | §33.3 special-terrain art (Reef, Pipe, Pipe Seam, Missile Silo) | rendering those tiles | M10 real-art swap |
 | §33.4 property art (ownership / neutral / capture-state) | property rendering | M10 real-art swap |

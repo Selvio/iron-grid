@@ -71,31 +71,33 @@ export function fixtureGameData(): GameData {
         yellow: { id: "yellow", commander_id: "cmdr-yellow" },
       },
       commanders: {
-        // Inert placeholders: empty modifier lists, matching the design-blocked
-        // commanders.yaml shape the engine's ownerModifier reads.
+        // Inert placeholders matching the real commanders.yaml shape: an
+        // unresolved passive with no modifiers. `status` is load-bearing — the
+        // engine ignores the modifiers of a passive that is not approved
+        // (ADR-0006), so it is spelled out rather than left off.
         "cmdr-blue": {
           id: "cmdr-blue",
           faction_id: "blue",
           status: "blocked",
-          passive: { modifiers: [] },
+          passive: { status: "unresolved", modifiers: [] },
         },
         "cmdr-green": {
           id: "cmdr-green",
           faction_id: "green",
           status: "blocked",
-          passive: { modifiers: [] },
+          passive: { status: "unresolved", modifiers: [] },
         },
         "cmdr-red": {
           id: "cmdr-red",
           faction_id: "red",
           status: "blocked",
-          passive: { modifiers: [] },
+          passive: { status: "unresolved", modifiers: [] },
         },
         "cmdr-yellow": {
           id: "cmdr-yellow",
           faction_id: "yellow",
           status: "blocked",
-          passive: { modifiers: [] },
+          passive: { status: "unresolved", modifiers: [] },
         },
       },
     },

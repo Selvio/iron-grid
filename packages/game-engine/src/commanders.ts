@@ -2,15 +2,15 @@
  * The declarative commander-modifier resolver and the power-meter / `activate_
  * power` skeleton (§22.4–§22.5; `rules.yaml`, `commanders.yaml`).
  *
- * This is **inert plumbing**. `commanders.yaml` is design-blocked (§33.1): every
- * commander is disabled with empty modifier lists and null meter/power values, so
- * the resolver returns zero everywhere and the earlier tickets' defaults (attack/
- * defense 100, base vision/movement, etc.) are preserved unchanged. The wiring is
- * exercised only by synthetic placeholder fixtures. Real commander effects, and
- * the CO-meter **charge formula** (§22.5, §33.5), are gated — this module adds no
+ * **Passives are live** (ADR-0006): the four approved passives in
+ * `commanders.yaml` are applied here, gated on `passive.status === "approved"` so
+ * an unresolved design can never leak into play. **Powers are still blocked**
+ * (§22.6): every `power.cost` is null, so activation always fails, and the
+ * CO-meter **charge formula** (§22.5, §33.5) remains gated — this module adds no
  * charge logic, so the meter never grows here. Powers apply only declarative data
  * (vacuous today), never hardcoded name checks (§22.4). Draws no randomness.
  *
+ * @see docs/decisions/0006-commander-passive-effects.md
  * @see docs/02-data/commanders.yaml
  * @see docs/01-specification/game-specification.md §22
  * @see docs/04-development/milestones/m3-combat-systems-fog.md (M3-T8)
@@ -34,6 +34,8 @@ interface ModifierContext {
   readonly unitTypeId?: string;
   readonly unitCategory?: string;
   readonly movementType?: string;
+  /** The tile the effect is resolved on — the attacker's or the defender's. */
+  readonly terrainId?: string;
 }
 
 /** Resolve a match's commander for a given id, tolerating absent commander data. */
@@ -68,8 +70,14 @@ function scopeMatches(scope: Modifier["scope"], ctx: ModifierContext): boolean {
         ctx.movementType !== undefined &&
         scope.values.includes(ctx.movementType)
       );
+    case "terrain_ids":
+      // The caller decides *which* tile is being resolved on (ADR-0006): the
+      // attacker's for `attack`, the defender's for `defense`/terrain stars.
+      return (
+        ctx.terrainId !== undefined && scope.values.includes(ctx.terrainId)
+      );
     default:
-      // terrain_ids / property_ids scopes are not wired to these targets yet.
+      // property_ids scopes are not wired to these targets yet.
       return false;
   }
 }
@@ -80,6 +88,9 @@ function sumModifiers(
   target: ModifierTarget,
   ctx: ModifierContext,
 ): number {
+  // The passive gate (ADR-0006): only an approved passive applies. A commander
+  // whose design is still unresolved contributes nothing, whatever its data says.
+  if (commander.passive.status !== "approved") return 0;
   let total = 0;
   for (const m of commander.passive.modifiers) {
     if (m.target !== target || m.operation !== "add") continue;
@@ -91,8 +102,8 @@ function sumModifiers(
 
 /**
  * The additive commander modifier a player applies to `target`, optionally scoped
- * to the unit `unitTypeId`. Zero when the player has no resolved commander — the
- * identity that keeps the engine's defaults intact until §33.1 data lands.
+ * to the unit `unitTypeId` and to the tile the effect resolves on. Zero when the
+ * player has no commander, or when that commander's passive is not approved.
  */
 export function ownerModifier(
   state: MatchState,
@@ -100,6 +111,7 @@ export function ownerModifier(
   gameData: GameData,
   target: ModifierTarget,
   unitTypeId?: string,
+  terrainId?: string,
 ): number {
   const player = playerById(state, ownerPlayerId);
   if (player === undefined) return 0;
@@ -112,13 +124,14 @@ export function ownerModifier(
     unitTypeId,
     unitCategory: unitDef?.category,
     movementType: unitDef?.movement.type,
+    terrainId,
   });
 }
 
 /**
  * Validate an `activate_power` (§22.5): active player, a resolved power, and
  * enough meter to pay its cost. With the disabled commander data the power cost
- * is null, so activation is never legal until §33.1 resolves.
+ * is null, so activation is never legal until §22.6 resolves the power design.
  */
 export function validateActivatePower(
   state: MatchState,

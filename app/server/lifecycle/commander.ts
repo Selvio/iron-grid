@@ -18,8 +18,9 @@ import { errorResponse } from "./http";
  * `POST /api/matches/:id/commander` — select commander + faction (M6-T4).
  *
  * `requireUser` + `requireMatchMembership` (both players are accepted members).
- * Under the match row lock: the commander id must resolve in the (placeholder)
- * roster, its bound faction must be free, and neither may already be taken by the
+ * Under the match row lock: the commander id must resolve in the roster (whose
+ * passives are approved but whose names stay blocked — ADR-0006, §22.6), its
+ * bound faction must be free, and neither may already be taken by the
  * opponent (the landed `match_players` unique constraints are the final guard).
  * When both members have selected, the match gates to `ready_check`.
  *

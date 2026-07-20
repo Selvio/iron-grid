@@ -108,6 +108,13 @@ export const commanderStatus = z.enum([
   "blocked",
 ]);
 
+/**
+ * Passive-ability resolution statuses (ADR-0006). Gated independently of the
+ * commander's own status: an approved passive applies while the commander's
+ * name, meter and power stay design-blocked (§22.6).
+ */
+export const passiveStatus = z.enum(["unresolved", "draft", "approved"]);
+
 /** Map lifecycle statuses (`maps.yaml` enums.map_statuses). */
 export const mapStatus = z.enum([
   "draft",

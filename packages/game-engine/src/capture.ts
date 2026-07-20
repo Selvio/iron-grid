@@ -201,7 +201,8 @@ export function applyCapture(
     });
   }
   const startPoints = fresh ? maxPoints : property.capturePointsRemaining;
-  // Commander capture modifier (M3-T8); inert (0) with no resolved commander.
+  // Commander capture modifier (M3-T8). Zero today: no approved passive targets
+  // capture_power — accelerating the win condition is a rejected lever (ADR-0006).
   const contribution =
     displayHp(unit0.trueHp) +
     ownerModifier(

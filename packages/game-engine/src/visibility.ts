@@ -97,7 +97,8 @@ function visionRange(
   unit: UnitState,
   def: UnitDef,
 ): number {
-  // Commander vision modifier (M3-T8); inert (0) with no resolved commander.
+  // Commander vision modifier (M3-T8). Zero today: no approved passive targets
+  // vision_range while fog is disabled (ADR-0006).
   const commander = ownerModifier(
     state,
     unit.ownerPlayerId,

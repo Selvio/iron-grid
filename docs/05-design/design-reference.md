@@ -105,7 +105,7 @@ The surrounding UI is crisp modern web; the board area reads as a retro pixel gr
 | Match dashboard / list | Match lifecycle surfacing — "your turn" vs "waiting for opponent", deadlines (`game-specification.md` §3, §4.3). |
 | Create match | Map / fog / turn-timer setup with inline validation (`game-specification.md` §3.2, §18, §4.3). |
 | Invitation / join | Invite by code/link; guest joins by code (`game-specification.md` §3.3). |
-| Commander selection | Four factions, one commander each (passive + one power); **names are placeholders** — the commander design is a blocker (`game-specification.md` §22.3, §33.1). |
+| Commander selection | Four factions, one commander each. The **passive is real** (ADR-0006) and the card shows it; **names and the CO power are still placeholders** — that half of the commander design remains a blocker (`game-specification.md` §22.3, §22.6, §33.1). The mockup's own PASSIVE / CO POWER copy is illustrative filler, not canon. |
 | Ready check | Both players confirm; match starts when both ready (`game-specification.md` §3.5). |
 | Opponent-turn replay | Auto-play with **Skip** and a textual per-turn summary (`game-specification.md` §24.3, `frontend.md` §8). |
 | Match completed | Winner + reason: HQ captured / army eliminated / timeout / resignation (`game-specification.md` §23). |

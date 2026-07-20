@@ -30,6 +30,20 @@ describe("reference resolution across files", () => {
     );
   });
 
+  it("rejects a commander passive scoped to a unit that no longer exists", () => {
+    const units = { ...data.units };
+    delete units.rockets; // scoped by both blue's and red's passive (ADR-0006)
+    expect(() => validateIntegrity({ ...data, units })).toThrow(GameDataError);
+  });
+
+  it("rejects a commander passive scoped to a terrain that no longer exists", () => {
+    const terrain = { ...data.terrain };
+    delete terrain.mountain; // green's Entrenched cover list
+    expect(() => validateIntegrity({ ...data, terrain })).toThrow(
+      GameDataError,
+    );
+  });
+
   it("rejects a producer whose unit list drifts from its category", () => {
     const base = data.properties.base!;
     const properties = {

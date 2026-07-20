@@ -377,4 +377,45 @@ describe("commanders obligations", () => {
       "Super Powers",
     );
   });
+
+  // The passive gate (ADR-0006), independent of `enabled_in_mvp`.
+  it("requires an approved passive to have a description", () => {
+    reject(
+      () =>
+        parseCommanders(
+          withValue(
+            "commanders",
+            "commanders.commander_blue.passive.description",
+            null,
+          ),
+        ),
+      "approved passive needs a description",
+    );
+  });
+  it("requires an approved passive to carry a modifier", () => {
+    reject(
+      () =>
+        parseCommanders(
+          withValue(
+            "commanders",
+            "commanders.commander_blue.passive.modifiers",
+            [],
+          ),
+        ),
+      "at least one modifier",
+    );
+  });
+  it("forbids modifiers on a passive that is not approved", () => {
+    reject(
+      () =>
+        parseCommanders(
+          withValue(
+            "commanders",
+            "commanders.commander_blue.passive.status",
+            "draft",
+          ),
+        ),
+      "must carry no modifiers",
+    );
+  });
 });

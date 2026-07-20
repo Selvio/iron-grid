@@ -9,9 +9,14 @@
  * without requiring the blocked values. The file must therefore pass green in
  * its blocked state; the resolved values land in M6 behind the §33.1 ADR.
  *
- * Modifier scope references (unit/terrain/property IDs) resolving in their
- * canonical files are cross-file checks deferred to M1-T5; today every modifier
- * list is empty, so that obligation is vacuous.
+ * ADR-0006 resolves the **passive** half of §33.1 and splits the approval gate in
+ * two: `passive.status: "approved"` makes a passive apply in play, while the
+ * commander itself stays disabled until its name, meter and power resolve. Both
+ * gates are enforced below.
+ *
+ * Modifier scope references (unit/terrain/property IDs) are cross-checked against
+ * their canonical files in `validate/integrity.ts` (M1-T5) — no longer vacuous now
+ * that the four passives carry real scopes.
  *
  * @see docs/02-data/commanders.yaml
  * @see docs/04-development/milestones/m1-game-data.md (M1-T4)
@@ -19,7 +24,7 @@
 
 import { z } from "zod";
 
-import { commanderStatus, factionId } from "./enums";
+import { commanderStatus, factionId, passiveStatus } from "./enums";
 import { IssueCollector, parseShape } from "./parse";
 
 /** Modifier target attributes (`commanders.yaml` enums.modifier_targets). */
@@ -104,7 +109,12 @@ const commanderSchema = z.looseObject({
   display_name: z.string().nullable(),
   faction_id: factionId,
   status: commanderStatus,
-  passive: z.looseObject({ modifiers: z.array(modifierSchema) }),
+  passive: z.looseObject({
+    display_name: z.string().nullable(),
+    description: z.string().nullable(),
+    status: passiveStatus,
+    modifiers: z.array(modifierSchema),
+  }),
   meter: meterSchema,
   power: z.looseObject({
     id: z.string(),
@@ -224,6 +234,33 @@ export function parseCommanders(raw: unknown): Commanders {
       at("faction_id"),
       `faction "${cmd.faction_id}" does not exist`,
     );
+
+    // The passive gate (ADR-0006), independent of `enabled_in_mvp`: an approved
+    // passive is applied in play, so it must be fully described; an unapproved
+    // one must carry nothing the engine could accidentally apply.
+    if (cmd.passive.status === "approved") {
+      c.check(
+        cmd.passive.display_name !== null,
+        at("passive.display_name"),
+        "an approved passive needs a display name",
+      );
+      c.check(
+        cmd.passive.description !== null,
+        at("passive.description"),
+        "an approved passive needs a description",
+      );
+      c.check(
+        cmd.passive.modifiers.length > 0,
+        at("passive.modifiers"),
+        "an approved passive needs at least one modifier",
+      );
+    } else {
+      c.check(
+        cmd.passive.modifiers.length === 0,
+        at("passive.modifiers"),
+        `a passive that is not approved (status "${cmd.passive.status}") must carry no modifiers`,
+      );
+    }
 
     // A commander may only be enabled once its design is fully resolved.
     if (cmd.implementation.enabled_in_mvp) {

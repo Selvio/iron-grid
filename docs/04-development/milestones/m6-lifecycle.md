@@ -41,7 +41,8 @@ layers build on.
 
 M6 is **lifecycle mechanism only**. Two pieces of **approved game content it must
 not invent** are deferred (§3, §E of the authoring brief): the **real commander
-roster** (§33.1 — names, factions, passive/power effects, meter costs) and an
+roster** (§33.1 — names, factions, passive/power effects, meter costs; the passive
+effects were resolved later by ADR-0006) and an
 **official playable map**. Both files forbid fabricated values (`commanders.yaml`
 "Implementation agents must not invent those values"; `maps.yaml` "No playable
 official map is invented here"). M6 therefore builds the selection and activation
@@ -347,7 +348,9 @@ These require approved design that agents must not fabricate; M6 builds the
 mechanism around them and they are resolved separately before real play:
 
 - **§33.1 commander ADR + `commanders.yaml` population** — names, factions, passive
-  and power effects, meter costs (`roadmap.md` §5–§6; spec §33.1;
+  and power effects, meter costs. *(The **passive effects** half was resolved later
+  by [ADR-0006](../../decisions/0006-commander-passive-effects.md); names, powers
+  and meter costs remain deferred.)* (`roadmap.md` §5–§6; spec §33.1;
   `commander_rules.hardcoded_commander_names_forbidden`,
   `meter.implementation_blocked_until_commanders_yaml`). Until then the selection
   mechanism (T4) runs on placeholder commander fixtures; `activate_power` / the

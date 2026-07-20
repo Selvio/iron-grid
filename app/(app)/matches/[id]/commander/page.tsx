@@ -49,10 +49,20 @@ export default async function CommanderPage({
 
   const commanders: CommanderOption[] = Object.values(
     getGameData().commanders.commanders,
-  ).map((commander) => ({
-    id: commander.id,
-    faction: commander.faction_id as FactionId,
-  }));
+  ).map((commander) => {
+    // Only an approved passive is shown — and only an approved passive is
+    // applied by the engine (ADR-0006), so the card cannot advertise a trait
+    // that does not run.
+    const { display_name, description, status } = commander.passive;
+    return {
+      id: commander.id,
+      faction: commander.faction_id as FactionId,
+      passive:
+        status === "approved" && display_name !== null && description !== null
+          ? { name: display_name, description }
+          : null,
+    };
+  });
 
   // What the other seat already holds, so its card renders unavailable. The
   // server remains the authority — a faction claimed after this render still

@@ -1,6 +1,7 @@
 import {
   calculateCombatPreview,
   calculateLegalActions,
+  ownerModifier,
   terrainMovementCost,
   type AttackOption,
   type CombatPreview,
@@ -426,12 +427,54 @@ export function unloadDropTiles(
   });
 }
 
-/** The min/max damage (+ counter) forecast for an attack, no luck drawn. */
+/**
+ * The terrain-defense stars a unit actually benefits from where it stands — the
+ * `terrain.yaml` value plus its owner's `terrain_defense_stars` passive
+ * (ADR-0006), matching what the engine feeds the damage formula. Air units get
+ * none (§12.4), and so does a unit that is off-board or on an unknown tile.
+ */
+export function previewTerrainStars(
+  view: MatchView,
+  unitId: string,
+  gameData: GameData,
+): number {
+  const unit = view.units.find((u) => u.id === unitId);
+  if (unit === undefined || unit.position === null) return 0;
+  const def = gameData.units[unit.typeId];
+  if (def?.category === "air") return 0;
+  const terrainId = view.map.logicalTerrain[unit.position.y]?.[unit.position.x];
+  const base = terrainId
+    ? (gameData.terrain[terrainId]?.defense_stars ?? 0)
+    : 0;
+  return (
+    base +
+    ownerModifier(
+      matchViewToState(view),
+      unit.ownerPlayerId,
+      gameData,
+      "terrain_defense_stars",
+      unit.typeId,
+      terrainId,
+    )
+  );
+}
+
+/**
+ * The min/max damage (+ counter) forecast for an attack, no luck drawn.
+ *
+ * `path` must be the **same** path the submit will send, and is **required** for
+ * exactly that reason: the engine resolves the attack from the tile the unit ends
+ * on, so a move-and-attack forecast that omitted it would read terrain — defense
+ * stars, and any terrain-scoped commander modifier (ADR-0006) — from the unit's
+ * pre-move tile and under-report the counterattack. Pass `[]` only when the unit
+ * genuinely attacks from where it stands.
+ */
 export function previewCombat(
   view: MatchView,
   attackerUnitId: string,
   targetUnitId: string,
   gameData: GameData,
+  path: readonly Coordinate[],
 ): CombatPreview {
   return calculateCombatPreview(
     matchViewToState(view),
@@ -441,6 +484,7 @@ export function previewCombat(
       playerId: view.viewerPlayerId,
       unitId: attackerUnitId,
       targetUnitId,
+      path: [...path],
       expectedStateVersion: view.stateVersion,
       idempotencyKey: "preview",
     },

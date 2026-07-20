@@ -123,8 +123,8 @@ export function resolveStartOfTurn(
   // 3. grant_property_income (§6.2): 1,000 per owned income-producing property,
   //    read from `properties.yaml` economy so silos/terrain grant nothing unless
   //    configured. Aggregated into one credit so `fundsAfter` is unambiguous.
-  // Commander income modifier (M3-T8), added per producing property; inert (0)
-  // with no resolved commander.
+  // Commander income modifier (M3-T8), added per producing property. Zero today:
+  // no approved passive targets property_income (ADR-0006).
   const incomeBonus = ownerModifier(
     next,
     activeId,

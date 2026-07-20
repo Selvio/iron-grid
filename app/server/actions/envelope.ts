@@ -16,7 +16,7 @@ import { InvalidActionError, UnsupportedActionError } from "./errors";
  * `matchId` and `playerId` are **server-set** — `matchId` from the URL, `playerId`
  * from the authenticated membership — so a client can never act as another player
  * or match. `produce`'s `newUnitId` is **server-assigned** (like the seed), not
- * client-supplied (`actions.ts`). Gated types (`activate_power` §33.1) and the
+ * client-supplied (`actions.ts`). Gated types (`activate_power` §22.6) and the
  * not-yet-supported ones (`launch_missile`, `resign` until M7-T5, `claim_victory`
  * M8) are rejected with a typed error.
  *
@@ -193,7 +193,7 @@ export function parseAction(input: unknown, context: ActionContext): Action {
     case "resign":
       return { ...envelope, type };
     case "activate_power":
-      // §33.1: commander effects/power are design-blocked until commanders.yaml.
+      // §22.6: commander powers (unlike the passives, ADR-0006) are still blocked.
       throw new UnsupportedActionError(
         "Commander powers are not available yet.",
       );

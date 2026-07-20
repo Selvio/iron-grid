@@ -88,7 +88,15 @@
     "afconvert",
     "transcoded",
     "Sdfx",
-    "Laughe"
+    "Laughe",
+    "footsoldier",
+    "footsoldiers",
+    "penalised",
+    "speciality",
+    "counterplay",
+    "behaviour",
+    "killable",
+    "banlists"
   ],
   "ignorePaths": ["node_modules/**", ".next/**", "pnpm-lock.yaml"]
 }

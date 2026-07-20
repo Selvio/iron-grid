@@ -17,8 +17,8 @@ import { cn } from "@/app/lib/utils";
  * Four factions/commanders with **placeholder** identity — commander and faction
  * names are design-blocked (§33.1), so each card is its faction insignia (color
  * *and* silhouette) plus the neutral label "Commander", never an invented name.
- * The design's PASSIVE / CO POWER panels are deliberately not filled with
- * invented traits; the card says the traits are pending instead.
+ * The design's CO POWER panel is omitted while powers stay design-blocked
+ * (§22.6); only the approved passive (ADR-0006) is shown.
  *
  * The flow follows the design: picking a card only highlights it, and a separate
  * "Lock in" confirms — the client's no-undo confirmation rule (`frontend.md` §6,
@@ -36,6 +36,14 @@ import { cn } from "@/app/lib/utils";
 export interface CommanderOption {
   readonly id: string;
   readonly faction: FactionId;
+  /**
+   * The approved passive (ADR-0006), or `null` while one is still unresolved —
+   * the card says so rather than inventing a trait.
+   */
+  readonly passive: {
+    readonly name: string;
+    readonly description: string;
+  } | null;
 }
 
 /**
@@ -48,22 +56,24 @@ const FACTION_PAINT: Record<
   { banner: string; border: string; glow: string }
 > = {
   blue: {
-    banner: "from-[#4f8ef7] to-[#2b5fbf]",
+    // Solid `bg-*` under the gradient so subpixel gaps at the clipped
+    // top edge never flash the card's cream fill.
+    banner: "bg-[#4f8ef7] from-[#4f8ef7] to-[#2b5fbf]",
     border: "border-[#4f8ef7]",
     glow: "shadow-[0_10px_0_#2b5fbf,0_0_0_4px_rgba(79,142,247,0.48)]",
   },
   green: {
-    banner: "from-[#37b26b] to-[#227a48]",
+    banner: "bg-[#37b26b] from-[#37b26b] to-[#227a48]",
     border: "border-[#37b26b]",
     glow: "shadow-[0_10px_0_#227a48,0_0_0_4px_rgba(55,178,107,0.48)]",
   },
   red: {
-    banner: "from-[#ef5b5b] to-[#b83636]",
+    banner: "bg-[#ef5b5b] from-[#ef5b5b] to-[#b83636]",
     border: "border-[#ef5b5b]",
     glow: "shadow-[0_10px_0_#b83636,0_0_0_4px_rgba(239,91,91,0.48)]",
   },
   yellow: {
-    banner: "from-[#e0a72e] to-[#a9781a]",
+    banner: "bg-[#e0a72e] from-[#e0a72e] to-[#a9781a]",
     border: "border-[#e0a72e]",
     glow: "shadow-[0_10px_0_#a9781a,0_0_0_4px_rgba(224,167,46,0.48)]",
   },
@@ -154,7 +164,9 @@ export function CommanderSelect({
               disabled={isTaken}
               onClick={() => setPicked(option)}
               className={cn(
-                "overflow-hidden rounded-2xl border-[3px] bg-card text-left transition-[transform,box-shadow,filter]",
+                // `flex flex-col` avoids the UA button baseline strut that can
+                // leave a cream hairline above the banner on some columns.
+                "flex flex-col overflow-hidden rounded-2xl border-[3px] bg-card p-0 text-left transition-[transform,box-shadow,filter]",
                 isTaken
                   ? "cursor-not-allowed border-border opacity-55 grayscale"
                   : "hover:brightness-[1.03]",
@@ -166,7 +178,7 @@ export function CommanderSelect({
             >
               <span
                 className={cn(
-                  "relative flex h-26 items-center justify-center border-b-[3px] border-[#1c2b45] bg-linear-135",
+                  "relative flex h-26 shrink-0 items-center justify-center border-b-[3px] border-[#1c2b45] bg-linear-135",
                   paint.banner,
                 )}
               >
@@ -207,14 +219,36 @@ export function CommanderSelect({
                   faction={option.faction}
                   className="text-[11px] font-extrabold uppercase tracking-wide"
                 />
-                {/* The design's PASSIVE / CO POWER panels stay empty on purpose:
-                    commander traits are a design blocker (§33.1), and inventing
-                    them here would make the mockup canon. */}
-                <span className="mt-3 rounded-lg border-2 border-border bg-secondary px-2.5 py-2 text-[11px] font-semibold leading-snug text-muted-foreground">
-                  {isTaken
-                    ? "Your opponent already claimed this faction."
-                    : "Passive trait and CO power are still being designed."}
-                </span>
+                {isTaken ? (
+                  <span className="mt-3 rounded-lg border-2 border-border bg-secondary px-2.5 py-2 text-[11px] font-semibold leading-snug text-muted-foreground">
+                    Your opponent already claimed this faction.
+                  </span>
+                ) : (
+                  <>
+                    {/* The design's PASSIVE panel, with the real passive
+                        (ADR-0006). CO powers stay omitted while still
+                        design-blocked (§22.6). */}
+                    <span className="mt-3 flex flex-col gap-0.5 rounded-lg border-2 border-border bg-secondary px-2.5 py-2">
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-gold">
+                        Passive
+                      </span>
+                      {option.passive === null ? (
+                        <span className="text-[11px] font-semibold leading-snug text-muted-foreground">
+                          Still being designed.
+                        </span>
+                      ) : (
+                        <>
+                          <span className="text-[11px] font-extrabold text-[#1c2b45]">
+                            {option.passive.name}
+                          </span>
+                          <span className="text-[11px] font-semibold leading-snug text-[#1c2b45]">
+                            {option.passive.description}
+                          </span>
+                        </>
+                      )}
+                    </span>
+                  </>
+                )}
               </span>
             </button>
           );

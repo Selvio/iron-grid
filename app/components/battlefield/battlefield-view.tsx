@@ -22,6 +22,7 @@ import {
   attackRangeTiles,
   isIndirect,
   previewCombat,
+  previewTerrainStars,
   previewProduction,
   previewUnitMenu,
   productionTargetAt,
@@ -321,12 +322,9 @@ export function BattlefieldView({
     const target = view.units.find((u) => u.id === targetUnitId);
     if (target === undefined || target.position === null) return undefined;
     const def = gameData.units[target.typeId];
-    const terrainId =
-      view.map.logicalTerrain[target.position.y]?.[target.position.x];
-    const stars =
-      def?.category === "air"
-        ? 0
-        : ((terrainId ? gameData.terrain[terrainId]?.defense_stars : 0) ?? 0);
+    // The stars the engine will actually use, commander passive included
+    // (ADR-0006) — the forecast must not disagree with the damage it forecasts.
+    const stars = previewTerrainStars(view, targetUnitId, gameData);
     const factions: Record<string, FactionId | undefined> = {
       ...(view.you
         ? { [view.you.playerId]: view.you.factionId as FactionId }
@@ -377,7 +375,15 @@ export function BattlefieldView({
         dispatch({
           type: "choose-target",
           targetUnitId: target.id,
-          preview: previewCombat(view, state.unitId, target.id, gameData),
+          preview: previewCombat(
+            view,
+            state.unitId,
+            target.id,
+            gameData,
+            // The forecast must be resolved from the tile the attack is
+            // submitted from, terrain modifiers included (ADR-0006).
+            pathTo(state.unitId, state.destination) ?? [],
+          ),
           defender: combatDefender(target.id),
         });
       }
@@ -514,7 +520,13 @@ export function BattlefieldView({
       dispatch({
         type: "choose-target",
         targetUnitId,
-        preview: previewCombat(view, state.unitId, targetUnitId, gameData),
+        preview: previewCombat(
+          view,
+          state.unitId,
+          targetUnitId,
+          gameData,
+          pathTo(state.unitId, state.destination) ?? [],
+        ),
         defender: combatDefender(targetUnitId),
       });
       return;
@@ -690,7 +702,12 @@ export function BattlefieldView({
         terrain: selectedTerrainDef
           ? {
               name: selectedTerrainDef.display_name,
-              defenseStars: selectedTerrainDef.defense_stars,
+              // Own unit, own commander: show the cover it really gets.
+              defenseStars: previewTerrainStars(
+                view,
+                selectedUnit.id,
+                gameData,
+              ),
             }
           : null,
       }

@@ -318,6 +318,12 @@ per-terrain vision/defense values M3 consumes.
 - **Dependencies:** M3-T1 (destruction), M3-T2 (HQ capture).
 
 ## M3-T8 · Declarative commander modifiers & power meter (inert plumbing)
+
+> **Since superseded in part by [ADR-0006](../../decisions/0006-commander-passive-effects.md):**
+> the four **passives** are now approved data and the resolver is no longer the
+> identity. The mechanism this ticket built is unchanged; only the data it reads
+> and a `passive.status` gate were added. The **power meter and `activate_power`
+> stay blocked** exactly as described below.
 - **Goal:** the **data-driven** commander-modifier application points and the
   power-meter/`activate_power` skeleton, built **without inventing any commander
   value** (§22.4–§22.5; blocked by §33.1 and the §33.5 CO-meter charge).

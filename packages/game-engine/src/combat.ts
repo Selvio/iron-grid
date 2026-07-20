@@ -10,8 +10,9 @@
  * never rerolls, and `match.randomSequenceIndex` advances by the committed draw
  * count. Base damage comes strictly from the `damage-chart.yaml` matrix — a
  * missing cell means the matchup is illegal (§12.3) — and the pure formula lives
- * in `damage.ts`. Attack/defense values default to 100; commander modifiers
- * (§12.5) arrive declaratively in M3-T8.
+ * in `damage.ts`. Attack/defense values default to 100 and are adjusted by the
+ * declarative commander modifiers (§12.5, M3-T8) of the unit's owner — including
+ * the terrain-scoped ones, resolved on the tile the unit stands on (ADR-0006).
  *
  * @see docs/02-data/rules.yaml → combat_rules, randomness
  * @see docs/01-specification/game-specification.md §12
@@ -110,19 +111,56 @@ function selectWeapon(
   return candidates[0]!;
 }
 
-/** Defender terrain stars — the `terrain.yaml` value, or 0 for air units (§12.4). */
+/**
+ * The terrain a tile-scoped commander modifier resolves on for `unit`, or
+ * undefined when none applies.
+ *
+ * **Aircraft are never on their tile**: §12.4 already gives them no terrain
+ * defense stars because terrain does not shelter something flying over it, and
+ * the same reasoning applies to every terrain-scoped modifier — otherwise a
+ * passive's terrain penalty would bite an air force its terrain bonus can never
+ * reach (ADR-0006).
+ */
+function terrainIdAt(
+  gameData: GameData,
+  mapId: Id,
+  unit: UnitState,
+  def: UnitDef | undefined,
+): string | undefined {
+  if (unit.position === null || def?.category === "air") return undefined;
+  return gameData.maps[mapId]?.logical_terrain[unit.position.y]?.[
+    unit.position.x
+  ];
+}
+
+/**
+ * Defender terrain stars — the `terrain.yaml` value, or 0 for air units (§12.4),
+ * plus the defending commander's `terrain_defense_stars` modifier for that tile
+ * (ADR-0006).
+ */
 function terrainStarsFor(
+  state: MatchState,
   gameData: GameData,
   mapId: Id,
   unit: UnitState,
   def: UnitDef,
 ): number {
   if (def.category === "air" || unit.position === null) return 0;
-  const map = gameData.maps[mapId];
-  const terrainId = map?.logical_terrain[unit.position.y]?.[unit.position.x];
+  const terrainId = terrainIdAt(gameData, mapId, unit, def);
   const terrain =
     terrainId === undefined ? undefined : gameData.terrain[terrainId];
-  return terrain?.defense_stars ?? 0;
+  const base = terrain?.defense_stars ?? 0;
+  return (
+    base +
+    ownerModifier(
+      state,
+      unit.ownerPlayerId,
+      gameData,
+      "terrain_defense_stars",
+      unit.typeId,
+      terrainId,
+    )
+  );
 }
 
 /** True-HP damage `attacker` deals to `defender` with `weapon` and the given luck. */
@@ -139,7 +177,9 @@ function hitDamage(
 ): number {
   return computeDamage({
     baseDamage: weapon.baseDamage,
-    // Commander passive modifiers (M3-T8); inert (0) with no resolved commander.
+    // Commander passive modifiers (M3-T8; data from ADR-0006). A terrain-scoped
+    // modifier resolves on the tile of the unit it applies to: the attacker's
+    // for `attack`, the defender's for `defense`.
     attackValue:
       BASE_VALUE +
       ownerModifier(
@@ -148,6 +188,7 @@ function hitDamage(
         gameData,
         "attack",
         attacker.typeId,
+        terrainIdAt(gameData, mapId, attacker, gameData.units[attacker.typeId]),
       ),
     defenseValue:
       BASE_VALUE +
@@ -157,12 +198,19 @@ function hitDamage(
         gameData,
         "defense",
         defender.typeId,
+        terrainIdAt(gameData, mapId, defender, defenderDef),
       ),
     goodLuck,
     badLuck,
     attackerDisplayHp: displayHp(attacker.trueHp),
     defenderDisplayHp: displayHp(defender.trueHp),
-    terrainStars: terrainStarsFor(gameData, mapId, defender, defenderDef),
+    terrainStars: terrainStarsFor(
+      state,
+      gameData,
+      mapId,
+      defender,
+      defenderDef,
+    ),
     defenderTrueHp: defender.trueHp,
   });
 }

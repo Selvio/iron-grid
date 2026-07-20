@@ -1384,8 +1384,8 @@ Commander selection determines:
 
 Each commander has:
 
-- One passive ability
-- One activatable power
+- One passive ability — **approved** (ADR-0006); always on, applied declaratively
+- One activatable power — still design-blocked (§22.6)
 - No Super Power
 - No tag system
 - No skill slots
@@ -1395,44 +1395,67 @@ Each commander has:
 
 Commander data must avoid hardcoded name checks.
 
-Example schema:
+A passive is a **list of modifiers**, each naming what it changes, how, by how
+much, and what it applies to — never a per-attribute key. The canonical shape is
+`commanders.yaml` (`modifier_schema`, `enums.modifier_targets` /
+`modifier_scopes` / `modifier_operations`):
 
 ```yaml
 id:
-factionId:
+faction_id:
 passive:
-  attackModifiers:
-  defenseModifiers:
-  movementModifiers:
-  visionModifiers:
-  captureModifiers:
-  incomeModifiers:
-power:
-  meterCost:
-  duration:
-  immediateEffects:
+  display_name:
+  description:
+  status:            # unresolved | draft | approved — only approved is applied
   modifiers:
+    - id:
+      target:        # attack | defense | terrain_defense_stars | …
+      operation:     # add | multiply | set | min | max
+      value:
+      scope:
+        type:        # all_units | unit_ids | unit_categories | movement_types
+                     # | terrain_ids | property_ids
+        values: []
+      priority:
+power:
+  cost:
+  duration:
+  immediate_effects:
+  temporary_modifiers:
 ```
+
+A `terrain_ids`-scoped modifier resolves on the tile the affected unit stands on,
+and never applies to air units — terrain does not shelter something flying over it
+(§12.4).
 
 ## 22.5 Power meter
 
 Power meter charges from economic battle value.
 
-The final exact Iron Grid formula must be locked in `commanders.yaml` and covered by tests before commander implementation.
+The final exact Iron Grid formula must be locked in `commanders.yaml` and covered
+by tests before **power** implementation. Passive implementation is gated
+separately, on the passive design alone (§22.6, ADR-0006): a commander may apply
+an approved passive while its meter and power remain unresolved, because an
+unresolved power cost makes activation permanently illegal.
 
 ## 22.6 Unresolved commander design blocker
 
-The following are not yet defined and must not be invented:
+**Passive effects are resolved** by ADR-0006 (`decisions/0006-commander-passive-effects.md`)
+and live in `commanders.yaml` (`passive.status: approved`).
+
+The following are still not defined and must not be invented:
 
 - Commander names
+- Faction display names
 - Commander portraits
-- Passive effects
 - Power effects
 - Meter costs
 - Power duration exceptions
 - Meter growth after repeated use
 
-Until those are approved, commander implementation is not Definition of Ready.
+Until those are approved, **power** implementation is not Definition of Ready. A
+commander's passive is approved and enforced independently of its power: a power
+with an unresolved cost can never be activated.
 
 ---
 
@@ -1862,9 +1885,9 @@ The following must be resolved before affected tasks become implementation-ready
 
 ## 33.1 Commanders
 
+- ~~Passive effects~~ — resolved by ADR-0006
 - Names
 - Faction names
-- Passive effects
 - Power effects
 - Costs
 - Art

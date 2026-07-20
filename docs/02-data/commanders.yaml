@@ -5,10 +5,12 @@ document_purpose: >
   Canonical commander and faction schema for the Iron Grid MVP. This file
   defines the complete data model, faction bindings, power-meter contract,
   modifier vocabulary, effect vocabulary, validation rules, and the four
-  required commander slots. Commander names, portraits, passive abilities,
-  power effects and meter costs are intentionally unresolved because they
-  were not defined in the approved design conversation. Implementation agents
-  must not invent those values.
+  required commander slots. The four **passive abilities are resolved** by
+  ADR-0006 (docs/decisions/0006-commander-passive-effects.md) and are applied in
+  play. Commander names, faction display names, portraits, power effects and
+  meter costs remain intentionally unresolved because they were not defined in
+  the approved design conversation. Implementation agents must not invent those
+  values.
 
 game_reference:
   inspiration: "Advance Wars 2: Black Hole Rising"
@@ -89,6 +91,12 @@ enums:
     - approved
     - disabled
     - blocked
+  # The passive's own gate (ADR-0006), independent of commander_statuses: only an
+  # approved passive is applied by the engine.
+  passive_statuses:
+    - unresolved
+    - draft
+    - approved
   modifier_scopes:
     - all_units
     - unit_ids
@@ -346,6 +354,7 @@ commander_template:
     required_fields:
       - display_name
       - description
+      - status
       - modifiers
       - triggered_effects
   implementation:
@@ -362,17 +371,52 @@ commanders:
     faction_id: "blue"
     status: "blocked"
     design_identity:
-      archetype: null
-      gameplay_role: null
-      strengths: []
-      weaknesses: []
-      design_notes: null
+      archetype: "assault"
+      gameplay_role: "front-line pressure with direct-fire ground vehicles"
+      strengths:
+        - "wins armour trades against every other commander"
+        - "strong on open maps where ground vehicles decide the front"
+      weaknesses:
+        - "weakened artillery, missiles, rockets and battleships"
+        - "no help at all for infantry and mechs"
+        - "struggles to break an entrenched or indirect-heavy position"
+      design_notes: >
+        The mirror of commander_red. Both halves are paid on every official map
+        because direct and indirect units are both core (ADR-0006). Footsoldiers
+        are deliberately excluded so commander_yellow owns that identity.
     passive:
-      display_name: null
-      description: null
-      modifiers: []
+      display_name: "Spearhead"
+      description: >
+        Direct-fire ground vehicles attack at 115%. Indirect units attack at
+        85%. Infantry and mechs are unaffected.
+      modifiers:
+        - id: "blue_passive_direct_ground_attack"
+          target: "attack"
+          operation: "add"
+          value: 15
+          scope:
+            type: "unit_ids"
+            values:
+              - "recon"
+              - "tank"
+              - "anti_air"
+              - "medium_tank"
+              - "neotank"
+          priority: 100
+        - id: "blue_passive_indirect_attack_penalty"
+          target: "attack"
+          operation: "add"
+          value: -15
+          scope:
+            type: "unit_ids"
+            values:
+              - "artillery"
+              - "missiles"
+              - "rockets"
+              - "battleship"
+          priority: 100
       triggered_effects: []
-      status: "unresolved"
+      status: "approved"
     meter:
       max_points: null
       initial_points: 0
@@ -417,7 +461,6 @@ commanders:
       enabled_in_mvp: false
       blockers:
         - commander_name
-        - passive_design
         - meter_formula
         - power_design
         - portrait_asset
@@ -430,17 +473,49 @@ commanders:
     faction_id: "green"
     status: "blocked"
     design_identity:
-      archetype: null
-      gameplay_role: null
-      strengths: []
-      weaknesses: []
-      design_notes: null
+      archetype: "defensive"
+      gameplay_role: "holds ground from cover and punishes attacks into it"
+      strengths:
+        - "very hard to dislodge from forest, mountain or city tiles"
+        - "wins long attrition fights over contested terrain"
+      weaknesses:
+        - "fragile while crossing plains, roads and shoals"
+        - "the bonus is denied by forcing the fight into the open"
+      design_notes: >
+        The only conditional passive; its counterplay is available every turn —
+        force the fight into the open (ADR-0006). Terrain-scoped modifiers do not
+        apply to air units at all: terrain never shelters aircraft (§12.4), so
+        neither the star bonus nor the open-ground penalty touches an air force.
     passive:
-      display_name: null
-      description: null
-      modifiers: []
+      display_name: "Entrenched"
+      description: >
+        Units gain 1 extra defense star on forest, mountain and city tiles, and
+        defend at 90% on plains, roads and shoals.
+      modifiers:
+        - id: "green_passive_cover_defense_stars"
+          target: "terrain_defense_stars"
+          operation: "add"
+          value: 1
+          scope:
+            type: "terrain_ids"
+            values:
+              - "forest"
+              - "mountain"
+              - "city"
+          priority: 100
+        - id: "green_passive_open_ground_penalty"
+          target: "defense"
+          operation: "add"
+          value: -10
+          scope:
+            type: "terrain_ids"
+            values:
+              - "plain"
+              - "road"
+              - "shoal"
+          priority: 100
       triggered_effects: []
-      status: "unresolved"
+      status: "approved"
     meter:
       max_points: null
       initial_points: 0
@@ -485,7 +560,6 @@ commanders:
       enabled_in_mvp: false
       blockers:
         - commander_name
-        - passive_design
         - meter_formula
         - power_design
         - portrait_asset
@@ -498,17 +572,57 @@ commanders:
     faction_id: "red"
     status: "blocked"
     design_identity:
-      archetype: null
-      gameplay_role: null
-      strengths: []
-      weaknesses: []
-      design_notes: null
+      archetype: "siege"
+      gameplay_role: "controls space with artillery, rockets, missiles and battleships"
+      strengths:
+        - "the strongest indirect fire in the game"
+        - "punishes an opponent who masses units in range"
+      weaknesses:
+        - "every direct-fire unit is weakened, so contested tiles are lost"
+        - "loses badly once an attacker closes to point-blank range"
+      design_notes: >
+        The mirror of commander_blue. Deliberately grants no extra attack range:
+        range extension promotes a cheap unit into an expensive unit's role
+        (ADR-0006).
     passive:
-      display_name: null
-      description: null
-      modifiers: []
+      display_name: "Barrage"
+      description: >
+        Indirect units attack at 120%. All direct-fire units attack at 90%.
+      modifiers:
+        - id: "red_passive_indirect_attack"
+          target: "attack"
+          operation: "add"
+          value: 20
+          scope:
+            type: "unit_ids"
+            values:
+              - "artillery"
+              - "missiles"
+              - "rockets"
+              - "battleship"
+          priority: 100
+        - id: "red_passive_direct_attack_penalty"
+          target: "attack"
+          operation: "add"
+          value: -10
+          scope:
+            type: "unit_ids"
+            values:
+              - "infantry"
+              - "mech"
+              - "recon"
+              - "tank"
+              - "anti_air"
+              - "medium_tank"
+              - "neotank"
+              - "battle_copter"
+              - "fighter"
+              - "bomber"
+              - "cruiser"
+              - "submarine"
+          priority: 100
       triggered_effects: []
-      status: "unresolved"
+      status: "approved"
     meter:
       max_points: null
       initial_points: 0
@@ -553,7 +667,6 @@ commanders:
       enabled_in_mvp: false
       blockers:
         - commander_name
-        - passive_design
         - meter_formula
         - power_design
         - portrait_asset
@@ -566,17 +679,47 @@ commanders:
     faction_id: "yellow"
     status: "blocked"
     design_identity:
-      archetype: null
-      gameplay_role: null
-      strengths: []
-      weaknesses: []
-      design_notes: null
+      archetype: "infantry"
+      gameplay_role: "wins the footsoldier war and contests property lines"
+      strengths:
+        - "infantry and mechs out-trade every other commander's footsoldiers"
+        - "cheap units stay relevant deep into the match"
+      weaknesses:
+        - "every wheeled and tracked vehicle is easier to destroy"
+        - "loses the armour war it cannot avoid on open maps"
+      design_notes: >
+        Deliberately does not touch capture rate: a capture multiplier
+        accelerates the victory condition itself and is the degenerate version
+        of this fantasy (ADR-0006). The penalty is scoped by movement type, so
+        it covers every current and future wheeled or tracked unit.
     passive:
-      display_name: null
-      description: null
-      modifiers: []
+      display_name: "Rifle Corps"
+      description: >
+        Foot and mech units attack at 115%. Wheeled and tracked units defend at
+        90%.
+      modifiers:
+        - id: "yellow_passive_footsoldier_attack"
+          target: "attack"
+          operation: "add"
+          value: 15
+          scope:
+            type: "movement_types"
+            values:
+              - "foot"
+              - "mech"
+          priority: 100
+        - id: "yellow_passive_vehicle_defense_penalty"
+          target: "defense"
+          operation: "add"
+          value: -10
+          scope:
+            type: "movement_types"
+            values:
+              - "tires"
+              - "treads"
+          priority: 100
       triggered_effects: []
-      status: "unresolved"
+      status: "approved"
     meter:
       max_points: null
       initial_points: 0
@@ -621,7 +764,6 @@ commanders:
       enabled_in_mvp: false
       blockers:
         - commander_name
-        - passive_design
         - meter_formula
         - power_design
         - portrait_asset
@@ -740,7 +882,12 @@ cross_file_contracts:
       - "Commander design must be approved there before null fields are populated."
 
 implementation_constraints:
-  - "Do not enable a commander with null name, passive, power cost or meter rules."
+  # ADR-0006 splits the old single gate ("do not enable a commander with null
+  # name, passive, power cost or meter rules") into two independent gates, so an
+  # approved passive can apply while the power stays design-blocked.
+  - "Do not apply a passive whose passive.status is not approved."
+  - "Do not approve a passive without a name, a description and at least one modifier."
+  - "Do not enable a commander in the MVP with null name, power cost or meter rules."
   - "Do not infer commander effects from faction color."
   - "Do not copy Nintendo commander names, portraits or narrative."
   - "Do not hardcode checks such as commander.id === a specific name in engine logic."
@@ -796,6 +943,9 @@ required_validation_tests:
   - "Second picker cannot choose the first picker's commander."
   - "Modifier targets, operations, scopes and duration models use declared enums."
   - "Every unit, terrain or property scope reference resolves in its canonical file."
+  - "An approved passive has a display name, a description and at least one modifier."
+  - "A passive that is not approved carries no modifiers."
+  - "A passive whose status is not approved applies no modifier in the engine."
   - "Meter changes are deterministic and persisted in replay events."
   - "Power activation rejects insufficient meter."
   - "Power activation rejects stale state version."

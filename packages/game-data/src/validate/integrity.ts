@@ -19,6 +19,7 @@ import type { DamageChart } from "../schemas/damage-chart";
 import type { Terrains } from "../schemas/terrain";
 import type { Properties } from "../schemas/properties";
 import type { GameMaps, GameMap } from "../schemas/maps";
+import type { Commanders } from "../schemas/commanders";
 
 /** The parsed inputs the integrity layer cross-checks. */
 export interface IntegrityInput {
@@ -28,6 +29,7 @@ export interface IntegrityInput {
   readonly terrain: Terrains;
   readonly properties: Properties;
   readonly maps: GameMaps;
+  readonly commanders: Commanders;
 }
 
 /** The destructible terrain object that is a damage-chart defender but not a unit. */
@@ -265,6 +267,51 @@ export function validateIntegrity(data: IntegrityInput): void {
             `attackers.${aid}.matchups.${did}.weapon_values.${slot}`,
             `weapon "${cell.weapon_id}" does not resolve`,
           );
+      }
+    }
+  }
+
+  // Commander modifier scopes resolve (ADR-0006). Every scoped id must name a
+  // real unit / terrain / property, so a passive can never silently stop
+  // covering something a later data change renamed.
+  const movementTypes = new Set<string>(
+    Object.values(units).map((u) => u.movement.type),
+  );
+  const unitCategories = new Set<string>(
+    Object.values(units).map((u) => u.category),
+  );
+  for (const [key, cmd] of Object.entries(data.commanders.commanders)) {
+    for (const m of cmd.passive.modifiers) {
+      const at = `commanders.${key}.passive.modifiers.${m.id}.scope`;
+      const resolves = (value: string): boolean => {
+        switch (m.scope.type) {
+          case "unit_ids":
+            return units[value] !== undefined;
+          case "unit_categories":
+            return unitCategories.has(value);
+          case "movement_types":
+            return movementTypes.has(value);
+          case "terrain_ids":
+            return terrain[value] !== undefined;
+          case "property_ids":
+            return properties[value] !== undefined;
+          default:
+            return true;
+        }
+      };
+      add(
+        m.scope.type === "all_units" || m.scope.values.length > 0,
+        "commanders.yaml",
+        at,
+        `scope "${m.scope.type}" needs at least one value`,
+      );
+      for (const value of m.scope.values) {
+        add(
+          resolves(value),
+          "commanders.yaml",
+          at,
+          `${m.scope.type} value "${value}" does not resolve`,
+        );
       }
     }
   }

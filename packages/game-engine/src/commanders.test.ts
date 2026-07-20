@@ -28,17 +28,22 @@ const cell = (weaponId: string, base: number) => ({
   base_damage: base,
 });
 
-/** A placeholder commander with a passive modifier and an optional power cost. */
+/**
+ * A placeholder commander with a passive modifier and an optional power cost.
+ * `passive.status` is "approved" because ADR-0006 makes that the gate the
+ * resolver checks; `passiveStatus` overrides it to prove the gate holds.
+ */
 function commander(
   id: string,
   modifiers: unknown[],
   powerCost: number | null = null,
+  passiveStatus: string = "approved",
 ) {
   return {
     id,
     faction_id: "blue",
     status: "approved",
-    passive: { modifiers },
+    passive: { status: passiveStatus, modifiers },
     meter: { max_points: 100, power_cost: powerCost },
     power: { id: `${id}_power`, cost: powerCost },
     implementation: { enabled_in_mvp: true },

@@ -944,8 +944,10 @@ implementation_blockers:
     blocks:
       - activate_power
       - power_meter
-      - commander_modifiers
-    reason: "commanders.yaml not yet approved"
+    reason: >
+      Commander names, power effects, power costs and the meter formula are not
+      approved. Passive modifiers are no longer blocked: ADR-0006 approved the
+      four passives and they are applied in play.
   - id: "day-limit-score"
     blocks:
       - day_limit_match_completion
