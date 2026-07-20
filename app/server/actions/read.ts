@@ -8,6 +8,7 @@ import type { PgQueryResultHKT } from "drizzle-orm/pg-core";
 
 import { requireMatchMembership } from "../auth/membership";
 import { requireUser } from "../auth/session";
+import { latestEventSequence } from "../db/queries/events";
 import { matches } from "../db/schema/matches";
 import { playerEvents } from "../db/schema/player-events";
 
@@ -99,6 +100,13 @@ export interface MatchView {
   readonly activePlayerId: string;
   readonly turnDeadlineAt: string | null;
   readonly viewerPlayerId: string;
+  /**
+   * The live-sync cursor: the highest `player_events.sequence` already reflected
+   * in this view. The client polls `…/events?since=` with it, so events it has
+   * already seen — including the ones its own submit just produced — are never
+   * replayed (M11-T1).
+   */
+  readonly lastEventSequence: number;
   /** The map id, so the client can key game data for in-browser previews. */
   readonly mapId: string;
   /** The map layout to render (public); the battlefield draws terrain from it. */
@@ -117,11 +125,19 @@ export interface MatchView {
   readonly completionReason: CompletionReason | null;
 }
 
-/** Projects a match state into the viewer's fog-filtered, privacy-safe view. */
+/**
+ * Projects a match state into the viewer's fog-filtered, privacy-safe view.
+ *
+ * `lastEventSequence` is read separately (it lives in `player_events`, not the
+ * snapshot) and passed in by the caller, which has the database handle. It is
+ * **required on purpose**: a default of `0` would silently tell the client it
+ * has seen nothing, and its first poll would pull and animate the entire match.
+ */
 export function projectMatchView(
   state: MatchState,
   viewerPlayerId: string,
   gameData: Parameters<typeof projectStateForPlayer>[2],
+  lastEventSequence: number,
 ): MatchView {
   const view = projectStateForPlayer(state, viewerPlayerId, gameData);
   const you = state.players.find((p) => p.playerId === viewerPlayerId);
@@ -135,6 +151,7 @@ export function projectMatchView(
     activePlayerId: state.match.activePlayerId,
     turnDeadlineAt: state.match.turnDeadlineAt,
     viewerPlayerId,
+    lastEventSequence,
     mapId: state.match.mapId,
     map: {
       width: map.dimensions.width,
@@ -200,7 +217,12 @@ export async function handleGetMatch<
       });
     }
     return Response.json(
-      projectMatchView(row.state, membership.playerId, deps.gameData),
+      projectMatchView(
+        row.state,
+        membership.playerId,
+        deps.gameData,
+        await latestEventSequence(deps.db, matchId, membership.playerId),
+      ),
     );
   } catch (error) {
     return errorResponse(error);

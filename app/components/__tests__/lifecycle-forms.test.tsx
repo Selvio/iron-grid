@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -325,6 +325,51 @@ describe("ReadyCheck", () => {
     expect(
       screen.getByRole("link", { name: /enter the battlefield/i }),
     ).toHaveAttribute("href", "/matches/m1/play");
+  });
+
+  it("picks up the opponent confirming without a reload", async () => {
+    vi.useFakeTimers();
+    // The player has confirmed and is waiting; the poll finds the match live.
+    mockFetch(200, {
+      matchId: "m1",
+      status: "active",
+      seats: [
+        { playerId: "p1", factionId: "blue", isReady: true, isViewer: true },
+        { playerId: "p2", factionId: "red", isReady: true, isViewer: false },
+      ],
+    });
+    render(
+      <ReadyCheck
+        matchId="m1"
+        seats={[{ ...seats[0], isReady: true }, seats[1]]}
+      />,
+    );
+    expect(screen.queryByText(/match has begun/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(3000);
+    });
+
+    expect(screen.getByText(/match has begun/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /enter the battlefield/i }),
+    ).toHaveAttribute("href", "/matches/m1/play");
+    vi.useRealTimers();
+  });
+
+  it("stops polling once the match is active", async () => {
+    vi.useFakeTimers();
+    const fetchMock = mockFetch(200, {});
+    render(
+      <ReadyCheck
+        matchId="m1"
+        isActive
+        seats={seats.map((seat) => ({ ...seat, isReady: true }))}
+      />,
+    );
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+    vi.useRealTimers();
   });
 
   it("starts in the confirmed state when the caller already readied up", () => {

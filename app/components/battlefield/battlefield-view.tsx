@@ -3,6 +3,7 @@
 import type { GameData } from "game-data";
 import type { Coordinate } from "game-engine";
 import { Crosshair, Flag, Minus, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useEffect, useReducer, useRef, useState } from "react";
 
 import type { FactionId } from "@/app/components/faction-badge";
@@ -39,11 +40,13 @@ import { cn } from "@/app/lib/utils";
 import { formatCountdown } from "@/app/lib/format";
 import { TERRAIN_TILE_PX } from "@/app/lib/render/derive-render-data";
 import {
+  buildAnimationPlan,
   prefersReducedMotion,
   submittedAttackPlan,
   submittedMovePlan,
   type AnimationStep,
 } from "@/app/lib/render/animation-plan";
+import { useLiveSync } from "@/app/lib/sync/use-live-sync";
 
 import { ActionPanel } from "./action-panel";
 import { ShortcutsHelp } from "./shortcuts-help";
@@ -63,6 +66,13 @@ const clampZoom = (z: number): number =>
 /** Display tile size for a UI zoom (always an integer CSS px). */
 const tilePxForZoom = (z: number): number =>
   Math.round(TILE_DISPLAY_PX * clampZoom(z));
+
+/**
+ * How many animation beats a single live catch-up may play. A turn that landed
+ * while the tab was away can carry dozens; the board shows the tail and lets the
+ * refetch supply the rest of the truth.
+ */
+const MAX_LIVE_ANIMATION_STEPS = 12;
 
 /** Whether a chosen tile offers any legal action for the selected unit. */
 function anyAction(o: DestinationOptions): boolean {
@@ -101,6 +111,7 @@ export function BattlefieldView({
   matchView: MatchView;
   gameData: GameData;
 }) {
+  const router = useRouter();
   const [view, setView] = useState(matchView);
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
   const [busy, setBusy] = useState(false);
@@ -439,9 +450,137 @@ export function BattlefieldView({
   /** Refetch the authoritative projected view (reconcile, never re-apply). */
   async function refetch(): Promise<void> {
     const fresh = await apiClient.getMatch(view.matchId);
-    if ("map" in fresh) setView(fresh);
+    if ("map" in fresh) {
+      setView(fresh);
+      // The view is the cursor's home, but it is not its only writer: a refetch
+      // that fails must not strand it (see `liveCursorRef`).
+      liveCursorRef.current = Math.max(
+        liveCursorRef.current,
+        fresh.lastEventSequence,
+      );
+    }
     dispatch({ type: "deselect" });
   }
+
+  // --- Live sync ----------------------------------------------------------
+  /**
+   * The events cursor. It is *seeded and corrected* by the server
+   * (`view.lastEventSequence`) but tracked separately and only ever moved
+   * forward, because the view is not its only writer: a refetch that fails —
+   * offline blip, 500 — would otherwise leave the cursor behind the player's own
+   * just-committed action, and the next poll would walk their unit along a path
+   * it has already finished. Monotonic here means "processed at most once".
+   */
+  const liveCursorRef = useRef(view.lastEventSequence);
+  /** Interaction state the poll callback reads without re-arming the timer. */
+  const liveRef = useRef({ busy, interaction: state.kind, mounted: true });
+  useEffect(() => {
+    liveRef.current = { busy, interaction: state.kind, mounted: true };
+  });
+  useEffect(() => {
+    liveCursorRef.current = Math.max(
+      liveCursorRef.current,
+      view.lastEventSequence,
+    );
+  }, [view.lastEventSequence]);
+  useEffect(() => () => void (liveRef.current.mounted = false), []);
+
+  /**
+   * Step the cursor past whatever is pending, showing none of it.
+   *
+   * Used only when the player's own action committed but its reconcile failed:
+   * a turn-based match means everything queued during the player's own turn is
+   * theirs (already animated locally). The exception — a resignation or a
+   * claimed victory — is frameless anyway, so nothing watchable is skipped, and
+   * the next successful refetch still carries the state.
+   */
+  async function claimCursorWithoutAnimating(): Promise<void> {
+    try {
+      const { events } = await apiClient.getEvents(
+        view.matchId,
+        liveCursorRef.current,
+      );
+      if (events.length > 0) {
+        liveCursorRef.current = Math.max(
+          liveCursorRef.current,
+          ...events.map((event) => event.sequence),
+        );
+      }
+    } catch {
+      // Offline. At worst the loop replays the player's own move once, which
+      // the following refetch immediately corrects.
+    }
+  }
+
+  /** True while the player is not mid-decision — see `canPoll`. */
+  function liveSyncIdle(): boolean {
+    const { busy: animating, interaction } = liveRef.current;
+    return !animating && interaction === "idle";
+  }
+
+  /**
+   * Play the opponent's moves as they happen (M11-T1).
+   *
+   * The same three pieces a submitted action uses, driven by the event stream
+   * instead of by a click: resolved `player_events` → `buildAnimationPlan` →
+   * the scene → a reconciling refetch. The client still only ever *animates* an
+   * authoritative result (§28.2).
+   *
+   * The mid-decision guard is checked **twice**: `canPoll` stops a tick from
+   * starting, and it is re-read after the network round trip, because the player
+   * can select a unit or open a menu during those hundreds of milliseconds.
+   * Skipping late costs only the cursor staying put — the next tick refetches
+   * the same events — whereas animating late would drive a second concurrent
+   * `playAnimation` over the same sprites and let `refetch`'s deselect cancel a
+   * menu the player is standing in.
+   */
+  useLiveSync({
+    enabled: view.status === "active",
+    canPoll: liveSyncIdle,
+    // The opponent's turn is when things happen; the player's own turn only
+    // needs to catch a resignation, a claimed victory or an expired deadline.
+    activeMs: isMyTurn ? 10_000 : 3_000,
+    idleMs: 30_000,
+    poll: async () => {
+      const cursor = liveCursorRef.current;
+      const { events } = await apiClient.getEvents(view.matchId, cursor);
+      if (events.length === 0) return false;
+
+      // Re-check: the board may have been claimed by a decision while the
+      // request was in flight. The cursor has not moved, so nothing is lost.
+      if (!liveSyncIdle() || !liveRef.current.mounted) return false;
+
+      // Claim the events before touching the scene, so a failure below cannot
+      // replay them.
+      liveCursorRef.current = Math.max(
+        cursor,
+        ...events.map((event) => event.sequence),
+      );
+
+      // A whole turn can land at once after a spell away; show the tail of it
+      // rather than a minutes-long replay. The refetch below is what makes the
+      // state correct either way — the animation is only the show.
+      const plan = buildAnimationPlan(events, {
+        reducedMotion: prefersReducedMotion(),
+      }).slice(-MAX_LIVE_ANIMATION_STEPS);
+      if (plan.length > 0) await sceneRef.current?.playAnimation(plan);
+
+      await refetch();
+      return true;
+    },
+  });
+
+  /**
+   * A match that ended while the player was watching (the opponent resigned,
+   * claimed the turn deadline, or the last blow landed) must leave the board —
+   * catching that is the whole reason the player's own turn still polls. Without
+   * this the screen would keep offering End turn on a finished match.
+   */
+  useEffect(() => {
+    if (view.status === "completed" || view.status === "cancelled") {
+      router.replace(`/matches/${view.matchId}/completed`);
+    }
+  }, [view.status, view.matchId, router]);
 
   /**
    * Submit an action, animate it, then reconcile with the authoritative view.
@@ -468,11 +607,18 @@ export function BattlefieldView({
       await sceneRef.current?.playAnimation(plan);
       await submitted;
       setBusy(false);
-      await refetch();
+      // The action committed. If the reconcile does not land, the cursor would
+      // still point behind the events this submit just produced, and the live
+      // loop would walk the unit along a path it has already finished — so step
+      // the cursor past them explicitly.
+      await refetch().catch(() => claimCursorWithoutAnimating());
     } catch (error) {
       setBusy(false);
-      // A stale-version conflict (or any error) reconciles by refetching.
-      if (error instanceof ApiError) await refetch();
+      // A stale-version conflict (or any error) reconciles by refetching. Every
+      // caller fires this as `void runSubmit(...)`, so a reconcile that itself
+      // fails must not surface as an unhandled rejection: the live-sync loop is
+      // the retry, and the monotonic cursor keeps it from re-animating.
+      if (error instanceof ApiError) await refetch().catch(() => undefined);
     }
   }
 

@@ -13,6 +13,7 @@ export { persistMatchSnapshot } from "./queries/matches";
 export {
   appendEvents,
   insertPlayerEvents,
+  latestEventSequence,
   type AppendEventInput,
 } from "./queries/events";
 export {

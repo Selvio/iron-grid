@@ -2,11 +2,12 @@
 
 import { Check } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
-import { ApiError, apiClient } from "@/app/lib/api-client";
+import { ApiError, apiClient, type MatchStatus } from "@/app/lib/api-client";
 import { Button } from "@/app/components/ui/button";
 import { FactionBadge, type FactionId } from "@/app/components/faction-badge";
+import { useLiveSync } from "@/app/lib/sync/use-live-sync";
 import { cn } from "@/app/lib/utils";
 
 /**
@@ -21,9 +22,9 @@ import { cn } from "@/app/lib/utils";
  * The player confirms readiness (`POST …/ready`). The server reflects the
  * transition: `ready_check` while it waits on the opponent, `active` once both
  * have confirmed — at which point the match has started and the battlefield
- * (M10) is the next stop. Seats come from the server render; confirming only
- * marks the caller's own seat, so the opponent's row still needs a refresh to
- * change — the copy says so instead of implying a live feed.
+ * (M10) is the next stop. Seats are server-rendered and then kept live by
+ * `useLiveSync` (M11-T1): the opponent choosing a commander, confirming, or the
+ * activation itself land here without a reload, and the loop stops once active.
  *
  * The mockup's "✓ You are ready — cancel?" button is rendered as a plain
  * confirmed state: there is no un-ready endpoint (readiness is one-way until the
@@ -138,21 +139,31 @@ function SeatRow({ seat }: { seat: ReadySeat }) {
   );
 }
 
-/**
- * The screen's opening state, from the server render. A match that activated
- * while the player was away (the opponent confirmed last) must land on the
- * started state — the caller's own `is_ready` flag alone cannot tell the two
- * apart, so `isActive` carries the match status.
- */
-function initialState(
-  seats: readonly ReadySeat[],
-  isActive: boolean,
-): "idle" | "waiting" | "active" {
-  if (isActive) return "active";
-  return seats.some((seat) => seat.isViewer && seat.isReady)
-    ? "waiting"
-    : "idle";
+/** Whether a polled seat list is materially the same as the rendered one. */
+function sameSeats(a: readonly ReadySeat[], b: readonly ReadySeat[]): boolean {
+  return (
+    a.length === b.length &&
+    a.every((seat, i) => {
+      const other = b[i];
+      return (
+        seat.playerId === other.playerId &&
+        seat.faction === other.faction &&
+        seat.isReady === other.isReady
+      );
+    })
+  );
 }
+
+/**
+ * Statuses with nothing left to watch for. Polling past any of them would leave
+ * an abandoned tab asking a question that can no longer change its answer — a
+ * cancelled match is as final here as an activated one.
+ */
+const STOPPED_STATUSES: readonly MatchStatus[] = [
+  "active",
+  "completed",
+  "cancelled",
+];
 
 export function ReadyCheck({
   matchId,
@@ -167,11 +178,28 @@ export function ReadyCheck({
   isActive?: boolean;
 }) {
   const [seats, setSeats] = useState<readonly ReadySeat[]>(initialSeats);
-  const [state, setState] = useState<"idle" | "waiting" | "active">(
-    initialState(initialSeats, isActive),
+  /**
+   * The match's own status, distinct from whether *this* player has confirmed.
+   * A match that activated while the player was away (the opponent confirmed
+   * last) reads identically on the caller's `is_ready` flag, so only the status
+   * can tell the two apart.
+   */
+  const [status, setStatus] = useState<MatchStatus>(
+    isActive ? "active" : "ready_check",
+  );
+  const [confirmed, setConfirmed] = useState(
+    isActive || initialSeats.some((seat) => seat.isViewer && seat.isReady),
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  /** Bumped by every local mutation, so a stale poll can recognise itself. */
+  const localWriteRef = useRef(0);
+  // Read by the poll callback, which must compare against the current seats
+  // without re-arming the sync loop on every render.
+  const seatsRef = useRef(seats);
+  useEffect(() => {
+    seatsRef.current = seats;
+  });
 
   async function ready() {
     setSubmitting(true);
@@ -179,7 +207,11 @@ export function ReadyCheck({
     try {
       const result = await apiClient.readyUp(matchId);
       const active = result.status === "active";
-      setState(active ? "active" : "waiting");
+      // Any poll already in flight was issued against the pre-confirmation
+      // server and would un-tick the seat this call just confirmed.
+      localWriteRef.current += 1;
+      setConfirmed(true);
+      if (active) setStatus("active");
       // Only the caller's own seat is known to have changed; `active` means the
       // server saw both, so every seat is ready.
       setSeats((current) =>
@@ -198,7 +230,42 @@ export function ReadyCheck({
     }
   }
 
-  const isReady = state !== "idle";
+  /**
+   * Watch for the other seat: the opponent choosing a commander, confirming, or
+   * the activation that follows. Nothing here is optimistic — the server's
+   * answer replaces local state outright.
+   *
+   * The loop stops on any terminal status, not just activation: a ready check
+   * the host cancels, or one the opponent simply abandons, must not leave the
+   * tab asking forever.
+   */
+  useLiveSync({
+    enabled: !STOPPED_STATUSES.includes(status),
+    poll: async () => {
+      const issuedAt = localWriteRef.current;
+      const live = await apiClient.getReadyState(matchId);
+      // A confirmation landed while this was in flight: its answer is older than
+      // what the player has already been shown, so drop it rather than let it
+      // un-tick their own seat. The next tick reads the settled truth.
+      if (issuedAt !== localWriteRef.current) return true;
+
+      const next: ReadySeat[] = live.seats.map((seat) => ({
+        playerId: seat.playerId,
+        faction: (seat.factionId as FactionId | null) ?? null,
+        isReady: seat.isReady,
+        isViewer: seat.isViewer,
+      }));
+      const changed = !sameSeats(seatsRef.current, next);
+      if (changed) setSeats(next);
+      if (live.status !== status) {
+        setStatus(live.status);
+        return true;
+      }
+      return changed;
+    },
+  });
+
+  const started = status === "active";
   // Readiness only opens once both seats hold a commander — the server rejects
   // it as an invalid transition before that, so the button waits instead.
   const awaitingCommander = seats.some((seat) => seat.faction === null);
@@ -207,7 +274,7 @@ export function ReadyCheck({
     <div className="w-full max-w-[540px]">
       <div className="text-center">
         <h1 className="font-display text-3xl font-extrabold tracking-tight text-foreground">
-          {state === "active" ? "The match has begun" : "Ready check"}
+          {started ? "The match has begun" : "Ready check"}
         </h1>
         <p className="mt-2 text-sm font-semibold text-muted-foreground">
           {summary && (
@@ -217,7 +284,7 @@ export function ReadyCheck({
               <br />
             </>
           )}
-          {state === "active"
+          {started
             ? "Both players are ready."
             : awaitingCommander
               ? "Your commander is locked in. The ready check opens once your opponent has chosen theirs."
@@ -243,19 +310,19 @@ export function ReadyCheck({
       )}
 
       <div className="mt-5">
-        {state === "active" ? (
+        {started ? (
           <Button asChild size="lg" className="w-full">
             <Link href={`/matches/${matchId}/play`}>Enter the battlefield</Link>
           </Button>
         ) : (
           <Button
             size="lg"
-            variant={isReady ? "secondary" : "default"}
+            variant={confirmed ? "secondary" : "default"}
             className="w-full"
             onClick={() => void ready()}
-            disabled={submitting || isReady || awaitingCommander}
+            disabled={submitting || confirmed || awaitingCommander}
           >
-            {isReady ? (
+            {confirmed ? (
               <>
                 <Check
                   className="size-4"
@@ -276,8 +343,8 @@ export function ReadyCheck({
       </div>
 
       <p className="mt-3.5 text-center text-[11px] font-semibold text-muted-foreground">
-        {state === "waiting"
-          ? "You're ready. Waiting for your opponent — you can close the tab, we'll notify you when the match begins."
+        {confirmed && !started
+          ? "You're ready. This page updates itself the moment your opponent confirms — or close the tab and we'll notify you."
           : "Async-friendly: you can close the tab. We'll notify you when the match begins."}
       </p>
     </div>

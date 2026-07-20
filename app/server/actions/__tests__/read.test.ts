@@ -95,6 +95,30 @@ describe("read endpoints", () => {
     expect((await empty.json()).events).toHaveLength(0);
   });
 
+  it("carries a live-sync cursor that matches the viewer's latest event", async () => {
+    const view = await (
+      await handleGetMatch(active.matchId, deps(active.hostId))
+    ).json();
+    const events = (
+      await (
+        await handleGetEvents(active.matchId, 0, deps(active.hostId))
+      ).json()
+    ).events as { sequence: number }[];
+
+    // The cursor is exactly "everything this view already reflects", so a client
+    // polling `since=lastEventSequence` gets nothing until something new lands
+    // — no replay of the history it was just rendered from (M11-T1).
+    expect(view.lastEventSequence).toBe(
+      Math.max(...events.map((e) => e.sequence)),
+    );
+    const after = await handleGetEvents(
+      active.matchId,
+      view.lastEventSequence,
+      deps(active.hostId),
+    );
+    expect((await after.json()).events).toHaveLength(0);
+  });
+
   it("rejects a non-member with 403 on both reads", async () => {
     expect(
       (await handleGetMatch(active.matchId, deps(active.outsiderId))).status,

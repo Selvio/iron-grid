@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -19,6 +19,7 @@ import { formatCountdown, formatMapName } from "@/app/lib/format";
 import { Button } from "@/app/components/ui/button";
 import { FactionBadge, type FactionId } from "@/app/components/faction-badge";
 import { MapThumbnail, type MapPreview } from "@/app/components/map-thumbnail";
+import { useLiveSync } from "@/app/lib/sync/use-live-sync";
 import { cn } from "@/app/lib/utils";
 
 /**
@@ -36,6 +37,32 @@ import { cn } from "@/app/lib/utils";
  *
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T4, M9-T9)
  */
+
+/**
+ * Whether a polled list is the same as the rendered one, by the fields the row
+ * actually draws. Comparing here (rather than always replacing) keeps the sync
+ * loop backing off while nothing is happening.
+ */
+function sameRows(
+  a: readonly MatchSummary[],
+  b: readonly MatchSummary[],
+): boolean {
+  return (
+    a.length === b.length &&
+    a.every((row, i) => {
+      const other = b[i];
+      return (
+        row.matchId === other.matchId &&
+        row.status === other.status &&
+        row.activePlayerId === other.activePlayerId &&
+        row.turnDeadlineAt === other.turnDeadlineAt &&
+        row.day === other.day &&
+        row.opponent?.factionId === other.opponent?.factionId &&
+        row.opponent?.name === other.opponent?.name
+      );
+    })
+  );
+}
 
 const STATUS_LABEL: Record<MatchSummary["status"], string> = {
   draft: "Draft",
@@ -408,17 +435,52 @@ function MatchRow({
 }
 
 export function DashboardList({
-  matches,
+  matches: initialMatches,
   nowMs,
   mapPreviews = {},
+  live = true,
 }: {
   matches: readonly MatchSummary[];
   /** A fixed clock for tests; omitted in production so the client ticks live. */
   nowMs?: number;
   /** The official maps, keyed by id, from the server's game data. */
   mapPreviews?: MapPreviews;
+  /** Off in tests that assert a fixed list; on in the app (M11-T1). */
+  live?: boolean;
 }) {
+  const [matches, setMatches] = useState(initialMatches);
+  // The server stays the senior writer. `router.refresh()` (after discarding a
+  // match) re-renders the RSC while deliberately preserving client state, so a
+  // list held purely in state would ignore the very update that refresh exists
+  // to deliver. Adopting the new prop on sight keeps the row disappearing
+  // immediately, exactly as it did before this list went live.
+  const [renderedProp, setRenderedProp] = useState(initialMatches);
+  if (initialMatches !== renderedProp) {
+    setRenderedProp(initialMatches);
+    setMatches(initialMatches);
+  }
+
   const [now, setNow] = useState<number | null>(nowMs ?? null);
+  const matchesRef = useRef(matches);
+  useEffect(() => {
+    matchesRef.current = matches;
+  });
+
+  // Rows go stale when the opponent moves — a turn passes to you, a match ends.
+  // But this is a list you glance at on the way somewhere, not a screen you wait
+  // in front of: the turn you are waiting for arrives by email and on the board
+  // itself. So it refreshes **when it is looked at** rather than on a clock,
+  // which keeps it correct every time it is read and costs nothing in between.
+  useLiveSync({
+    enabled: live,
+    attentionOnly: true,
+    poll: async () => {
+      const fresh = await apiClient.listMatches();
+      if (sameRows(matchesRef.current, fresh)) return false;
+      setMatches(fresh);
+      return true;
+    },
+  });
   useEffect(() => {
     if (nowMs !== undefined) return;
     // Seed the clock after paint (async, so no synchronous set-in-effect) and

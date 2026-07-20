@@ -69,6 +69,14 @@ function makeGameData(): GameData {
         capturable: true,
         max_capture_points: 20,
         defeat: { triggers_defeat_on_capture: false },
+        // A city cannot build — only a base/airport/port carries a category.
+        production: { category: "none" },
+      },
+      base: {
+        capturable: true,
+        max_capture_points: 20,
+        defeat: { triggers_defeat_on_capture: false },
+        production: { category: "ground" },
       },
     },
     terrain: {
@@ -298,5 +306,87 @@ describe("evaluateVictory (pure)", () => {
       match: { ...s.match, status: "completed" as const },
     };
     expect(evaluateVictory(completed, gd)).toEqual({ completed: false });
+  });
+});
+
+/**
+ * ADR-0007 — elimination requires losing the *ability to field* an army, which
+ * resolves `rules.yaml` → `army-elimination-edge-case`.
+ */
+describe("army elimination with production available (ADR-0007)", () => {
+  it("does not hand the match to whoever builds first from a zero-unit start", () => {
+    const gd = makeGameData();
+    // `rainy-haven` / `eon-springs` ship `starting_units: []`, so this is the
+    // real opening position: both sides own an HQ and a base, nobody has a unit.
+    const opening = state(
+      [],
+      [
+        property("hq1", "headquarters", "p1", { x: 0, y: 0 }),
+        property("b1", "base", "p1", { x: 0, y: 0 }),
+        property("hq2", "headquarters", "p2", { x: 2, y: 0 }),
+        property("b2", "base", "p2", { x: 2, y: 0 }),
+      ],
+    );
+    expect(evaluateVictory(opening, gd)).toEqual({ completed: false });
+
+    // p1 produces the first unit of the match. Before ADR-0007 this ended it.
+    const afterFirstBuild = {
+      ...opening,
+      units: [unit("i1", "infantry", "p1", { x: 0, y: 0 })],
+    };
+    expect(evaluateVictory(afterFirstBuild, gd)).toEqual({ completed: false });
+  });
+
+  it("does not eliminate a player who lost their army but still holds a base", () => {
+    const gd = makeGameData();
+    const s = state(
+      [unit("a", "tank", "p1", { x: 0, y: 0 })],
+      [
+        property("hq1", "headquarters", "p1", { x: 0, y: 0 }),
+        property("hq2", "headquarters", "p2", { x: 2, y: 0 }),
+        property("b2", "base", "p2", { x: 2, y: 0 }),
+      ],
+    );
+    expect(evaluateVictory(s, gd)).toEqual({ completed: false });
+  });
+
+  it("still eliminates a player with no units and nothing to build with", () => {
+    const gd = makeGameData();
+    // p2 holds only a city: income, but no way back onto the board.
+    const s = state(
+      [unit("a", "tank", "p1", { x: 0, y: 0 })],
+      [
+        property("hq1", "headquarters", "p1", { x: 0, y: 0 }),
+        property("b1", "base", "p1", { x: 0, y: 0 }),
+        property("hq2", "headquarters", "p2", { x: 2, y: 0 }),
+        property("c2", "city", "p2", { x: 2, y: 0 }),
+      ],
+    );
+    expect(evaluateVictory(s, gd)).toEqual({
+      completed: true,
+      winnerPlayerId: "p1",
+      reason: "army_eliminated",
+    });
+  });
+
+  it("still ends on a captured headquarters, base or no base", () => {
+    const gd = makeGameData();
+    // p2 keeps units and a base but has lost the HQ — §13.5 is untouched.
+    const s = state(
+      [
+        unit("a", "tank", "p1", { x: 0, y: 0 }),
+        unit("b", "tank", "p2", { x: 2, y: 0 }),
+      ],
+      [
+        property("hq1", "headquarters", "p1", { x: 0, y: 0 }),
+        property("hq2", "headquarters", "p1", { x: 2, y: 0 }), // captured
+        property("b2", "base", "p2", { x: 2, y: 0 }),
+      ],
+    );
+    expect(evaluateVictory(s, gd)).toEqual({
+      completed: true,
+      winnerPlayerId: "p1",
+      reason: "headquarters_captured",
+    });
   });
 });

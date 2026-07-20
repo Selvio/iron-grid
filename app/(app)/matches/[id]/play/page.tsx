@@ -6,7 +6,11 @@ import { BattlefieldView } from "@/app/components/battlefield/battlefield-view";
 import { requireSessionUser } from "@/app/lib/session";
 import { requireMatchMembership } from "@/app/server/auth/membership";
 import { projectMatchView } from "@/app/server/actions/read";
-import { createDatabase, type Database } from "@/app/server/db";
+import {
+  createDatabase,
+  latestEventSequence,
+  type Database,
+} from "@/app/server/db";
 import { matches } from "@/app/server/db/schema/matches";
 
 /**
@@ -59,7 +63,15 @@ export default async function PlayPage({
   }
 
   const data = getGameData();
-  const matchView = projectMatchView(row.state, viewerPlayerId, data);
+  // Seeding the live-sync cursor here means the first poll asks for events
+  // *after* everything this render already shows — the board never replays the
+  // whole match on load (M11-T1).
+  const matchView = projectMatchView(
+    row.state,
+    viewerPlayerId,
+    data,
+    await latestEventSequence(db, id, viewerPlayerId),
+  );
 
   return (
     <div className="fixed inset-0 top-14 bg-background">

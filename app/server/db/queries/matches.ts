@@ -1,4 +1,4 @@
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { MatchState } from "game-engine";
@@ -180,7 +180,12 @@ export async function getReadyCheckForUser<
     .from(matchPlayers)
     .innerJoin(matches, eq(matchPlayers.matchId, matches.id))
     .leftJoin(users, eq(users.id, matchPlayers.userId))
-    .where(eq(matches.id, matchId));
+    .where(eq(matches.id, matchId))
+    // Without this the row order is whatever Postgres returns. The screen polls
+    // this and compares seat-by-seat, so an unstable order would read as a
+    // change on every tick — and in a hotseat match, where *both* seats are the
+    // viewer's, the `isViewer` sort below cannot break the tie.
+    .orderBy(asc(matchPlayers.id));
 
   const first = rows[0];
   if (first === undefined) return null;
@@ -194,7 +199,7 @@ export async function getReadyCheckForUser<
       isReady: row.isReady,
       isViewer: row.playerUserId === userId,
     }))
-    // The caller's seat leads; the host takes the second slot otherwise.
+    // The caller's seat leads; ties keep the stable id order from the query.
     .sort((a, b) => Number(b.isViewer) - Number(a.isViewer));
 
   return {

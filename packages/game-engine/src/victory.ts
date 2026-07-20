@@ -12,6 +12,11 @@
  * match completes solely when exactly one participant survives among two or more
  * — never as an automatic draw on mutual loss (§23.5). Draws no randomness.
  *
+ * **Elimination requires losing the ability to field an army, not merely having
+ * no unit on the board** — a player who still owns a base, airport or port is
+ * between armies (ADR-0007, resolving `rules.yaml` → `army-elimination-edge-case`).
+ *
+ * @see docs/decisions/0007-army-elimination-with-production.md
  * @see docs/01-specification/game-specification.md §23, §13.5
  * @see docs/04-development/milestones/m3-combat-systems-fog.md (M3-T7)
  */
@@ -28,6 +33,18 @@ function isHeadquarters(gameData: GameData, typeId: string): boolean {
   return (
     gameData.properties[typeId]?.defeat?.triggers_defeat_on_capture === true
   );
+}
+
+/**
+ * Whether a property type can build units — a base, airport or port
+ * (`properties.yaml` → `production.category`; `"none"` for everything else,
+ * including the headquarters).
+ */
+function isProducer(gameData: GameData, typeId: string): boolean {
+  // Optional throughout: a fixture may describe a property without a production
+  // block at all, and "no production data" simply means "cannot build".
+  const category = gameData.properties[typeId]?.production?.category;
+  return category !== undefined && category !== "none";
 }
 
 /**
@@ -48,6 +65,10 @@ export function evaluateVictory(
     state.properties.some(
       (p) => p.ownerPlayerId === id && isHeadquarters(gameData, p.typeId),
     );
+  const canProduce = (id: Id): boolean =>
+    state.properties.some(
+      (p) => p.ownerPlayerId === id && isProducer(gameData, p.typeId),
+    );
 
   // Only players still holding a unit or property are in the game — this keeps
   // degenerate/partial states from registering a spurious result.
@@ -59,8 +80,15 @@ export function evaluateVictory(
   const hqsExist = state.properties.some((p) =>
     isHeadquarters(gameData, p.typeId),
   );
+  // An army is only *eliminated* when it cannot come back: no units on the board
+  // **and** nothing left to build them with (ADR-0007). A player who still holds
+  // a base is between armies, not out of the match — without this, a map that
+  // starts both sides at zero units (`starting_units: []`) hands the win to
+  // whoever produces first, and losing your last unit beside your own base ends
+  // the match outright.
   const defeated = (p: PlayerState): boolean =>
-    !hasUnits(p.playerId) || (hqsExist && !ownsHeadquarters(p.playerId));
+    (!hasUnits(p.playerId) && !canProduce(p.playerId)) ||
+    (hqsExist && !ownsHeadquarters(p.playerId));
 
   const survivors = participants.filter((p) => !defeated(p));
   if (survivors.length !== 1) return { completed: false }; // no unique winner (§23.5)

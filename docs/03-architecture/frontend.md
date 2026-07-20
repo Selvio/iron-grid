@@ -216,6 +216,58 @@ The client is a thin view over server-authoritative state
 - Reads (`GET /api/matches/:id`, `…/events`) are always membership-checked and
   player-projected (`backend.md` §6); the client renders whatever it is given.
 
+## 9.1 Live sync
+
+The game is asynchronous by design, but two players who happen to be online at
+once must not have to reload to see each other. `app/lib/sync/use-live-sync.ts`
+is the single mechanism; the battlefield, the ready check and the dashboard are
+its consumers.
+
+- **Polling, not sockets.** Vercel Functions do not support the WebSocket
+  upgrade, and SSE degrades to polling inside the stream anyway (the Neon HTTP
+  driver has no `LISTEN/NOTIFY`). Adaptive polling gives the same perceived
+  latency with no added infrastructure.
+- **Adaptive cadence.** ~3s while the opponent may be acting, easing toward
+  20–30s while nothing changes, and **no requests at all with the tab hidden** —
+  becoming visible polls immediately. Ticks never overlap; a failed poll backs
+  off silently rather than surfacing an error over the board.
+- **Poll while someone is looking; stop when they leave.** After ~10 minutes with
+  no pointer, key, focus or visibility signal the loop goes dormant, and the
+  first sign of the human wakes it with an immediate poll. This is a cost
+  boundary as much as a UX one: Neon suspends an idle database after ~5 minutes,
+  so a forgotten tab polling every 30s pins compute on permanently. Raising
+  `idleMs` is **not** the lever — any interval under the suspend window keeps
+  compute awake, and any interval over it pays a cold start on every tick.
+- **The dashboard refreshes on attention only** (`attentionOnly`), with no
+  interval at all: a match list is glanced at on the way somewhere, and the turn
+  a player waits for arrives by email and on the board. It is correct every time
+  it is read and free in between. The ready check and the battlefield keep their
+  cadences — those are screens people wait in front of.
+- **The cursor is server-owned.** `MatchView.lastEventSequence` (from
+  `latestEventSequence`, `db/queries/events.ts`) says what the view already
+  reflects. The client polls `…/events?since=` with it, so a player's own
+  just-committed events are behind the cursor by the time the refetch lands and
+  can never animate twice. The client never counts sequences itself.
+- **Live playback reuses the submit path**: resolved events →
+  `buildAnimationPlan` → the scene → a reconciling refetch. The client still
+  only ever *animates* an authoritative result (§28.2), and a tick is **skipped,
+  never queued**, while an own action animates or a menu is open.
+- **Debt this depends on**: `player_events` projections are still written
+  unfiltered (`actions/commit.ts`, "Interim"), which is safe only because the
+  backend rejects `fogEnabled: true` at creation. This predates live sync — the
+  same rows already serve `…/events` and replay — but it **must be resolved
+  before fog is enabled** (§24.4), or the live feed and the replay would both
+  leak unobserved events. Note that filtering the *payloads* is only half of it:
+  because `player_events.sequence` mirrors the global authoritative sequence,
+  both `lastEventSequence` and the gaps in a `…/events` response would still
+  hand the viewer an exact **count** of the opponent's hidden actions. Fog needs
+  a per-player sequence (or omitted rows), not just redacted payloads.
+- **Seat resolution must be unified before then, too.** `handleGetMatch` (which
+  emits the cursor) resolves membership with `preferPlayerId = activePlayerId`
+  for hotseat matches; `handleGetEvents` does not, and falls through to the
+  first row. Today both seats carry identical sequences, so the two agree by
+  accident. Per-player filtering breaks that.
+
 ---
 
 # 10. Accessibility and platform

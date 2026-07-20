@@ -782,10 +782,13 @@ victory_rules:
     army_elimination:
       enabled: true
       timing: "after atomic action or start-of-turn effect"
-      unresolved_edge_case: >
-        Exact AW2 behavior for a player with zero units but available production
-        remains an explicit verification item. Implementation must follow the
-        approved test outcome rather than infer.
+      # Resolved by ADR-0007. A player is eliminated only when they hold no unit
+      # AND no property that can build one (production.category != "none"); the
+      # headquarters does not count, so an HQ-and-cities player is still
+      # eliminated. Maps that ship `starting_units: []` previously handed the
+      # match to whoever produced first.
+      requires_no_production_property: true
+      resolved_by: "docs/decisions/0007-army-elimination-with-production.md"
     resignation:
       enabled: true
       immediate: true
@@ -963,10 +966,8 @@ implementation_blockers:
     blocks:
       - official_maps_with_properties
     reason: "property mapping and ownership visuals not approved"
-  - id: "army-elimination-edge-case"
-    blocks:
-      - final_elimination_rule
-    reason: "exact timing verification pending"
+  # "army-elimination-edge-case" was resolved by ADR-0007 (2026-07-20): a player
+  # with zero units but a producing property is not eliminated.
 
 required_validation_tests:
   match:

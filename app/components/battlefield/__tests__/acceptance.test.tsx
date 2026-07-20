@@ -6,6 +6,12 @@ import type { MatchView } from "@/app/lib/api-client";
 import { fixtureGameData } from "@/app/server/lifecycle/__tests__/fixtures";
 import { BattlefieldView } from "../battlefield-view";
 
+// A completed match leaves the board for the completed screen; jsdom has no
+// app router to mount.
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace: vi.fn(), push: vi.fn(), refresh: vi.fn() }),
+}));
+
 /**
  * Battlefield acceptance suite (M10-T11).
  *

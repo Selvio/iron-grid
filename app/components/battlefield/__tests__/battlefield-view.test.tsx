@@ -1,4 +1,10 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -13,6 +19,13 @@ const scene = vi.hoisted(() => ({
   playAnimation: vi.fn(() => Promise.resolve()),
   syncModel: vi.fn(),
 }));
+// A completed match leaves the board for the completed screen; jsdom has no
+// app router to mount.
+const replace = vi.hoisted(() => vi.fn());
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ replace, push: vi.fn(), refresh: vi.fn() }),
+}));
+
 vi.mock("../battlefield", () => ({
   Battlefield: ({
     onSceneReady,
@@ -61,6 +74,7 @@ function view(
     status: "active",
     currentDay: 1,
     stateVersion: 4,
+    lastEventSequence: 7,
     activePlayerId: "me",
     turnDeadlineAt: null,
     viewerPlayerId: "me",
@@ -96,7 +110,12 @@ function stubFetch(v: MatchView) {
         ok: true,
         status: 200,
         json: async () =>
-          url.includes("/actions") ? { stateVersion: 5, status: "active" } : v,
+          url.includes("/actions")
+            ? { stateVersion: 5, status: "active" }
+            : // The live-sync loop polls this one; quiet by default.
+              url.includes("/events")
+              ? { matchId: "m1", events: [] }
+              : v,
       }) as Response,
   );
   vi.stubGlobal("fetch", fetchMock);
@@ -882,5 +901,188 @@ describe("BattlefieldView · logistics", () => {
         unloads: [{ cargoUnitId: "inf", to: { x: 2, y: 0 } }],
       }),
     );
+  });
+});
+
+/**
+ * The live feed (M11-T1): the opponent's committed events arrive on their own,
+ * animate through the same plan builder a local submit uses, and reconcile.
+ */
+describe("BattlefieldView live sync", () => {
+  /** A view where it is the *opponent's* turn — when the fast cadence applies. */
+  function opponentTurn(): MatchView {
+    return { ...view(), activePlayerId: "them" } as MatchView;
+  }
+
+  /** Stubs fetch so the first `/events` poll returns `events`, then nothing. */
+  function stubLiveFetch(v: MatchView, events: unknown[]) {
+    let served = false;
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >(async (url) => {
+      const body = url.includes("/events")
+        ? { matchId: "m1", events: served ? [] : ((served = true), events) }
+        : v;
+      return { ok: true, status: 200, json: async () => body } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    return fetchMock;
+  }
+
+  const MOVE_EVENT = {
+    sequence: 8,
+    type: "unit_moved",
+    payload: {
+      unitId: "u1",
+      path: [
+        { x: 2, y: 1 },
+        { x: 3, y: 1 },
+      ],
+    },
+  };
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("animates an opponent action and reconciles, without any click", async () => {
+    vi.useFakeTimers();
+    const fetchMock = stubLiveFetch(opponentTurn(), [MOVE_EVENT]);
+    render(
+      <BattlefieldView
+        matchView={opponentTurn()}
+        gameData={fixtureGameData()}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(3000);
+
+    expect(scene.playAnimation).toHaveBeenCalledWith([
+      {
+        kind: "move",
+        unitId: "u1",
+        path: [
+          { x: 2, y: 1 },
+          { x: 3, y: 1 },
+        ],
+      },
+    ]);
+    // …then reconciles against the authoritative view rather than trusting the
+    // animation it just played.
+    expect(
+      fetchMock.mock.calls.some(([url]) => url === "/api/matches/m1"),
+    ).toBe(true);
+  });
+
+  it("asks only for events after the server's cursor, never from zero", async () => {
+    vi.useFakeTimers();
+    const fetchMock = stubLiveFetch(opponentTurn(), []);
+    render(
+      <BattlefieldView
+        matchView={opponentTurn()}
+        gameData={fixtureGameData()}
+      />,
+    );
+
+    await vi.advanceTimersByTimeAsync(3000);
+
+    // `lastEventSequence` is 7 in the fixture: the player's own history — and
+    // anything already on screen — is behind the cursor and never re-animates.
+    expect(
+      fetchMock.mock.calls.some(([url]) =>
+        url.includes("/api/matches/m1/events?since=7"),
+      ),
+    ).toBe(true);
+  });
+
+  it("never interrupts a decision in progress", async () => {
+    vi.useFakeTimers();
+    // The player's own turn, so a unit can be selected; the guard is what is
+    // under test, not the cadence. `fireEvent` rather than `userEvent` because
+    // the latter's own async plumbing does not compose with fake timers here.
+    const v = view();
+    stubLiveFetch(v, [MOVE_EVENT]);
+    render(<BattlefieldView matchView={v} gameData={fixtureGameData()} />);
+
+    fireEvent.click(screen.getByLabelText("Tile 2, 1")); // select the tank
+    scene.playAnimation.mockClear();
+
+    await vi.advanceTimersByTimeAsync(30_000);
+
+    // A tick while a unit is selected is skipped, not queued: nothing animates
+    // and the selection survives.
+    expect(scene.playAnimation).not.toHaveBeenCalled();
+    expect(screen.getByText("Tank")).toBeInTheDocument();
+  });
+});
+
+/** The guards the live feed leans on, under the races that defeat naive ones. */
+describe("BattlefieldView live sync guards", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("abandons a tick whose events land after the player took the board", async () => {
+    vi.useFakeTimers();
+    let deliver: ((body: unknown) => void) | undefined;
+    const fetchMock = vi.fn<
+      (url: string, init?: RequestInit) => Promise<Response>
+    >(async (url) => {
+      if (url.includes("/events")) {
+        // Hold the events response open so the click below lands first.
+        const body = await new Promise<unknown>((resolve) => {
+          deliver = resolve;
+        });
+        return { ok: true, status: 200, json: async () => body } as Response;
+      }
+      return { ok: true, status: 200, json: async () => view() } as Response;
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+
+    await vi.advanceTimersByTimeAsync(10_000); // the tick starts, and blocks
+    expect(deliver).toBeDefined();
+
+    // The player selects a unit while the request is still in flight — the
+    // pre-flight guard already passed.
+    fireEvent.click(screen.getByLabelText("Tile 2, 1"));
+    expect(screen.getByText("Tank")).toBeInTheDocument();
+    scene.playAnimation.mockClear();
+
+    deliver!({
+      matchId: "m1",
+      events: [
+        {
+          sequence: 8,
+          type: "unit_moved",
+          payload: { unitId: "u1", path: [{ x: 2, y: 1 }] },
+        },
+      ],
+    });
+    await vi.advanceTimersByTimeAsync(100);
+
+    // Nothing animates over the player's decision, and the selection survives —
+    // `refetch`'s deselect never runs.
+    expect(scene.playAnimation).not.toHaveBeenCalled();
+    expect(screen.getByText("Tank")).toBeInTheDocument();
+  });
+
+  it("leaves the board when the match ends under the player", async () => {
+    vi.useFakeTimers();
+    const done = { ...view(), status: "completed" } as MatchView;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        async () =>
+          ({ ok: true, status: 200, json: async () => done }) as Response,
+      ),
+    );
+
+    // An opponent resignation arrives as a completed status on the next read.
+    render(<BattlefieldView matchView={done} gameData={fixtureGameData()} />);
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(replace).toHaveBeenCalledWith("/matches/m1/completed");
   });
 });

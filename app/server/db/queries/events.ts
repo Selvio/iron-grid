@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { EventType } from "game-engine";
 
@@ -56,6 +56,37 @@ export async function appendEvents<
       })),
     )
     .returning();
+}
+
+/**
+ * The highest sequence one viewer has been projected (M11-T1), or `0` for a
+ * match that has emitted nothing yet.
+ *
+ * This is the live-sync cursor the client polls `GET …/events?since=` with. It
+ * is served **from the authoritative view** rather than counted in the browser,
+ * so a player's own just-committed events are already behind the cursor by the
+ * time the refetch lands and can never be animated twice.
+ *
+ * Covered by `player_events_match_player_sequence_idx`.
+ */
+export async function latestEventSequence<
+  TQuery extends PgQueryResultHKT,
+  TSchema extends Record<string, unknown>,
+>(
+  db: PgDatabase<TQuery, TSchema>,
+  matchId: string,
+  playerId: string,
+): Promise<number> {
+  const [row] = await db
+    .select({ max: sql<number | null>`max(${playerEvents.sequence})` })
+    .from(playerEvents)
+    .where(
+      and(
+        eq(playerEvents.matchId, matchId),
+        eq(playerEvents.playerId, playerId),
+      ),
+    );
+  return row?.max ?? 0;
 }
 
 /**

@@ -92,6 +92,21 @@ export interface ReadyResult {
   readonly status: "ready_check" | "active";
 }
 
+/**
+ * The ready check's live state (`GET …/ready`, M11-T1). Mirrors the seats the
+ * page server-renders, so polling and first paint agree.
+ */
+export interface ReadyState {
+  readonly matchId: string;
+  readonly status: MatchStatus;
+  readonly seats: readonly {
+    readonly playerId: string;
+    readonly factionId: string | null;
+    readonly isReady: boolean;
+    readonly isViewer: boolean;
+  }[];
+}
+
 export interface CancelResult {
   readonly matchId: string;
   readonly status: "cancelled";
@@ -193,6 +208,9 @@ export const apiClient = {
       method: "POST",
       body: {},
     }),
+
+  getReadyState: (matchId: string) =>
+    request<ReadyState>(`/api/matches/${encodeURIComponent(matchId)}/ready`),
 
   cancelMatch: (matchId: string) =>
     request<CancelResult>(

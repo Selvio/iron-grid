@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import userEvent from "@testing-library/user-event";
 
@@ -316,5 +316,93 @@ describe("DashboardList", () => {
     expect(
       screen.getByRole("link", { name: /your turn|in play/i }),
     ).toHaveAttribute("href", "/matches/xyz/play");
+  });
+});
+
+/**
+ * The list refreshes when it is *looked at* rather than on a clock: a match list
+ * is browsed, not waited in front of, and an unattended tab must not hold a
+ * serverless database awake (M11-T1).
+ */
+describe("DashboardList live sync", () => {
+  it("refreshes on attention, and never on a timer", async () => {
+    vi.useFakeTimers();
+    const waiting = summary({ matchId: "m1", activePlayerId: "them", day: 3 });
+    const mine = { ...waiting, activePlayerId: "me" };
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => [mine],
+    } as Response);
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      <DashboardList
+        matches={[waiting]}
+        nowMs={NOW}
+        mapPreviews={MAP_PREVIEWS}
+      />,
+    );
+    expect(screen.queryByText("Your turn")).not.toBeInTheDocument();
+
+    // Minutes pass with the tab open and untouched: not one request.
+    await vi.advanceTimersByTimeAsync(5 * 60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // The player comes back to the window — now it is worth asking.
+    await act(async () => {
+      window.dispatchEvent(new Event("focus"));
+      await vi.advanceTimersByTimeAsync(0);
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith("/api/matches", expect.anything());
+    expect(screen.getByText("Your turn")).toBeInTheDocument();
+
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+
+  it("stays put when polling is switched off", async () => {
+    vi.useFakeTimers();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<DashboardList matches={[]} nowMs={NOW} live={false} />);
+    await vi.advanceTimersByTimeAsync(60_000);
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    vi.unstubAllGlobals();
+    vi.useRealTimers();
+  });
+});
+
+/**
+ * The list holds polled rows in state, which must not shadow the server:
+ * `router.refresh()` re-renders the RSC while preserving client state.
+ */
+describe("DashboardList server refresh", () => {
+  it("adopts a new matches prop, so a discarded row disappears at once", () => {
+    const row = summary({ matchId: "m1", status: "waiting_for_opponent" });
+    const { rerender } = render(
+      <DashboardList
+        matches={[row]}
+        nowMs={NOW}
+        mapPreviews={MAP_PREVIEWS}
+        live={false}
+      />,
+    );
+    expect(screen.getByText("Spann Island")).toBeInTheDocument();
+
+    // What router.refresh() produces: the same client instance, new props.
+    rerender(
+      <DashboardList
+        matches={[]}
+        nowMs={NOW}
+        mapPreviews={MAP_PREVIEWS}
+        live={false}
+      />,
+    );
+    expect(screen.queryByText("Spann Island")).not.toBeInTheDocument();
+    expect(screen.getByText(/no matches yet/i)).toBeInTheDocument();
   });
 });
