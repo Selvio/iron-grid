@@ -586,17 +586,103 @@ official_maps:
     balance:
       status: "pending_review"
 
+  # Eon Springs, transcribed tile-for-tile from the visual reference (19x17).
+  # A central lake fed by two channels; player_1 (Blue) holds the east, player_2
+  # (Red) the west, each with a headquarters on the lake shore. Property
+  # placement is 180-degree symmetric except for two staggered city pairs; the
+  # lake itself is deliberately irregular, so the map is `none_balanced` rather
+  # than rotational, and its fairness rests on the mirrored property counts.
+  #
+  # ONE DELIBERATE DEVIATION: the reference draws reef clusters at (6,4) and
+  # (13,13); `reef` is asset-gated (§33.3, official_map_allowed false), so both
+  # are transcribed as `sea`. The map has no port, so no naval unit can ever be
+  # built here and the lake is a pure barrier — the reefs are cosmetic in this
+  # map and can be restored verbatim when the terrain is unblocked.
+  eon-springs:
+    id: "eon-springs"
+    version: "1.0.0"
+    display_name: null
+    status: "review"
+    dimensions:
+      width: 19
+      height: 17
+    player_slots:
+      player_1:
+        id: "player_1"
+        headquarters_property_id: "hq_p1"
+      player_2:
+        id: "player_2"
+        headquarters_property_id: "hq_p2"
+    logical_terrain:
+      - ["forest", "plain", "plain", "plain", "forest", "bridge", "road", "road", "road", "road", "road", "road", "road", "road", "road", "road", "road", "plain", "forest"]
+      - ["plain", "city", "city", "plain", "sea", "sea", "mountain", "forest", "plain", "city", "city", "plain", "plain", "plain", "base", "plain", "base", "plain", "plain"]
+      - ["plain", "plain", "plain", "plain", "sea", "sea", "sea", "forest", "plain", "plain", "plain", "plain", "forest", "plain", "plain", "airport", "road", "airport", "forest"]
+      - ["city", "city", "forest", "sea", "sea", "sea", "sea", "sea", "forest", "forest", "sea", "sea", "plain", "plain", "plain", "forest", "road", "plain", "plain"]
+      - ["sea", "bridge", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "mountain", "forest", "plain", "plain", "road", "mountain", "plain"]
+      - ["plain", "plain", "plain", "plain", "forest", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "forest", "plain", "forest", "road", "forest", "city"]
+      - ["plain", "plain", "airport", "plain", "forest", "sea", "sea", "road", "headquarters", "sea", "sea", "sea", "sea", "forest", "plain", "plain", "road", "city", "plain"]
+      - ["plain", "base", "plain", "base", "plain", "sea", "road", "road", "sea", "sea", "sea", "sea", "sea", "forest", "plain", "forest", "road", "plain", "forest"]
+      - ["plain", "plain", "road", "road", "road", "road", "road", "sea", "sea", "sea", "sea", "sea", "road", "road", "road", "road", "road", "plain", "plain"]
+      - ["plain", "mountain", "road", "plain", "forest", "forest", "sea", "sea", "sea", "sea", "sea", "road", "road", "sea", "forest", "base", "plain", "base", "plain"]
+      - ["city", "plain", "road", "plain", "plain", "forest", "sea", "sea", "sea", "sea", "headquarters", "road", "sea", "sea", "forest", "plain", "airport", "plain", "plain"]
+      - ["plain", "city", "road", "forest", "plain", "forest", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "plain", "plain", "mountain"]
+      - ["mountain", "plain", "road", "plain", "plain", "plain", "mountain", "forest", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "bridge", "sea"]
+      - ["plain", "forest", "road", "plain", "forest", "plain", "plain", "plain", "plain", "forest", "plain", "sea", "sea", "sea", "sea", "sea", "plain", "city", "city"]
+      - ["plain", "airport", "road", "airport", "plain", "plain", "forest", "plain", "plain", "plain", "forest", "plain", "sea", "sea", "sea", "sea", "forest", "plain", "plain"]
+      - ["forest", "plain", "base", "plain", "base", "plain", "forest", "forest", "city", "city", "plain", "plain", "forest", "sea", "sea", "plain", "city", "city", "plain"]
+      - ["forest", "plain", "road", "road", "road", "road", "road", "road", "road", "road", "road", "road", "road", "bridge", "forest", "plain", "plain", "plain", "forest"]
+    properties:
+      - { id: "hq_p1", type_id: "headquarters", x: 10, y: 10, initial_owner: "player_1" }
+      - { id: "base_p1_1", type_id: "base", x: 14, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_2", type_id: "base", x: 16, y: 1, initial_owner: "player_1" }
+      - { id: "base_p1_3", type_id: "base", x: 15, y: 9, initial_owner: "player_1" }
+      - { id: "base_p1_4", type_id: "base", x: 17, y: 9, initial_owner: "player_1" }
+      - { id: "airport_p1_1", type_id: "airport", x: 15, y: 2, initial_owner: "player_1" }
+      - { id: "airport_p1_2", type_id: "airport", x: 17, y: 2, initial_owner: "player_1" }
+      - { id: "airport_p1_3", type_id: "airport", x: 16, y: 10, initial_owner: "player_1" }
+      - { id: "city_p1_1", type_id: "city", x: 9, y: 1, initial_owner: "player_1" }
+      - { id: "city_p1_2", type_id: "city", x: 10, y: 1, initial_owner: "player_1" }
+      - { id: "city_p1_3", type_id: "city", x: 18, y: 5, initial_owner: "player_1" }
+      - { id: "city_p1_4", type_id: "city", x: 17, y: 6, initial_owner: "player_1" }
+      - { id: "city_p1_5", type_id: "city", x: 17, y: 15, initial_owner: "player_1" }
+      - { id: "hq_p2", type_id: "headquarters", x: 8, y: 6, initial_owner: "player_2" }
+      - { id: "base_p2_1", type_id: "base", x: 1, y: 7, initial_owner: "player_2" }
+      - { id: "base_p2_2", type_id: "base", x: 3, y: 7, initial_owner: "player_2" }
+      - { id: "base_p2_3", type_id: "base", x: 2, y: 15, initial_owner: "player_2" }
+      - { id: "base_p2_4", type_id: "base", x: 4, y: 15, initial_owner: "player_2" }
+      - { id: "airport_p2_1", type_id: "airport", x: 2, y: 6, initial_owner: "player_2" }
+      - { id: "airport_p2_2", type_id: "airport", x: 1, y: 14, initial_owner: "player_2" }
+      - { id: "airport_p2_3", type_id: "airport", x: 3, y: 14, initial_owner: "player_2" }
+      - { id: "city_p2_1", type_id: "city", x: 1, y: 1, initial_owner: "player_2" }
+      - { id: "city_p2_2", type_id: "city", x: 0, y: 10, initial_owner: "player_2" }
+      - { id: "city_p2_3", type_id: "city", x: 1, y: 11, initial_owner: "player_2" }
+      - { id: "city_p2_4", type_id: "city", x: 8, y: 15, initial_owner: "player_2" }
+      - { id: "city_p2_5", type_id: "city", x: 9, y: 15, initial_owner: "player_2" }
+      - { id: "city_n_1", type_id: "city", x: 2, y: 1, initial_owner: "neutral" }
+      - { id: "city_n_2", type_id: "city", x: 0, y: 3, initial_owner: "neutral" }
+      - { id: "city_n_3", type_id: "city", x: 1, y: 3, initial_owner: "neutral" }
+      - { id: "city_n_4", type_id: "city", x: 17, y: 13, initial_owner: "neutral" }
+      - { id: "city_n_5", type_id: "city", x: 18, y: 13, initial_owner: "neutral" }
+      - { id: "city_n_6", type_id: "city", x: 16, y: 15, initial_owner: "neutral" }
+    starting_units: []
+    starting_funds:
+      player_1: 0
+      player_2: 0
+    balance:
+      status: "pending_review"
+
 publication_state:
-  official_map_count: 1
-  playable_map_count: 1
+  official_map_count: 2
+  playable_map_count: 2
   mvp_minimum_required: 1
   status: "blocked"
   blockers:
     - "spann-island balance is pending the two-human sign-off (status: review)."
+    - "eon-springs balance is pending the two-human sign-off (status: review)."
     - "Reef, Pipe, Pipe Seam and Missile Silo remain asset-gated."
     - "Day-limit scoring is not implemented."
   allowed_next_step: >
-    Complete the two-human balance review of spann-island, then flip it to
+    Complete the two-human balance review of each map, then flip it to
     status: published / balance: approved to enable it.
 
 cross_file_contracts:

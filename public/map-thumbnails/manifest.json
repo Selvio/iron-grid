@@ -6,6 +6,12 @@
       "width": 480,
       "height": 320,
       "sourceHash": "b7f84cbcdcd264af"
+    },
+    "eon-springs": {
+      "file": "eon-springs.png",
+      "width": 608,
+      "height": 544,
+      "sourceHash": "ec0a729c921a2f8d"
     }
   }
 }
