@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
@@ -65,6 +65,32 @@ describe("NotificationPreferencesForm", () => {
 });
 
 describe("MatchCompleted", () => {
+  const seats = [
+    {
+      playerId: "me",
+      faction: "blue" as const,
+      label: "Ada",
+      isViewer: true,
+      isWinner: true,
+      unitsLost: 3,
+      damageDealt: 41200,
+      captures: 9,
+      unitsBuilt: 22,
+    },
+    {
+      playerId: "them",
+      faction: "red" as const,
+      // No display name on a magic-link account: the email identifies them.
+      label: "rival@example.edu",
+      isViewer: false,
+      isWinner: false,
+      unitsLost: 17,
+      damageDealt: 28600,
+      captures: 4,
+      unitsBuilt: 19,
+    },
+  ];
+
   it("shows victory when the viewer is the winner, with the reason", () => {
     render(
       <MatchCompleted
@@ -73,8 +99,8 @@ describe("MatchCompleted", () => {
         completionReason="headquarters_captured"
       />,
     );
-    expect(screen.getByText("Victory")).toBeInTheDocument();
-    expect(screen.getByText("Headquarters captured")).toBeInTheDocument();
+    expect(screen.getByText("VICTORY")).toBeInTheDocument();
+    expect(screen.getByText("Enemy HQ captured")).toBeInTheDocument();
   });
 
   it("shows defeat when the winner is the opponent", () => {
@@ -85,7 +111,7 @@ describe("MatchCompleted", () => {
         completionReason="timeout_claimed"
       />,
     );
-    expect(screen.getByText("Defeat")).toBeInTheDocument();
+    expect(screen.getByText("DEFEAT")).toBeInTheDocument();
     expect(screen.getByText("Turn deadline expired")).toBeInTheDocument();
   });
 
@@ -98,5 +124,62 @@ describe("MatchCompleted", () => {
       />,
     );
     expect(screen.getByText("Match ended")).toBeInTheDocument();
+    expect(screen.getByText("BATTLE RESULTS")).toBeInTheDocument();
+  });
+
+  it("names the winning army by faction and stamps the match chips", () => {
+    render(
+      <MatchCompleted
+        viewerPlayerId="me"
+        winnerPlayerId="me"
+        completionReason="army_eliminated"
+        seats={seats}
+        summary={{ mapName: "Rainy Haven", day: 11, duration: "42 min" }}
+      />,
+    );
+    expect(screen.getByText("Blue Army wins")).toBeInTheDocument();
+    expect(screen.getByText("Rainy Haven")).toBeInTheDocument();
+    expect(screen.getByText("Day 11 · 42 min")).toBeInTheDocument();
+  });
+
+  it("tabulates what each side did, winner first and the viewer marked", () => {
+    render(
+      <MatchCompleted
+        viewerPlayerId="me"
+        winnerPlayerId="me"
+        completionReason="army_eliminated"
+        seats={seats}
+      />,
+    );
+    const rows = screen.getAllByRole("row").slice(1); // drop the header row
+    expect(rows).toHaveLength(2);
+    expect(rows[0]).toHaveTextContent("Commander — Blue");
+    expect(rows[0]).toHaveTextContent("Winner");
+    expect(rows[0]).toHaveTextContent("(you)");
+    // Thousands are grouped, as the design shows them.
+    expect(within(rows[0]).getByText("41,200")).toBeInTheDocument();
+    expect(rows[0]).toHaveTextContent("Ada");
+    // Who you actually played, not just which colour they held.
+    expect(rows[1]).toHaveTextContent("rival@example.edu");
+    expect(rows[1]).toHaveTextContent("Defeated");
+    expect(within(rows[1]).getByText("17")).toBeInTheDocument();
+  });
+
+  it("shows no score or rank — those weights are still an open blocker", () => {
+    render(
+      <MatchCompleted
+        viewerPlayerId="me"
+        winnerPlayerId="me"
+        completionReason="army_eliminated"
+        seats={seats}
+        summary={{ mapName: "Rainy Haven", day: 11, duration: null }}
+      />,
+    );
+    // The mockup's SPEED / POWER / TECHNIQUE cards and its rank letter are not
+    // rendered: §23.4 / §33.2 leave the weights undecided (see the component).
+    expect(screen.queryByText(/speed/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/technique/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/rank/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/\/100/)).not.toBeInTheDocument();
   });
 });

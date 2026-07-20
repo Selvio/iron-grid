@@ -771,37 +771,75 @@
 
     <!-- ==== MATCH COMPLETED ==== -->
     <sc-if value="{{ isCompleted }}" hint-placeholder-val="{{ false }}">
-    <div style="flex:1;min-height:0;overflow:auto;background:linear-gradient(180deg,#e6f1ff,#cfe4fa);font-family:'Baloo 2','Manrope',system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:34px">
-      <div style="width:100%;max-width:560px;text-align:center">
-        <div style="width:82px;height:82px;border-radius:22px;margin:0 auto 18px;background:linear-gradient(160deg,#ffd94a,#f5b820);border:4px solid #1c2b45;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 0 rgba(28,43,69,.32)">
-          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#1c2b45" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 4h12v4a6 6 0 0 1-12 0zM9 14h6M10 18h4M12 12v2M4 5h2v2a3 3 0 0 1-2-2zM20 5h-2v2a3 3 0 0 0 2-2z"></path></svg>
-        </div>
-        <div style="font-size:12px;font-weight:800;letter-spacing:2px;color:#1fa899;margin-bottom:6px">VICTORY</div>
-        <h1 style="margin:0;font-size:32px;font-weight:800;letter-spacing:-.5px;color:#1c2b45">Commander — Blue wins</h1>
-        <p style="margin:11px 0 0;color:#47566e;font-size:14px;font-weight:600">Ridge Line Skirmish · Enemy HQ captured on Day 11</p>
+    <div style="flex:1;min-height:0;overflow:auto;background:radial-gradient(120% 90% at 50% 0%,#f3f9ff,#c9def7);font-family:'Baloo 2','Manrope',system-ui,sans-serif;display:flex;align-items:flex-start;justify-content:center;padding:34px 24px">
+      <div style="width:100%;max-width:720px">
 
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:26px 0">
-          <div style="padding:16px 12px;border-radius:14px;background:#fff6e0;border:3px solid #1c2b45;border-radius:16px;box-shadow:0 5px 0 rgba(28,43,69,.26)">
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:24px;color:#1c2b45">11</div>
-            <div style="font-size:10px;color:#a08a4a;font-weight:800;margin-top:2px">DAYS</div>
-          </div>
-          <div style="padding:16px 12px;border-radius:14px;background:#fff6e0;border:3px solid #1c2b45;border-radius:16px;box-shadow:0 5px 0 rgba(28,43,69,.26)">
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:24px;color:#1c2b45">17</div>
-            <div style="font-size:10px;color:#a08a4a;font-weight:800;margin-top:2px">UNITS LOST</div>
-          </div>
-          <div style="padding:16px 12px;border-radius:14px;background:#fff6e0;border:3px solid #1c2b45;border-radius:16px;box-shadow:0 5px 0 rgba(28,43,69,.26)">
-            <div style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:24px;color:#1c2b45">9</div>
-            <div style="font-size:10px;color:#a08a4a;font-weight:800;margin-top:2px">CITIES HELD</div>
+        <!-- Header banner -->
+        <div style="position:relative;border-radius:22px;border:4px solid #1c2b45;overflow:hidden;box-shadow:0 8px 0 rgba(28,43,69,.3);background:linear-gradient(135deg,#2ee0c8,#1fb3a0)">
+          <div style="position:absolute;inset:0;background:repeating-linear-gradient(45deg,rgba(255,255,255,.10) 0 14px,transparent 14px 28px)"></div>
+          <div style="position:relative;display:flex;align-items:center;gap:18px;padding:22px 26px">
+            <div style="filter:drop-shadow(0 4px 0 rgba(0,0,0,.25))">{{ resWinInsignia }}</div>
+            <div style="flex:1;text-align:left">
+              <div style="font-size:13px;font-weight:800;letter-spacing:3px;color:#08322c">BATTLE RESULTS</div>
+              <h1 style="margin:2px 0 0;font-size:34px;font-weight:800;letter-spacing:-.5px;color:#fff;text-shadow:0 3px 0 rgba(0,0,0,.22)">{{ resWinnerName }} wins</h1>
+              <div style="display:flex;flex-wrap:wrap;gap:7px;margin-top:9px">
+                <span style="padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.9);border:2px solid #1c2b45;font-size:11px;font-weight:800;color:#1c2b45">🏳 {{ resReason }}</span>
+                <span style="padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.9);border:2px solid #1c2b45;font-size:11px;font-weight:800;color:#1c2b45">{{ resMap }}</span>
+                <span style="padding:4px 11px;border-radius:20px;background:rgba(255,255,255,.9);border:2px solid #1c2b45;font-size:11px;font-weight:800;color:#1c2b45">{{ resDay }} · {{ resDuration }}</span>
+              </div>
+            </div>
+            <div style="text-align:center;flex:0 0 auto">
+              <div style="width:88px;height:88px;border-radius:20px;background:#fff6e0;border:4px solid #1c2b45;display:flex;align-items:center;justify-content:center;box-shadow:0 5px 0 rgba(28,43,69,.32)">
+                <span style="font-family:'Baloo 2',sans-serif;font-size:56px;font-weight:800;line-height:1;color:{{ resRankColor }};text-shadow:0 3px 0 rgba(28,43,69,.18)">{{ resRank }}</span>
+              </div>
+              <div style="font-size:10px;font-weight:800;letter-spacing:1.5px;color:#08322c;margin-top:5px">RANK · {{ resTotal }}</div>
+            </div>
           </div>
         </div>
 
-        <div style="padding:15px 16px;border-radius:14px;background:#fff6e0;border:3px solid #1c2b45;border-radius:16px;box-shadow:0 5px 0 rgba(28,43,69,.26);text-align:left;margin-bottom:22px">
-          <div style="font-size:11px;font-weight:800;color:#a08a4a;letter-spacing:.5px;margin-bottom:11px">WIN CONDITIONS</div>
-          <div style="display:flex;flex-direction:column;gap:9px;font-size:12px;font-weight:600">
-            <div style="display:flex;align-items:center;gap:9px;color:#1c2b45"><span style="width:20px;height:20px;border-radius:50%;background:#2fbf6a;border:2px solid #1c2b45;display:flex;align-items:center;justify-content:center;flex:0 0 auto"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"><path d="M20 6 9 17l-5-5"></path></svg></span>HQ captured</div>
-            <div style="display:flex;align-items:center;gap:9px;color:#9a8a5a"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #cdbb8a;flex:0 0 auto"></span>All enemy units eliminated</div>
-            <div style="display:flex;align-items:center;gap:9px;color:#9a8a5a"><span style="width:20px;height:20px;border-radius:50%;border:2px solid #cdbb8a;flex:0 0 auto"></span>Timeout claim / resignation</div>
+        <!-- Score categories -->
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:16px 0">
+          <sc-for list="{{ resScores }}" as="sc" hint-placeholder-count="3">
+            <div style="padding:15px 15px 16px;border-radius:16px;background:#fff6e0;border:3px solid #1c2b45;box-shadow:0 5px 0 rgba(28,43,69,.26)">
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <span style="font-size:11px;font-weight:800;letter-spacing:.5px;color:#a08a4a">{{ sc.label }}</span>
+                <span style="font-family:'Baloo 2',sans-serif;font-size:20px;font-weight:800;color:#1c2b45;line-height:1">{{ sc.rk }}</span>
+              </div>
+              <div style="display:flex;align-items:baseline;gap:4px;margin:8px 0 9px">
+                <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:26px;color:#1c2b45">{{ sc.val }}</span>
+                <span style="font-size:11px;font-weight:800;color:#a08a4a">/100</span>
+              </div>
+              <div style="height:10px;border-radius:6px;background:#eadfc0;border:2px solid #1c2b45;overflow:hidden">
+                <div style="height:100%;width:{{ sc.bar }};background:{{ sc.color }}"></div>
+              </div>
+              <div style="font-size:10px;font-weight:700;color:#8a7a4a;margin-top:7px">{{ sc.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <!-- Per-CO stats table -->
+        <div style="border-radius:18px;background:#fff6e0;border:3px solid #1c2b45;box-shadow:0 5px 0 rgba(28,43,69,.26);overflow:hidden;margin-bottom:18px">
+          <div style="display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:8px;padding:11px 16px;background:#1c2b45">
+            <span style="font-size:10px;font-weight:800;letter-spacing:.5px;color:#9fb0cc">COMMANDER</span>
+            <sc-for list="{{ resStatCols }}" as="col" hint-placeholder-count="4">
+              <span style="font-size:10px;font-weight:800;letter-spacing:.3px;color:#9fb0cc;text-align:center">{{ col.label }}</span>
+            </sc-for>
           </div>
+          <sc-for list="{{ resCos }}" as="co" hint-placeholder-count="2">
+            <div style="display:grid;grid-template-columns:1.6fr repeat(4,1fr);gap:8px;align-items:center;padding:13px 16px;background:{{ co.rowBg }};border-top:3px solid #1c2b45">
+              <div style="display:flex;align-items:center;gap:11px;text-align:left">
+                {{ co.portrait }}
+                <div>
+                  <div style="font-size:14px;font-weight:800;color:#1c2b45;line-height:1.1">{{ co.name }}</div>
+                  <span style="display:inline-block;margin-top:3px;padding:2px 8px;border-radius:14px;background:{{ co.badgeBg }};border:2px solid #1c2b45;font-size:9px;font-weight:800;letter-spacing:.5px;color:#1c2b45">{{ co.badge }}</span>
+                </div>
+              </div>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px;color:#1c2b45;text-align:center">{{ co.stats.losses }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px;color:#1c2b45;text-align:center">{{ co.stats.damage }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px;color:#1c2b45;text-align:center">{{ co.stats.captures }}</span>
+              <span style="font-family:'JetBrains Mono',monospace;font-weight:800;font-size:16px;color:#1c2b45;text-align:center">{{ co.stats.builds }}</span>
+            </div>
+          </sc-for>
         </div>
 
         <div style="display:flex;gap:10px">
@@ -826,6 +864,45 @@ class Component extends DCLogic {
     G:{color:'#37b26b',dark:'#227a48',name:'Green'},
     Y:{color:'#e0a72e',dark:'#a9781a',name:'Yellow'}
   };}
+
+  battleResult(){
+    // Server-side-computed summary (mocked from event log). Winner: Blue.
+    const win='B', lose='R';
+    const WF=this.FAC[win], LF=this.FAC[lose];
+    // Advance Wars grading: Speed (days), Power (max units KO'd in one turn), Technique (% units surviving)
+    const speed=88, power=72, technique=94;
+    const total=Math.round((speed+power+technique)/3);
+    const rankOf=v=> v>=95?'S': v>=85?'A': v>=70?'B': v>=55?'C':'D';
+    const rank=rankOf(total);
+    const rankColor={S:'#f2b23c',A:'#2fbf6a',B:'#4f8ef7',C:'#e0a72e',D:'#ef5b5b'}[rank];
+    const scores=[
+      {label:'SPEED', val:speed, note:'Day 11 of 20', color:'#4f8ef7'},
+      {label:'POWER', val:power, note:'6 KOs · turn 8', color:'#ef5b5b'},
+      {label:'TECHNIQUE', val:technique, note:'82% survived', color:'#2fbf6a'}
+    ].map(s=>({...s, bar:s.val+'%', rk:rankOf(s.val)}));
+    const mkCo=(fac,name,isWin,st)=>({
+      fac, name, isWin, portrait:this.coPortrait(fac,46), insignia:this.insignia(fac,13),
+      color:this.FAC[fac].color, dark:this.FAC[fac].dark,
+      rowBg: isWin?'#fff6e0':'#fbeeee',
+      rowBorder: isWin?this.FAC[fac].color:'#d9c2c2',
+      badge: isWin?'WINNER':'DEFEATED', badgeBg:isWin?'#ffd23c':'#e9dede',
+      stats:st
+    });
+    const cos=[
+      mkCo(win,'Cmdr. Vega',true,{losses:'3',damage:'41,200',captures:'9',builds:'22'}),
+      mkCo(lose,'Cmdr. Roth',false,{losses:'17',damage:'28,600',captures:'4',builds:'19'})
+    ];
+    const statCols=[['losses','UNITS LOST'],['damage','DAMAGE DEALT'],['captures','CAPTURES'],['builds','UNITS BUILT']]
+      .map(([k,l])=>({key:k,label:l}));
+    return {
+      resWinnerName:WF.name+' Army', resWinCo:'Cmdr. Vega',
+      resReason:'Enemy HQ captured', resMap:'Ridge Line Skirmish',
+      resDay:'Day 11', resDuration:'42 min', resDayColor:WF.color,
+      resWinInsignia:this.coPortrait(win,64),
+      resRank:rank, resRankColor:rankColor, resTotal:total,
+      resScores:scores, resCos:cos, resStatCols:statCols
+    };
+  }
 
   palette(theme){
     const dark={ '--bg':'#0d1117','--panel':'#161b22','--panel2':'#1b222c','--elev':'#212a35','--border':'#2a323d','--border2':'#3a4453','--text':'#e6edf3','--muted':'#9aa5b4','--dim':'#69737f','--accent':'#3fc7b4','--accentBg':'rgba(63,199,180,.14)','--gold':'#f2b23c','--danger':'#f2565b','--success':'#4cc46e','--fog':'rgba(7,11,17,.74)' };
@@ -1265,6 +1342,7 @@ class Component extends DCLogic {
       selUnit, defender, actionItems,
       yourTurnMatches, waitingMatches, timerOpts, fogTrackBg, fogKnobLeft, commanders, replayLog,
       selCoName:selF.name, selCoColor:selF.color, selCoDark:selF.dark, selInsignia:this.insignia(selCo,15),
+      ...this.battleResult(),
       goBattlefield:()=>this.setState({screen:'battlefield'}),
       goInvite:()=>this.setState({screen:'invite'}),
       goCommander:()=>this.setState({screen:'commander'}),
