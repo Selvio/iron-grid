@@ -34,4 +34,13 @@ describe("buildAuthConfig", () => {
     // Provider entries are config objects here (not yet normalized by NextAuth).
     expect(provider).toMatchObject({ id: "magic-link", type: "email" });
   });
+
+  it("points Auth.js pages at the branded sign-in screen without a query string", () => {
+    const config = buildAuthConfig();
+    // verifyRequest must not include `?sent=1` — Auth.js appends its own search.
+    expect(config.pages).toMatchObject({
+      signIn: "/sign-in",
+      verifyRequest: "/sign-in",
+    });
+  });
 });

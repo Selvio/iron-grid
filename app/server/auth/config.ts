@@ -55,11 +55,13 @@ export function buildAuthConfig(): NextAuthConfig {
     // canonical origin is still pinned by `AUTH_URL` when present (`backend.md` §2).
     trustHost: true,
     // Point Auth.js at the branded M9 screens instead of its built-in pages: an
-    // unauthenticated redirect and the post-send "check your inbox" state both
-    // land on `/sign-in` (M9-T2). The magic-link email itself is unchanged.
+    // unauthenticated redirect lands on `/sign-in`. `verifyRequest` is the same
+    // path without a query string — Auth.js appends `?provider=&type=` itself,
+    // and a pre-existing `?sent=1` would become a malformed double-`?` URL
+    // (M9-T2). The shell action redirects to `/sign-in?sent=1` after send.
     pages: {
       signIn: "/sign-in",
-      verifyRequest: "/sign-in?sent=1",
+      verifyRequest: "/sign-in",
     },
     providers: [magicLinkProvider()],
     callbacks: {
