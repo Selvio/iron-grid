@@ -115,18 +115,18 @@ const GROUP_ORDER: readonly {
   { key: "finished", heading: "Finished", live: false },
 ];
 
-/** The opponent's identity: insignia plus name, never color alone (§27.4). */
+/** The opponent's identity: insignia plus name (or email), never color alone (§27.4). */
 function OpponentTag({ match }: { match: MatchSummary }) {
   if (match.opponent === null) {
     return <span>No opponent yet</span>;
   }
   const faction = asFaction(match.opponent.factionId);
-  const name = match.opponent.name ?? "Opponent";
+  const label = match.opponent.name ?? match.opponent.email;
   return (
     <span className="inline-flex min-w-0 items-center gap-1.5">
       <span aria-hidden="true">vs</span>
       {faction !== null && <FactionBadge faction={faction} showLabel={false} />}
-      <span className="truncate">{name}</span>
+      <span className="truncate">{label}</span>
     </span>
   );
 }

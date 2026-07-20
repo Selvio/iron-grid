@@ -224,16 +224,24 @@ describe("list matches endpoint", () => {
     const rows = (await response.json()) as Array<{
       mapId: string;
       day: number;
-      opponent: { name: string | null; factionId: string | null } | null;
+      opponent: {
+        name: string | null;
+        email: string;
+        factionId: string | null;
+      } | null;
     }>;
     expect(rows).toHaveLength(1);
     expect(rows[0].mapId).toBe(TEST_MAP_ID);
     expect(rows[0].day).toBe(7);
     // The opponent's own seat, never the caller's own faction.
-    expect(rows[0].opponent).toEqual({ name: "Ada", factionId: "red" });
+    expect(rows[0].opponent).toEqual({
+      name: "Ada",
+      email: "other@example.edu",
+      factionId: "red",
+    });
   });
 
-  it("never exposes the opponent's email", async () => {
+  it("includes the opponent's email so the row can fall back when they have no name", async () => {
     const match = await insertMatch(handle);
     await join(match, userId, "host");
     await join(match, otherId, "guest");
@@ -242,7 +250,14 @@ describe("list matches endpoint", () => {
       db: handle.db,
       resolveSession: sessionFor(userId),
     });
-    expect(await response.text()).not.toContain("other@example.edu");
+    const rows = (await response.json()) as Array<{
+      opponent: { name: string | null; email: string } | null;
+    }>;
+    expect(rows[0].opponent).toEqual({
+      name: null,
+      email: "other@example.edu",
+      factionId: null,
+    });
   });
 
   it("reports a null opponent while the second seat is unfilled", async () => {

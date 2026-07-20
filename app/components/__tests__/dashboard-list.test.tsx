@@ -139,7 +139,15 @@ describe("DashboardList", () => {
     render(
       <DashboardList
         nowMs={NOW}
-        matches={[summary({ opponent: { name: "Ada", factionId: "red" } })]}
+        matches={[
+          summary({
+            opponent: {
+              name: "Ada",
+              email: "ada@example.edu",
+              factionId: "red",
+            },
+          }),
+        ]}
       />,
     );
     expect(screen.getByText("Ada")).toBeInTheDocument();
@@ -147,14 +155,22 @@ describe("DashboardList", () => {
     expect(screen.getByText("Red")).toBeInTheDocument();
   });
 
-  it("falls back to a neutral opponent label when they have no name", () => {
+  it("falls back to the opponent's email when they have no name", () => {
     render(
       <DashboardList
         nowMs={NOW}
-        matches={[summary({ opponent: { name: null, factionId: null } })]}
+        matches={[
+          summary({
+            opponent: {
+              name: null,
+              email: "rival@example.edu",
+              factionId: null,
+            },
+          }),
+        ]}
       />,
     );
-    expect(screen.getByText("Opponent")).toBeInTheDocument();
+    expect(screen.getByText("rival@example.edu")).toBeInTheDocument();
   });
 
   it("says so when the second seat is still empty", () => {

@@ -11,6 +11,8 @@ import { users } from "../schema/users";
 export interface MatchOpponentRow {
   /** The opponent's display name, or `null` when they never set one. */
   readonly name: string | null;
+  /** Magic-link identity — shown when they have no display name. */
+  readonly email: string;
   /** `blue` | `green` | `red` | `yellow`, or `null` before commander selection. */
   readonly factionId: string | null;
 }
@@ -46,11 +48,11 @@ export interface MatchSummaryRow {
  * `viewerPlayerId` lets the client mark "your turn" without a projection.
  *
  * M9-T9 adds the fields the designed row shows — `mapId`, `day`, and the other
- * seat's display name + faction — via a left join on the opponent seat. The
- * opponent's **email is deliberately not selected**: the dashboard identifies
- * them by name and insignia only, and the join is still anchored to the caller's
- * membership row, so it can only ever surface the opponent of a match the caller
- * is in.
+ * seat's display name, email, and faction — via a left join on the opponent seat.
+ * Email is included so the row can fall back to it when the opponent has no
+ * display name (common with magic-link auth). The join is still anchored to the
+ * caller's membership row, so it can only ever surface the opponent of a match
+ * the caller is in.
  *
  * The row also carries the host's own `invitation_code` while the match is still
  * `waiting_for_opponent`, so the dashboard can re-surface a code the host closed
@@ -79,6 +81,7 @@ export async function listMatchesForUser<
       invitationCode: matches.invitationCode,
       opponentSeatId: opponentSeat.id,
       opponentName: opponentUser.name,
+      opponentEmail: opponentUser.email,
       opponentFactionId: opponentSeat.factionId,
     })
     .from(matchPlayers)
@@ -105,9 +108,13 @@ export async function listMatchesForUser<
     mapId: row.mapId,
     day: row.day,
     opponent:
-      row.opponentSeatId === null
+      row.opponentSeatId === null || row.opponentEmail === null
         ? null
-        : { name: row.opponentName, factionId: row.opponentFactionId },
+        : {
+            name: row.opponentName,
+            email: row.opponentEmail,
+            factionId: row.opponentFactionId,
+          },
     invitationCode:
       row.role === "host" && row.status === "waiting_for_opponent"
         ? row.invitationCode

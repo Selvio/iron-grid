@@ -42,6 +42,8 @@ export type MatchStatus = MatchView["status"];
 export interface MatchOpponent {
   /** Their display name, or `null` when they never set one. */
   readonly name: string | null;
+  /** Magic-link identity — shown when they have no display name. */
+  readonly email: string;
   /** A faction id, or `null` before they pick a commander. */
   readonly factionId: string | null;
 }
