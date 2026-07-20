@@ -12,6 +12,12 @@
       "width": 608,
       "height": 544,
       "sourceHash": "ec0a729c921a2f8d"
+    },
+    "rainy-haven": {
+      "file": "rainy-haven.png",
+      "width": 480,
+      "height": 480,
+      "sourceHash": "423004915361a444"
     }
   }
 }

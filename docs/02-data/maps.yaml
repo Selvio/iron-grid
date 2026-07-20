@@ -671,14 +671,106 @@ official_maps:
     balance:
       status: "pending_review"
 
+
+  # Rainy Haven, transcribed tile-for-tile from the visual reference (15x15).
+  # An archipelago: no land route joins the two sides, so every crossing is naval
+  # or air. player_1 (Blue) holds the north-east corner and the southern coast,
+  # player_2 (Red) the south-west corner and the north-west island. Beaches
+  # (`shoal`) ring most islands — the tiles a lander can unload onto.
+  #
+  # THIS MAP IS NOT MIRRORED, and unusually for the set it is not property-
+  # balanced either: Blue holds 10 properties to Red's 9 (six cities to five).
+  # The corner bases (HQ / base / port) do map onto each other under 180
+  # degrees, but Red's north-west city island and Blue's southern coastal strip
+  # are different shapes with different counts. That imbalance is the first
+  # thing the balance review has to rule on — see the balance doc.
+  #
+  # DELIBERATE DEVIATION: the reference draws reefs at (10,0), (0,1), (1,2) and
+  # (0,10); `reef` is asset-gated (§33.3), so all four are transcribed as `sea`.
+  # Unlike Eon Springs this map DOES have ports, so the reefs would be live
+  # naval cover — restoring them is a real balance change, not a cosmetic one.
+  rainy-haven:
+    id: "rainy-haven"
+    version: "1.0.0"
+    display_name: null
+    status: "review"
+    dimensions:
+      width: 15
+      height: 15
+    player_slots:
+      player_1:
+        id: "player_1"
+        headquarters_property_id: "hq_p1"
+      player_2:
+        id: "player_2"
+        headquarters_property_id: "hq_p2"
+    logical_terrain:
+      - ["sea", "sea", "shoal", "plain", "plain", "plain", "plain", "plain", "shoal", "sea", "sea", "sea", "port", "base", "headquarters"]
+      - ["sea", "sea", "shoal", "plain", "city", "plain", "base", "sea", "sea", "sea", "sea", "sea", "sea", "forest", "plain"]
+      - ["sea", "sea", "sea", "shoal", "plain", "city", "plain", "shoal", "sea", "plain", "city", "sea", "sea", "sea", "airport"]
+      - ["sea", "sea", "sea", "shoal", "city", "plain", "plain", "shoal", "sea", "port", "plain", "sea", "sea", "sea", "sea"]
+      - ["plain", "sea", "sea", "shoal", "plain", "city", "plain", "shoal", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
+      - ["city", "plain", "sea", "shoal", "plain", "forest", "city", "shoal", "sea", "sea", "sea", "sea", "sea", "sea", "plain"]
+      - ["plain", "port", "sea", "sea", "shoal", "plain", "plain", "shoal", "sea", "plain", "plain", "forest", "sea", "sea", "airport"]
+      - ["city", "sea", "sea", "sea", "sea", "shoal", "shoal", "sea", "sea", "base", "forest", "sea", "sea", "plain", "plain"]
+      - ["sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "port", "plain", "city", "sea", "sea", "port", "city"]
+      - ["sea", "sea", "sea", "plain", "forest", "plain", "sea", "sea", "sea", "sea", "plain", "sea", "sea", "sea", "plain"]
+      - ["sea", "sea", "sea", "city", "plain", "airport", "plain", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "sea"]
+      - ["sea", "sea", "sea", "sea", "city", "plain", "plain", "sea", "sea", "shoal", "shoal", "shoal", "shoal", "sea", "sea"]
+      - ["plain", "sea", "sea", "sea", "sea", "sea", "sea", "sea", "shoal", "plain", "base", "city", "plain", "shoal", "sea"]
+      - ["airport", "forest", "sea", "sea", "sea", "sea", "sea", "shoal", "plain", "plain", "plain", "plain", "plain", "plain", "shoal"]
+      - ["headquarters", "base", "port", "sea", "sea", "sea", "shoal", "plain", "city", "city", "city", "city", "city", "plain", "shoal"]
+    properties:
+      - { id: "hq_p1", type_id: "headquarters", x: 14, y: 0, initial_owner: "player_1" }
+      - { id: "base_p1_1", type_id: "base", x: 13, y: 0, initial_owner: "player_1" }
+      - { id: "port_p1_1", type_id: "port", x: 12, y: 0, initial_owner: "player_1" }
+      - { id: "airport_p1_1", type_id: "airport", x: 14, y: 2, initial_owner: "player_1" }
+      - { id: "city_p1_1", type_id: "city", x: 11, y: 12, initial_owner: "player_1" }
+      - { id: "city_p1_2", type_id: "city", x: 8, y: 14, initial_owner: "player_1" }
+      - { id: "city_p1_3", type_id: "city", x: 9, y: 14, initial_owner: "player_1" }
+      - { id: "city_p1_4", type_id: "city", x: 10, y: 14, initial_owner: "player_1" }
+      - { id: "city_p1_5", type_id: "city", x: 11, y: 14, initial_owner: "player_1" }
+      - { id: "city_p1_6", type_id: "city", x: 12, y: 14, initial_owner: "player_1" }
+      - { id: "hq_p2", type_id: "headquarters", x: 0, y: 14, initial_owner: "player_2" }
+      - { id: "base_p2_1", type_id: "base", x: 1, y: 14, initial_owner: "player_2" }
+      - { id: "port_p2_1", type_id: "port", x: 2, y: 14, initial_owner: "player_2" }
+      - { id: "airport_p2_1", type_id: "airport", x: 0, y: 13, initial_owner: "player_2" }
+      - { id: "city_p2_1", type_id: "city", x: 4, y: 1, initial_owner: "player_2" }
+      - { id: "city_p2_2", type_id: "city", x: 5, y: 2, initial_owner: "player_2" }
+      - { id: "city_p2_3", type_id: "city", x: 4, y: 3, initial_owner: "player_2" }
+      - { id: "city_p2_4", type_id: "city", x: 5, y: 4, initial_owner: "player_2" }
+      - { id: "city_p2_5", type_id: "city", x: 6, y: 5, initial_owner: "player_2" }
+      - { id: "base_n_1", type_id: "base", x: 6, y: 1, initial_owner: "neutral" }
+      - { id: "base_n_2", type_id: "base", x: 9, y: 7, initial_owner: "neutral" }
+      - { id: "base_n_3", type_id: "base", x: 10, y: 12, initial_owner: "neutral" }
+      - { id: "port_n_1", type_id: "port", x: 9, y: 3, initial_owner: "neutral" }
+      - { id: "port_n_2", type_id: "port", x: 1, y: 6, initial_owner: "neutral" }
+      - { id: "port_n_3", type_id: "port", x: 8, y: 8, initial_owner: "neutral" }
+      - { id: "port_n_4", type_id: "port", x: 13, y: 8, initial_owner: "neutral" }
+      - { id: "airport_n_1", type_id: "airport", x: 14, y: 6, initial_owner: "neutral" }
+      - { id: "airport_n_2", type_id: "airport", x: 5, y: 10, initial_owner: "neutral" }
+      - { id: "city_n_1", type_id: "city", x: 10, y: 2, initial_owner: "neutral" }
+      - { id: "city_n_2", type_id: "city", x: 0, y: 5, initial_owner: "neutral" }
+      - { id: "city_n_3", type_id: "city", x: 0, y: 7, initial_owner: "neutral" }
+      - { id: "city_n_4", type_id: "city", x: 10, y: 8, initial_owner: "neutral" }
+      - { id: "city_n_5", type_id: "city", x: 14, y: 8, initial_owner: "neutral" }
+      - { id: "city_n_6", type_id: "city", x: 3, y: 10, initial_owner: "neutral" }
+      - { id: "city_n_7", type_id: "city", x: 4, y: 11, initial_owner: "neutral" }
+    starting_units: []
+    starting_funds:
+      player_1: 0
+      player_2: 0
+    balance:
+      status: "pending_review"
 publication_state:
-  official_map_count: 2
-  playable_map_count: 2
+  official_map_count: 3
+  playable_map_count: 3
   mvp_minimum_required: 1
   status: "blocked"
   blockers:
     - "spann-island balance is pending the two-human sign-off (status: review)."
     - "eon-springs balance is pending the two-human sign-off (status: review)."
+    - "rainy-haven balance is pending the two-human sign-off (status: review); it is the only map whose property counts are not mirrored (Blue 10, Red 9)."
     - "Reef, Pipe, Pipe Seam and Missile Silo remain asset-gated."
     - "Day-limit scoring is not implemented."
   allowed_next_step: >
