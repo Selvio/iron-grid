@@ -32,7 +32,7 @@ export default async function CommanderPage({
   }));
 
   return (
-    <main className="mx-auto w-full max-w-2xl px-6 py-12">
+    <main className="mx-auto w-full max-w-5xl px-6 py-12">
       <CommanderSelect matchId={id} commanders={commanders} />
     </main>
   );

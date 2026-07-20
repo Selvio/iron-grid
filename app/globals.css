@@ -122,6 +122,17 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
+/* Tailwind v4's reset sets `cursor: default` on buttons; this UI is pointer-first
+ * (cards, tiles and HUD controls all read as clickable), so restore the hand for
+ * anything actually actionable — and keep it off what is disabled. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+summary,
+select:not(:disabled) {
+  cursor: pointer;
+}
+
 /* Pointer-first game UI: suppress focus chrome everywhere so tile buttons and
  * HUD controls never show browser outlines or focus rings over the pixel art. */
 *:focus,

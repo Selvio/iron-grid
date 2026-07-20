@@ -88,12 +88,48 @@ describe("CommanderSelect", () => {
     { id: "commander_red", faction: "red" as const },
   ];
 
+  /** Pick a card, then confirm — the design's two-step lock-in. */
+  async function pickAndLockIn(faction: "Blue" | "Red") {
+    await userEvent.click(
+      screen.getByRole("button", { name: `Commander — ${faction}` }),
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: /lock in commander/i }),
+    );
+  }
+
   it("renders placeholder identity — faction badges, no invented names", () => {
     mockFetch(200, {});
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
-    expect(screen.getByText("Blue")).toBeInTheDocument();
-    expect(screen.getByText("Red")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Commander — Blue" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Commander — Red" }),
+    ).toBeInTheDocument();
+    // The visible identity is the colour word plus its insignia (§27.4).
+    expect(screen.getAllByText("Blue").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Commander")).toHaveLength(2);
+    // Traits are a design blocker (§33.1) — the card says so, never invents one.
+    expect(screen.getAllByText(/still being designed/i)).toHaveLength(2);
+  });
+
+  it("only highlights on pick — nothing is sent until it is locked in", async () => {
+    const fetchMock = mockFetch(200, {});
+    render(<CommanderSelect matchId="m1" commanders={commanders} />);
+    const lockIn = screen.getByRole("button", { name: /lock in commander/i });
+    expect(lockIn).toBeDisabled();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Commander — Blue" }),
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole("button", { name: "Commander — Blue" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    expect(
+      screen.getByRole("button", { name: /lock in commander — blue/i }),
+    ).toBeEnabled();
   });
 
   it("routes to ready check when both have chosen", async () => {
@@ -104,7 +140,7 @@ describe("CommanderSelect", () => {
       factionId: "blue",
     });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
-    await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
+    await pickAndLockIn("Blue");
 
     await waitFor(() => expect(push).toHaveBeenCalledWith("/matches/m1/ready"));
     expect(fetchMock.mock.calls[0][0]).toBe("/api/matches/m1/commander");
@@ -118,7 +154,7 @@ describe("CommanderSelect", () => {
       factionId: "blue",
     });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
-    await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
+    await pickAndLockIn("Blue");
     await waitFor(() =>
       expect(
         screen.getByText(/waiting for your opponent/i),
@@ -130,7 +166,7 @@ describe("CommanderSelect", () => {
   it("surfaces a taken-faction conflict (commander_unavailable)", async () => {
     mockFetch(409, { error: "commander_unavailable" });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
-    await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
+    await pickAndLockIn("Blue");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(/faction is taken/i),
     );
@@ -139,7 +175,7 @@ describe("CommanderSelect", () => {
   it("shows a generic message for a non-taken error code", async () => {
     mockFetch(500, { error: "server_error" });
     render(<CommanderSelect matchId="m1" commanders={commanders} />);
-    await userEvent.click(screen.getAllByRole("button", { name: "Select" })[0]);
+    await pickAndLockIn("Blue");
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent(
         /something went wrong/i,
