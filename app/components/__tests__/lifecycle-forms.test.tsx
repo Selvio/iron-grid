@@ -118,11 +118,11 @@ describe("CommanderSelect", () => {
     // The visible identity is the colour word plus its insignia (§27.4).
     expect(screen.getAllByText("Blue").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Commander")).toHaveLength(2);
-    // The approved passive is shown (ADR-0006); the power is still blocked, so
-    // only its panel says so — one line per card, never an invented power.
+    // The approved passive is shown (ADR-0006); CO powers stay omitted while
+    // design-blocked (§22.6) — no invented power line on the card.
     expect(screen.getByText("Spearhead")).toBeInTheDocument();
     expect(screen.getByText("Barrage")).toBeInTheDocument();
-    expect(screen.getAllByText(/still being designed/i)).toHaveLength(2);
+    expect(screen.queryByText(/still being designed/i)).not.toBeInTheDocument();
   });
 
   it("says so instead of inventing a trait when a passive is unresolved", () => {
@@ -135,8 +135,9 @@ describe("CommanderSelect", () => {
         ]}
       />,
     );
-    // Both panels — passive and power — fall back to the honest placeholder.
-    expect(screen.getAllByText(/still being designed/i)).toHaveLength(2);
+    // Only the passive panel falls back to the honest placeholder; the power
+    // panel is omitted entirely while CO powers stay design-blocked (§22.6).
+    expect(screen.getAllByText(/still being designed/i)).toHaveLength(1);
   });
 
   it("only highlights on pick — nothing is sent until it is locked in", async () => {

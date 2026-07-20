@@ -314,8 +314,8 @@ requirement the strategy above imposes:
   with backend integration tests for the `app/` layer.
 - **CI gate:** the full suite plus `tsc`/`next build`, `pnpm lint` and `cspell`
   must pass before merge. The `husky` + `lint-staged` precommit hook runs the
-  fast checks locally but does **not** replace the CI gate
-  (`coding-standards.md` §11).
+  fast checks locally — including `vitest related` for staged TypeScript — but
+  does **not** replace the CI gate (`coding-standards.md` §11).
 
 When Vitest is installed, add a `test` script to `package.json` running it.
 

@@ -46,8 +46,9 @@ Adopt the following libraries and tooling:
 - shadcn/ui, lucide-react and react-hook-form are `app/`-only. The Phaser canvas
   is not built from DOM components; shadcn styles the surrounding React DOM
   (`frontend.md` §3).
-- husky/lint-staged runs **fast** checks only; the full Vitest suite runs in CI,
-  not on precommit (`testing.md` §12, `coding-standards.md` §11).
+- husky/lint-staged runs **fast** checks only: ESLint, cspell, `tsc`, formatting,
+  and `vitest related` over staged TypeScript. The **full** Vitest suite runs in
+  CI, not on precommit (`testing.md` §12, `coding-standards.md` §11).
 - JSDoc/TSDoc carries the contract and the *why*; it does not restate TypeScript
   types or duplicate canonical rules (`coding-standards.md` §10).
 

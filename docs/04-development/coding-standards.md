@@ -256,10 +256,10 @@ implementation* (`project-manifest.md`):
 - **Consistent formatting** across the codebase; a formatter's output is not
   hand-edited. Whitespace-only churn is kept out of substantive diffs.
 - **Precommit gate: husky + lint-staged** (ADR-0001) runs the fast checks
-  (ESLint, cspell, `tsc`, formatting) over **staged files** before a commit. It
-  stays fast: the full Vitest suite runs in CI (`testing.md` §12), not on
-  precommit. The hook is a convenience that mirrors the gate — it never replaces
-  the CI gate.
+  (ESLint, cspell, `tsc`, formatting, and `vitest related` for staged
+  TypeScript) over **staged files** before a commit. It stays fast: the full
+  Vitest suite runs in CI (`testing.md` §12), not on precommit. The hook is a
+  convenience that mirrors the gate — it never replaces the CI gate.
 
 ---
 

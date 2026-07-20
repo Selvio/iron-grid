@@ -147,7 +147,8 @@ empty; `eslint.config.mjs` is an app-only flat config; no `packages/`, no
   - lint-staged config: staged `*.{ts,tsx}` → `eslint --fix` + `prettier --write`;
     staged `*.{md,ts,tsx,json,yaml}` → `cspell`; run the affected package's
     `tsc --noEmit`.
-  - Keep it **fast** — do **not** run the full Vitest suite on precommit.
+  - Keep it **fast** — do **not** run the full Vitest suite on precommit; staged
+    TypeScript may run `vitest related` only.
 - **Files:** `.husky/pre-commit`, root `package.json` (`lint-staged`),
   `.lintstagedrc`.
 - **Acceptance:** committing a staged file with a lint or spelling error is blocked
