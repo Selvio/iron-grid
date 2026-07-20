@@ -171,6 +171,18 @@ describe("beachTile", () => {
     ]);
     expect(beachTile(map, 1, 1)).toBe("terrain_beach_filled_bottom");
   });
+
+  it("uses an outer corner when a stepped shore continues onto another shoal", () => {
+    // Rainy Haven (3,2): land north+east, sea west, shoal south — the coast
+    // steps inland one tile. Strict sea-pair matching used to fall through to
+    // beach_top and draw a horizontal strip across the vertical shore.
+    const map = view([
+      ["sea", "plain", "plain"],
+      ["sea", "shoal", "plain"],
+      ["sea", "shoal", "plain"],
+    ]);
+    expect(beachTile(map, 1, 1)).toBe("terrain_beach_outer_top_right");
+  });
 });
 
 describe("riverTile", () => {

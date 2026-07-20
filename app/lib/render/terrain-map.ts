@@ -220,9 +220,13 @@ export function beachTile(map: MapView, x: number, y: number): string {
     if (c[3] === "sea") return "terrain_beach_filled_right";
   }
   if (groundCount === 2) {
-    const sea = pair(c, (t) => t === "sea");
-    if (sea !== null) {
-      const [i, j] = sea;
+    // Shoal neighbours count as open water: a stepped coast often has land on
+    // two sides, sea on one, and another shoal continuing the shore. Requiring
+    // two strict `sea` cells left those corners on the default `beach_top`
+    // strip (Rainy Haven (3,2)).
+    const open = pair(c, isNaval);
+    if (open !== null) {
+      const [i, j] = open;
       const sum = i + j;
       if (sum === 1) return "terrain_beach_outer_bottom_left";
       if (sum === 3) {
