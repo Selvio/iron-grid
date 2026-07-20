@@ -285,6 +285,22 @@ describe("ReadyCheck", () => {
     expect(screen.getByText(/choosing a commander/i)).toBeInTheDocument();
   });
 
+  it("offers the battlefield on load when the match already activated", () => {
+    // The opponent confirmed last while the player was away: the caller's own
+    // ready flag reads the same as "waiting", so the status decides.
+    render(
+      <ReadyCheck
+        matchId="m1"
+        isActive
+        seats={seats.map((seat) => ({ ...seat, isReady: true }))}
+      />,
+    );
+    expect(screen.getByText(/match has begun/i)).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /enter the battlefield/i }),
+    ).toHaveAttribute("href", "/matches/m1/play");
+  });
+
   it("starts in the confirmed state when the caller already readied up", () => {
     render(
       <ReadyCheck

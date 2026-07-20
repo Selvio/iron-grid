@@ -138,20 +138,37 @@ function SeatRow({ seat }: { seat: ReadySeat }) {
   );
 }
 
+/**
+ * The screen's opening state, from the server render. A match that activated
+ * while the player was away (the opponent confirmed last) must land on the
+ * started state — the caller's own `is_ready` flag alone cannot tell the two
+ * apart, so `isActive` carries the match status.
+ */
+function initialState(
+  seats: readonly ReadySeat[],
+  isActive: boolean,
+): "idle" | "waiting" | "active" {
+  if (isActive) return "active";
+  return seats.some((seat) => seat.isViewer && seat.isReady)
+    ? "waiting"
+    : "idle";
+}
+
 export function ReadyCheck({
   matchId,
   seats: initialSeats = [],
   summary,
+  isActive = false,
 }: {
   matchId: string;
   seats?: readonly ReadySeat[];
   summary?: ReadyMatchSummary;
+  /** True once the match status is `active` — both seats confirmed. */
+  isActive?: boolean;
 }) {
   const [seats, setSeats] = useState<readonly ReadySeat[]>(initialSeats);
   const [state, setState] = useState<"idle" | "waiting" | "active">(
-    initialSeats.some((seat) => seat.isViewer && seat.isReady)
-      ? "waiting"
-      : "idle",
+    initialState(initialSeats, isActive),
   );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);

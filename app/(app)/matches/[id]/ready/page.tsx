@@ -56,6 +56,7 @@ export default async function ReadyPage({
       <ReadyCheck
         matchId={id}
         seats={seats}
+        isActive={match.status === "active"}
         summary={{
           mapName: formatMapName(match.mapId),
           turnLength: TURN_LENGTH[match.settings.turnDeadline],
