@@ -117,6 +117,28 @@ describe("join match endpoint", () => {
     });
   });
 
+  it("resolves the match from the invitation code alone", async () => {
+    const response = await handleJoinMatch(
+      joinRequest({ code: CODE.toLowerCase() }),
+      undefined,
+      deps(guestId),
+    );
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      matchId,
+      status: "commander_selection",
+    });
+  });
+
+  it("rejects an unknown code with 404 when resolving by code alone", async () => {
+    const response = await handleJoinMatch(
+      joinRequest({ code: "WRONG5" }),
+      undefined,
+      deps(guestId),
+    );
+    expect(response.status).toBe(404);
+  });
+
   it("rejects a wrong code with 404 (no existence leak)", async () => {
     const response = await handleJoinMatch(
       joinRequest({ code: "WRONG5" }),

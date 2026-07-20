@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { LogIn, Plus } from "lucide-react";
 import Link from "next/link";
 
 import {
@@ -80,12 +80,20 @@ export default async function DashboardPage() {
             </p>
           )}
         </div>
-        <Button asChild>
-          <Link href="/matches/new">
-            <Plus className="size-4" aria-hidden="true" />
-            New match
-          </Link>
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button asChild variant="outline">
+            <Link href="/matches/join">
+              <LogIn className="size-4" aria-hidden="true" />
+              Join match
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/matches/new">
+              <Plus className="size-4" aria-hidden="true" />
+              New match
+            </Link>
+          </Button>
+        </div>
       </div>
       <DashboardList matches={matches} mapPreviews={mapPreviews} />
     </section>

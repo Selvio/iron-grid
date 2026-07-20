@@ -29,6 +29,12 @@ export interface MatchSummaryRow {
   readonly day: number;
   /** `null` while the second seat is unfilled (a `waiting_for_opponent` match). */
   readonly opponent: MatchOpponentRow | null;
+  /**
+   * The invitation the host still needs to share, or `null`. Only ever set for
+   * the host of a `waiting_for_opponent` match — once the seat is filled the
+   * code is spent, so nothing else has a reason to read it.
+   */
+  readonly invitationCode: string | null;
 }
 
 /**
@@ -45,6 +51,11 @@ export interface MatchSummaryRow {
  * them by name and insignia only, and the join is still anchored to the caller's
  * membership row, so it can only ever surface the opponent of a match the caller
  * is in.
+ *
+ * The row also carries the host's own `invitation_code` while the match is still
+ * `waiting_for_opponent`, so the dashboard can re-surface a code the host closed
+ * the create screen on. It is scoped to `role = 'host'` and that one status —
+ * a guest never receives it, and it is `null` once the seat is filled.
  *
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T4, M9-T9)
  */
@@ -65,6 +76,7 @@ export async function listMatchesForUser<
       turnDeadlineAt: matches.turnDeadlineAt,
       mapId: matches.mapId,
       day: matches.dayCounter,
+      invitationCode: matches.invitationCode,
       opponentSeatId: opponentSeat.id,
       opponentName: opponentUser.name,
       opponentFactionId: opponentSeat.factionId,
@@ -96,6 +108,10 @@ export async function listMatchesForUser<
       row.opponentSeatId === null
         ? null
         : { name: row.opponentName, factionId: row.opponentFactionId },
+    invitationCode:
+      row.role === "host" && row.status === "waiting_for_opponent"
+        ? row.invitationCode
+        : null,
   }));
 }
 

@@ -2,9 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { ChevronRight, Map as MapIcon, Plus } from "lucide-react";
+import { useRouter } from "next/navigation";
+import {
+  Check,
+  ChevronRight,
+  Copy,
+  Link2,
+  LogIn,
+  Map as MapIcon,
+  Plus,
+  Trash2,
+} from "lucide-react";
 
-import type { MatchSummary } from "@/app/lib/api-client";
+import { apiClient, type MatchSummary } from "@/app/lib/api-client";
 import { formatCountdown, formatMapName } from "@/app/lib/format";
 import { Button } from "@/app/components/ui/button";
 import { FactionBadge, type FactionId } from "@/app/components/faction-badge";
@@ -36,6 +46,18 @@ const STATUS_LABEL: Record<MatchSummary["status"], string> = {
   completed: "Completed",
   cancelled: "Cancelled",
 };
+
+/**
+ * The statuses a match may still be discarded from — the server's own
+ * cancellable set (`app/server/lifecycle/cancel.ts`, `domain-model.md` §6.1).
+ * Once a match is active it is resignation, not cancellation.
+ */
+const CANCELLABLE_STATUSES: readonly MatchSummary["status"][] = [
+  "draft",
+  "waiting_for_opponent",
+  "commander_selection",
+  "ready_check",
+];
 
 const FACTION_IDS: readonly string[] = ["blue", "green", "red", "yellow"];
 
@@ -106,6 +128,139 @@ function OpponentTag({ match }: { match: MatchSummary }) {
       {faction !== null && <FactionBadge faction={faction} showLabel={false} />}
       <span className="truncate">{name}</span>
     </span>
+  );
+}
+
+/**
+ * The host's invitation, re-surfaced on the row (the "Invite an opponent" card
+ * of `design-reference.md` §5, folded into the dashboard): the code in a dashed
+ * cream field, plus copy actions for the code and the shareable join link.
+ */
+function InviteStrip({ code }: { code: string }) {
+  const [copied, setCopied] = useState<"code" | "link" | null>(null);
+
+  function copy(what: "code" | "link") {
+    const text =
+      what === "code"
+        ? code
+        : `${window.location.origin}/matches/join?code=${encodeURIComponent(code)}`;
+    void navigator.clipboard?.writeText(text).then(() => setCopied(what));
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      <span className="text-[10px] font-extrabold uppercase tracking-wider text-gold">
+        Invitation code
+      </span>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex-1 rounded-xl border-2 border-dashed border-[#1c2b45] bg-secondary px-3 py-2 text-center font-mono text-base font-extrabold tracking-[3px] text-[#1c2b45]">
+          {code}
+        </span>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => copy("code")}
+        >
+          {copied === "code" ? (
+            <Check className="size-4" aria-hidden="true" />
+          ) : (
+            <Copy className="size-4" aria-hidden="true" />
+          )}
+          {copied === "code" ? "Copied" : "Copy code"}
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          size="sm"
+          onClick={() => copy("link")}
+        >
+          {copied === "link" ? (
+            <Check className="size-4" aria-hidden="true" />
+          ) : (
+            <Link2 className="size-4" aria-hidden="true" />
+          )}
+          {copied === "link" ? "Copied" : "Copy link"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Discard a match that never started (`POST /api/matches/:id/cancel`, M6-T6).
+ *
+ * Cancellation is not reversible, so — like every other client action
+ * (`frontend.md` §6, `game-specification.md` §10.4) — the button confirms
+ * explicitly before it fires, with no undo afterwards. The server is the
+ * authority on whether the status still allows it; a refused cancel surfaces
+ * inline instead of optimistically removing the row.
+ */
+function DiscardAction({ matchId }: { matchId: string }) {
+  const router = useRouter();
+  const [confirming, setConfirming] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function discard() {
+    setPending(true);
+    setError(null);
+    try {
+      await apiClient.cancelMatch(matchId);
+      setConfirming(false);
+      router.refresh();
+    } catch {
+      setError("That match can no longer be discarded.");
+    } finally {
+      setPending(false);
+    }
+  }
+
+  if (!confirming) {
+    return (
+      <div className="flex flex-wrap items-center justify-end gap-2">
+        {error !== null && (
+          <p role="alert" className="flex-1 text-xs font-bold text-destructive">
+            {error}
+          </p>
+        )}
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          className="text-muted-foreground"
+          onClick={() => setConfirming(true)}
+        >
+          <Trash2 className="size-4" aria-hidden="true" />
+          Discard
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <p className="flex-1 text-xs font-bold">
+        Discard this match? This cannot be undone.
+      </p>
+      <Button
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={() => setConfirming(false)}
+      >
+        Keep it
+      </Button>
+      <Button
+        type="button"
+        variant="destructive"
+        size="sm"
+        disabled={pending}
+        onClick={() => void discard()}
+      >
+        {pending ? "Discarding…" : "Discard match"}
+      </Button>
+    </div>
   );
 }
 
@@ -206,6 +361,36 @@ function MatchRow({
       : "border-border bg-muted/40 text-muted-foreground shadow-[0_3px_0_rgba(28,43,69,0.08)]",
   );
 
+  const summary =
+    href === null ? (
+      <div className="flex items-center gap-4">{body}</div>
+    ) : (
+      <Link
+        href={href}
+        className="flex items-center gap-4 rounded-xl transition-[filter,transform] hover:brightness-[1.02] motion-safe:active:translate-y-0.5"
+      >
+        {body}
+      </Link>
+    );
+
+  // Pre-active rows carry a footer: the host's invite, and the discard action.
+  // It lives outside the summary `Link`, so no button is ever nested in a link.
+  const showInvite = match.invitationCode !== null;
+  const showDiscard = CANCELLABLE_STATUSES.includes(match.status);
+  if (showInvite || showDiscard) {
+    return (
+      <div className={cn(shell, "flex-col items-stretch gap-3")}>
+        {summary}
+        <div className="flex flex-col gap-2 border-t-2 border-dashed border-border pt-3">
+          {match.invitationCode !== null && (
+            <InviteStrip code={match.invitationCode} />
+          )}
+          {showDiscard && <DiscardAction matchId={match.matchId} />}
+        </div>
+      </div>
+    );
+  }
+
   if (href === null) {
     return <div className={shell}>{body}</div>;
   }
@@ -250,14 +435,22 @@ export function DashboardList({
     return (
       <div className="flex flex-col items-center gap-4 rounded-2xl border-2 border-dashed border-border py-16 text-center">
         <p className="text-muted-foreground">
-          No matches yet. Start one and invite an opponent.
+          No matches yet. Start one, or join with an invitation code.
         </p>
-        <Button asChild>
-          <Link href="/matches/new">
-            <Plus className="size-4" aria-hidden="true" />
-            New match
-          </Link>
-        </Button>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <Button asChild variant="outline">
+            <Link href="/matches/join">
+              <LogIn className="size-4" aria-hidden="true" />
+              Join match
+            </Link>
+          </Button>
+          <Button asChild>
+            <Link href="/matches/new">
+              <Plus className="size-4" aria-hidden="true" />
+              New match
+            </Link>
+          </Button>
+        </div>
       </div>
     );
   }

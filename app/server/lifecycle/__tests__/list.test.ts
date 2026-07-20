@@ -109,6 +109,38 @@ describe("list matches endpoint", () => {
     });
   });
 
+  it("returns the invitation code to the waiting host only", async () => {
+    const waiting = await insertMatch(handle, {
+      invitationCode: "HOST01",
+    });
+    await join(waiting, userId, "host");
+
+    // The same host, once the match has moved on, no longer needs the code.
+    const started = await insertMatch(handle, {
+      status: "commander_selection",
+      invitationCode: "SPENT1",
+    });
+    await join(started, userId, "host");
+
+    // A guest seat never receives a code, whatever the status.
+    const asGuest = await insertMatch(handle, { invitationCode: "GUEST1" });
+    await join(asGuest, userId, "guest");
+
+    const response = await handleListMatches({
+      db: handle.db,
+      resolveSession: sessionFor(userId),
+    });
+    const rows = (await response.json()) as Array<{
+      matchId: string;
+      invitationCode: string | null;
+    }>;
+    const codeFor = (id: string) =>
+      rows.find((row) => row.matchId === id)?.invitationCode ?? null;
+    expect(codeFor(waiting)).toBe("HOST01");
+    expect(codeFor(started)).toBeNull();
+    expect(codeFor(asGuest)).toBeNull();
+  });
+
   it("serializes an active match's deadline as an ISO string", async () => {
     const deadline = new Date("2026-07-20T12:00:00.000Z");
     const active = await insertMatch(handle, {

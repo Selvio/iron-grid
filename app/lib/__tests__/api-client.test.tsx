@@ -55,9 +55,19 @@ describe("apiClient", () => {
       matchId: "m1",
       status: "commander_selection",
     });
-    await apiClient.joinMatch("m1", " abc123 ");
-    const [, init] = fetchMock.mock.calls[0];
+    await apiClient.joinMatch(" abc123 ", "m1");
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/matches/m1/join");
     expect(JSON.parse(init.body)).toEqual({ code: "ABC123" });
+  });
+
+  it("posts to the code-only join route when no match id is given", async () => {
+    const fetchMock = mockFetch(200, {
+      matchId: "m1",
+      status: "commander_selection",
+    });
+    await apiClient.joinMatch("ABC123");
+    expect(fetchMock.mock.calls[0][0]).toBe("/api/matches/join");
   });
 
   it("submits a gameplay action with the version + idempotency key", async () => {

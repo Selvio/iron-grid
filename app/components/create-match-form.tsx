@@ -1,7 +1,7 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Check, Copy } from "lucide-react";
+import { Check, Copy, Upload } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
@@ -25,10 +25,14 @@ import {
  *
  * react-hook-form + Zod (`createMatchSchema`) for `mapId` / `turnDeadline` /
  * `dayLimit`. Fog is not a field — the backend rejects `fogEnabled: true`, so the
- * client always submits fog off (§3). On success it surfaces the invitation code
- * and a shareable join link. Map layouts are design-blocked (`official_maps: {}`,
- * §33) until M10, so with no maps the form makes the block explicit rather than
- * inventing one; tests inject map options to exercise the full flow.
+ * client always submits fog off (§3). On success it becomes the "Invite an
+ * opponent" card of `design-reference.md` §5 — teal icon tile, gold `MATCH CODE`
+ * label, the code in a dashed field beside Copy, and the waiting strip — plus
+ * the links onward to the invite and the dashboard.
+ *
+ * Map layouts are design-blocked (`official_maps: {}`, §33) until M10, so with
+ * no maps the form makes the block explicit rather than inventing one; tests
+ * inject map options to exercise the full flow.
  *
  * @see docs/04-development/milestones/m9-app-shell.md (M9-T5)
  */
@@ -76,40 +80,64 @@ export function CreateMatchForm({ maps }: { maps: readonly MapOption[] }) {
   const selectedMap = maps.find((map) => map.id === selectedId) ?? maps[0];
 
   if (created) {
-    const joinPath = `/matches/${created.matchId}/join?code=${created.invitationCode}`;
+    const joinPath = `/matches/join?code=${created.invitationCode}`;
     return (
-      <Card className="w-full max-w-md">
-        <CardHeader>
-          <CardTitle>Match created</CardTitle>
-          <CardDescription>
-            Share the invitation code with your opponent.
+      <Card className="w-full max-w-md border-[3px] shadow-[0_5px_0_rgba(28,43,69,0.26)]">
+        <CardHeader className="space-y-0 pb-4">
+          <span
+            aria-hidden="true"
+            className="mb-4 flex size-11 items-center justify-center rounded-xl border-[3px] border-[#1c2b45] bg-linear-to-br from-[#2ee0c8] to-[#1fb3a0] text-[#08201d]"
+          >
+            <Upload className="size-5" strokeWidth={2.4} />
+          </span>
+          <CardTitle className="text-[19px] font-extrabold">
+            Invite an opponent
+          </CardTitle>
+          <CardDescription className="pt-1.5 text-xs font-semibold leading-relaxed text-[#7a6a3a]">
+            Share this code or link. The match starts after both players pass
+            the ready check.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-4">
-          <div className="flex items-center justify-between rounded-md border border-border bg-muted px-4 py-3">
-            <span className="font-mono text-lg tracking-widest">
-              {created.invitationCode}
+          <div className="flex flex-col gap-2">
+            <span className="text-[11px] font-extrabold uppercase tracking-wide text-[#a08a4a]">
+              Match code
             </span>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                void navigator.clipboard
-                  ?.writeText(created.invitationCode)
-                  .then(() => setCopied(true));
-              }}
-            >
-              {copied ? (
-                <Check className="size-4" aria-hidden="true" />
-              ) : (
-                <Copy className="size-4" aria-hidden="true" />
-              )}
-              {copied ? "Copied" : "Copy"}
-            </Button>
+            <div className="flex items-stretch gap-2">
+              <span className="flex flex-1 items-center justify-center rounded-xl border-[3px] border-dashed border-[#1c2b45] bg-secondary px-3 py-3 font-mono text-xl font-extrabold tracking-[3px] text-[#1c2b45]">
+                {created.invitationCode}
+              </span>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  void navigator.clipboard
+                    ?.writeText(created.invitationCode)
+                    .then(() => setCopied(true));
+                }}
+              >
+                {copied ? (
+                  <Check className="size-4" aria-hidden="true" />
+                ) : (
+                  <Copy className="size-4" aria-hidden="true" />
+                )}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            </div>
           </div>
+
+          {/* The design's waiting strip — the host may sit here until the guest
+              joins, so the state is stated rather than implied. */}
+          <p className="flex items-center gap-2.5 rounded-xl border-2 border-border bg-secondary px-3.5 py-3 text-xs font-bold text-[#7a6a3a]">
+            <span
+              aria-hidden="true"
+              className="size-2.5 shrink-0 rounded-full bg-gold motion-safe:animate-pulse"
+            />
+            Waiting for opponent to join…
+          </p>
+
           <div className="flex gap-3">
-            <Button asChild variant="outline" className="flex-1">
+            <Button asChild variant="secondary" className="flex-1">
               <Link href={joinPath}>Open invite</Link>
             </Button>
             <Button asChild className="flex-1">

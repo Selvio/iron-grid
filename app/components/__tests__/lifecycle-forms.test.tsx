@@ -45,6 +45,22 @@ describe("JoinForm", () => {
     expect(JSON.parse(init.body)).toEqual({ code: "ABC234" });
   });
 
+  it("joins by code alone when no match id is provided", async () => {
+    const fetchMock = mockFetch(200, {
+      matchId: "m2",
+      status: "commander_selection",
+    });
+    render(<JoinForm defaultCode="ABC234" />);
+    await userEvent.click(screen.getByRole("button", { name: /join match/i }));
+
+    await waitFor(() =>
+      expect(push).toHaveBeenCalledWith("/matches/m2/commander"),
+    );
+    const [path, init] = fetchMock.mock.calls[0];
+    expect(path).toBe("/api/matches/join");
+    expect(JSON.parse(init.body)).toEqual({ code: "ABC234" });
+  });
+
   it("surfaces an invalid-invitation error", async () => {
     mockFetch(404, { error: "not_found" });
     render(<JoinForm matchId="m1" defaultCode="ZZZ999" />);

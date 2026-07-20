@@ -60,6 +60,11 @@ export interface MatchSummary {
   readonly day: number;
   /** `null` while the second seat is still unfilled. */
   readonly opponent: MatchOpponent | null;
+  /**
+   * The code to share, set only for the host of a `waiting_for_opponent` match
+   * — the dashboard shows it so a host can recover the invite later.
+   */
+  readonly invitationCode: string | null;
 }
 
 export interface CreateMatchResult {
@@ -163,9 +168,15 @@ export const apiClient = {
       },
     }),
 
-  joinMatch: (matchId: string, code: string) =>
+  /**
+   * Join by invitation code. When `matchId` is omitted the server resolves the
+   * match from the unique code (`POST /api/matches/join`).
+   */
+  joinMatch: (code: string, matchId?: string) =>
     request<JoinMatchResult>(
-      `/api/matches/${encodeURIComponent(matchId)}/join`,
+      matchId === undefined
+        ? "/api/matches/join"
+        : `/api/matches/${encodeURIComponent(matchId)}/join`,
       { method: "POST", body: { code: code.trim().toUpperCase() } },
     ),
 

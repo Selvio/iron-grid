@@ -17,16 +17,20 @@ import {
 } from "./rate-limit";
 
 /**
- * `POST /api/matches/:id/join` — a guest accepts an invitation (M6-T3).
+ * `POST /api/matches/:id/join` and `POST /api/matches/join` — a guest accepts
+ * an invitation (M6-T3).
  *
  * Authorized by **invitation code, not membership**: the guest is not yet a
  * member (`requireMatchMembership` would reject a null-`user_id` slot, §3). The
- * code in the body must match the match's stored code, the match must still be
- * `waiting_for_opponent` with its guest slot open, and the caller must not
+ * code in the body must match a waiting match's stored code (optionally scoped
+ * to a match id), the guest slot must still be open, and the caller must not
  * already be in it. On success the guest `match_players` row is inserted and the
  * match moves to `commander_selection` — all under the match row lock so two
  * guests cannot both accept. A missing match and a wrong code are the same typed
  * 404, so match existence never leaks.
+ *
+ * The code-only route exists so the dashboard can join with just the six-character
+ * invitation (`invitation_code` is unique); deep links may still pass the match id.
  *
  * @see docs/03-architecture/backend.md §3
  * @see docs/02-data/rules.yaml → match_lifecycle.invitation
@@ -49,16 +53,21 @@ function parseJoinCode(input: unknown): string {
   ) {
     throw new InvalidInvitationCodeError();
   }
-  return (input as { code: string }).code;
+  return (input as { code: string }).code.trim().toUpperCase();
 }
 
-/** Handles a join request end-to-end, returning the typed response. */
+/**
+ * Handles a join request end-to-end, returning the typed response.
+ *
+ * Pass `matchId` when the guest arrived via a deep link; omit it (or pass
+ * `undefined`) to resolve the match solely from the invitation code.
+ */
 export async function handleJoinMatch<
   TQuery extends PgQueryResultHKT,
   TSchema extends Record<string, unknown>,
 >(
   request: Request,
-  matchId: string,
+  matchId: string | undefined,
   deps: JoinMatchDeps<TQuery, TSchema>,
 ): Promise<Response> {
   try {
@@ -70,23 +79,41 @@ export async function handleJoinMatch<
     });
     const code = parseJoinCode(body);
 
+    let resolvedMatchId = "";
     const hostPlayerId = await deps.db.transaction(async (tx) => {
-      const [match] = await tx
-        .select({
-          status: matches.status,
-          invitationCode: matches.invitationCode,
-        })
-        .from(matches)
-        .where(eq(matches.id, matchId))
-        .for("update");
+      const [match] =
+        matchId === undefined
+          ? await tx
+              .select({
+                id: matches.id,
+                status: matches.status,
+                invitationCode: matches.invitationCode,
+              })
+              .from(matches)
+              .where(eq(matches.invitationCode, code))
+              .for("update")
+          : await tx
+              .select({
+                id: matches.id,
+                status: matches.status,
+                invitationCode: matches.invitationCode,
+              })
+              .from(matches)
+              .where(eq(matches.id, matchId))
+              .for("update");
 
       // A missing match and a wrong code are indistinguishable (no leak).
-      if (match === undefined || match.invitationCode !== code) {
+      if (
+        match === undefined ||
+        (matchId !== undefined && match.invitationCode !== code)
+      ) {
         throw new InvalidInvitationCodeError();
       }
       if (match.status !== "waiting_for_opponent") {
         throw new MatchNotJoinableError();
       }
+
+      resolvedMatchId = match.id;
 
       const players = await tx
         .select({
@@ -95,7 +122,7 @@ export async function handleJoinMatch<
           role: matchPlayers.role,
         })
         .from(matchPlayers)
-        .where(eq(matchPlayers.matchId, matchId));
+        .where(eq(matchPlayers.matchId, resolvedMatchId));
       if (players.some((p) => p.userId === user.id)) {
         throw new MatchNotJoinableError("You are already in this match.");
       }
@@ -105,14 +132,14 @@ export async function handleJoinMatch<
 
       await tx.insert(matchPlayers).values({
         id: randomUUID(),
-        matchId,
+        matchId: resolvedMatchId,
         userId: user.id,
         role: "guest",
       });
       await tx
         .update(matches)
         .set({ status: "commander_selection" })
-        .where(eq(matches.id, matchId));
+        .where(eq(matches.id, resolvedMatchId));
 
       return players.find((p) => p.role === "host")?.id ?? null;
     });
@@ -121,11 +148,14 @@ export async function handleJoinMatch<
     // (`notifications.gameplay_authority: false`).
     if (hostPlayerId !== null) {
       await safelyEnqueue(() =>
-        scheduleInvitation(deps.db, matchId, hostPlayerId, new Date()),
+        scheduleInvitation(deps.db, resolvedMatchId, hostPlayerId, new Date()),
       );
     }
 
-    return Response.json({ matchId, status: "commander_selection" });
+    return Response.json({
+      matchId: resolvedMatchId,
+      status: "commander_selection",
+    });
   } catch (error) {
     return errorResponse(error);
   }
