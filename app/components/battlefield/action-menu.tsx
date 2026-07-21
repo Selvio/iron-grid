@@ -42,6 +42,11 @@ interface ActionRow {
   readonly enabled: boolean;
   /** Attack reads in the danger colour, as the only irreversible strike. */
   readonly danger?: boolean;
+  /**
+   * The Move/Wait row that ends the activation. Marked so the auto-focus can
+   * refuse to land on it — see `useActionMenuFocus`.
+   */
+  readonly commit?: boolean;
   readonly onClick: () => void;
 }
 
@@ -149,6 +154,7 @@ function rowsFor(
     label: commitLabel(destination, unitOrigin),
     icon: Clock,
     enabled: options.canWait,
+    commit: true,
     onClick: handlers.onWait,
   });
   return rows;
@@ -162,6 +168,7 @@ export function ActionMenu({
   unitName,
   handlers,
   onKeyDown,
+  busy = false,
 }: {
   options: DestinationOptions;
   menu: UnitMenu;
@@ -171,11 +178,20 @@ export function ActionMenu({
   unitName?: string;
   handlers: ActionPanelHandlers;
   onKeyDown: (event: React.KeyboardEvent<HTMLDivElement>) => void;
+  /**
+   * A submit is in flight. The menu stays mounted until the reconciling refetch
+   * clears it, so every row — Cancel included — goes dead for that window: a
+   * second click would otherwise fire a duplicate action, and a Cancel would
+   * step the interaction back out from under a decision already sent.
+   */
+  busy?: boolean;
 }) {
   const rows = rowsFor(options, menu, destination, unitOrigin, handlers);
-  // Enter fires whatever holds focus, and the menu opens focused on its first
-  // enabled row — so that row is the one that carries the hint.
-  const primary = rows.findIndex((row) => row.enabled);
+  // Enter fires whatever holds focus, so the hint must name the row the menu
+  // actually opens on — the first enabled row that is *not* the commit
+  // (see `useActionMenuFocus`). When Move/Wait is the only thing legal here,
+  // focus goes to Cancel and no action row may claim the hint.
+  const primary = rows.findIndex((row) => row.enabled && row.commit !== true);
 
   return (
     <div
@@ -194,10 +210,12 @@ export function ActionMenu({
           <MenuRow
             key={row.label}
             row={row}
+            busy={busy}
             hint={index === primary ? "↵" : undefined}
           />
         ))}
         <MenuRow
+          busy={busy}
           row={{
             label: "Cancel",
             icon: X,
@@ -216,11 +234,20 @@ export function ActionMenu({
   );
 }
 
-function MenuRow({ row, hint }: { row: ActionRow; hint?: string }) {
+function MenuRow({
+  row,
+  hint,
+  busy = false,
+}: {
+  row: ActionRow;
+  hint?: string;
+  busy?: boolean;
+}) {
   return (
     <button
       type="button"
-      disabled={!row.enabled}
+      disabled={!row.enabled || busy}
+      data-commit={row.commit === true ? "true" : undefined}
       onClick={() => {
         // The blip the original played on every menu confirmation.
         playSfx("ui_confirm");

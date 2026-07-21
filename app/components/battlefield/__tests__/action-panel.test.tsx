@@ -301,6 +301,36 @@ describe("ActionPanel", () => {
     expect(onWait).toHaveBeenCalledOnce();
   });
 
+  it("never opens focused on Move/Wait, so a stray Enter cannot commit", async () => {
+    const state: InteractionState = {
+      kind: "action-menu",
+      unitId: "u1",
+      menu: MENU,
+      destination: { x: 3, y: 2 },
+      options: opts({ canWait: true }),
+    };
+    const onWait = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ActionPanel
+        state={state}
+        unitOrigin={{ x: 1, y: 2 }}
+        handlers={handlers({ onWait, onCancel })}
+      />,
+    );
+
+    // Move is the only enabled action, so focus falls through to Cancel: the
+    // Enter that opened this menu must not end the unit's turn.
+    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(onWait).not.toHaveBeenCalled();
+    expect(onCancel).toHaveBeenCalledOnce();
+
+    // Reaching Move is a deliberate move of the focus.
+    await userEvent.keyboard("{ArrowUp}{Enter}");
+    expect(onWait).toHaveBeenCalledOnce();
+  });
+
   it("shows logistics buttons only when legal and fires their handlers", async () => {
     const state: InteractionState = {
       kind: "action-menu",

@@ -115,6 +115,8 @@ export function BattlefieldView({
   const [view, setView] = useState(matchView);
   const [state, dispatch] = useReducer(interactionReducer, INITIAL_INTERACTION);
   const [busy, setBusy] = useState(false);
+  /** `busy`, readable synchronously — the double-submit guard in `runSubmit`. */
+  const inFlight = useRef(false);
   // The cursor is wherever attention is: the pointer sets it on hover, the
   // keyboard sets it on focus. Everything that used to follow the mouse — the
   // path preview, the terrain read-out — follows this instead.
@@ -408,15 +410,17 @@ export function BattlefieldView({
       return; // a non-drop click is ignored; use Cancel to step back
     }
 
-    // Post-move menu: re-clicking the chosen tile confirms the move. Another
-    // legal tile re-picks; anything else cancels back to the range preview.
+    // Post-move menu: another legal tile re-picks; anything else cancels back
+    // to the range preview.
+    //
+    // Re-clicking the chosen tile does *nothing*. It used to commit the move,
+    // which turned two ordinary gestures into an irreversible Wait: a double
+    // click on a destination (first click opens the menu, second commits), and
+    // — because the origin is always a legal `move_and_wait` destination — the
+    // natural "click my unit again to deselect it". An action with no undo
+    // (§10.4) must be asked for on the menu, not inferred from a stray click.
     if (state.kind === "action-menu") {
-      const onDestination =
-        state.destination.x === x && state.destination.y === y;
-      if (onDestination && state.options.canWait) {
-        submitWait();
-        return;
-      }
+      if (state.destination.x === x && state.destination.y === y) return;
       const destination = { x, y };
       const options = actionsAtDestination(state.menu, destination);
       if (anyAction(options)) {
@@ -599,21 +603,33 @@ export function BattlefieldView({
     body: ActionBody,
     plan: AnimationStep[],
   ): Promise<void> {
+    // The last word on double submits. The panels disable themselves off `busy`,
+    // but that is React state: two clicks landing in the same tick would both
+    // read the pre-render value and send the same action twice. A ref flips
+    // synchronously, so the second one never reaches the wire.
+    if (inFlight.current) return;
+    inFlight.current = true;
     setBusy(true);
+    // The ref and the flag are released together, so the panel never reopens
+    // while the guard still holds it shut.
+    const release = (): void => {
+      inFlight.current = false;
+      setBusy(false);
+    };
     const submitted = apiClient.submitAction(view.matchId, body);
     // Nothing may reject before we attach the real handler below.
     submitted.catch(() => undefined);
     try {
       await sceneRef.current?.playAnimation(plan);
       await submitted;
-      setBusy(false);
+      release();
       // The action committed. If the reconcile does not land, the cursor would
       // still point behind the events this submit just produced, and the live
       // loop would walk the unit along a path it has already finished — so step
       // the cursor past them explicitly.
       await refetch().catch(() => claimCursorWithoutAnimating());
     } catch (error) {
-      setBusy(false);
+      release();
       // A stale-version conflict (or any error) reconciles by refetching. Every
       // caller fires this as `void runSubmit(...)`, so a reconcile that itself
       // fails must not surface as an unhandled rejection: the live-sync loop is
@@ -957,6 +973,7 @@ export function BattlefieldView({
       <Hud matchView={view} selectedUnit={hudUnit} terrain={hudTerrain} />
       <ActionPanel
         state={state}
+        busy={busy}
         unitOrigin={selectedUnit?.position ?? null}
         attacker={
           selectedUnit

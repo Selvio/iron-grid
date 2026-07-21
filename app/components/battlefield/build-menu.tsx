@@ -143,12 +143,15 @@ export function BuildMenu({
   funds,
   onProduce,
   onCancel,
+  busy = false,
 }: {
   options: readonly ProductionOption[];
   /** The viewer's funds, shown in the roster header. */
   funds: number;
   onProduce: (unitTypeId: string) => void;
   onCancel: () => void;
+  /** The build is already in flight — do not let a second click spend twice. */
+  busy?: boolean;
 }) {
   const [selected, setSelected] = useState(0);
   const option = options[selected] ?? options[0];
@@ -157,6 +160,9 @@ export function BuildMenu({
 
   /** Commit the highlighted unit, with the confirmation blip. */
   function build(unitTypeId: string): void {
+    // The roster's Enter and its double-click reach this without going through
+    // the Build button, so `disabled` alone would not hold them.
+    if (busy) return;
     playSfx("ui_confirm");
     onProduce(unitTypeId);
   }
@@ -314,13 +320,14 @@ export function BuildMenu({
             <button
               type="button"
               onClick={onCancel}
-              className="shrink-0 rounded-[13px] border-[3px] border-[#1c2b45] bg-white px-4 py-3 font-display text-[15px] font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.25)] active:translate-y-0.5"
+              disabled={busy}
+              className="shrink-0 rounded-[13px] border-[3px] border-[#1c2b45] bg-white px-4 py-3 font-display text-[15px] font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.25)] active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-[0.55]"
             >
               Cancel
             </button>
             <button
               type="button"
-              disabled={!option.affordable}
+              disabled={!option.affordable || busy}
               onClick={() => build(option.unitTypeId)}
               className="flex flex-1 items-center justify-center gap-2 rounded-[13px] border-[3px] border-[#1c2b45] bg-gradient-to-b from-[#2ee0c8] to-[#1fb3a0] py-3 font-display text-base font-extrabold text-[#08201d] shadow-[0_4px_0_rgba(28,43,69,0.28)] active:translate-y-0.5 disabled:cursor-not-allowed disabled:bg-[#cdbb8a] disabled:bg-none disabled:text-[#8a7a4a]"
             >

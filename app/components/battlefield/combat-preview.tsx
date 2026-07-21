@@ -76,6 +76,7 @@ export function CombatPreviewPanel({
   counter,
   onConfirm,
   onCancel,
+  busy = false,
 }: {
   attacker: CombatAttacker | null;
   defender: CombatDefender | undefined;
@@ -84,6 +85,8 @@ export function CombatPreviewPanel({
   counter: { readonly minDamage: number; readonly maxDamage: number } | null;
   onConfirm: () => void;
   onCancel: () => void;
+  /** The attack is already in flight — both buttons go dead until it lands. */
+  busy?: boolean;
 }) {
   // The forecast is in true HP against a 100-HP unit, so it already reads as a
   // percentage; the headline number is the display-HP the defender stands to
@@ -163,7 +166,8 @@ export function CombatPreviewPanel({
         <button
           type="button"
           onClick={onConfirm}
-          className="flex flex-1 items-center justify-center gap-2 rounded-xl border-[3px] border-[#1c2b45] bg-[#d33f3a] py-3 font-display text-[15px] font-extrabold text-white shadow-[0_4px_0_rgba(28,43,69,0.3)] transition-[filter] hover:brightness-105 active:translate-y-0.5"
+          disabled={busy}
+          className="flex flex-1 items-center justify-center gap-2 rounded-xl border-[3px] border-[#1c2b45] bg-[#d33f3a] py-3 font-display text-[15px] font-extrabold text-white shadow-[0_4px_0_rgba(28,43,69,0.3)] transition-[filter] hover:brightness-105 active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-[0.55]"
         >
           <Swords className="size-4" strokeWidth={2.4} aria-hidden />
           Attack
@@ -171,7 +175,8 @@ export function CombatPreviewPanel({
         <button
           type="button"
           onClick={onCancel}
-          className="shrink-0 rounded-xl border-[3px] border-[#1c2b45] bg-white px-4 py-3 font-display text-[15px] font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.25)] active:translate-y-0.5"
+          disabled={busy}
+          className="shrink-0 rounded-xl border-[3px] border-[#1c2b45] bg-white px-4 py-3 font-display text-[15px] font-extrabold text-[#1c2b45] shadow-[0_4px_0_rgba(28,43,69,0.25)] active:translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-[0.55]"
         >
           Cancel
         </button>

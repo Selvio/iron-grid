@@ -63,20 +63,29 @@ export interface ActionPanelHandlers {
 }
 
 /**
- * The post-move menu takes focus as soon as it opens, so Enter commits without
- * a hunt. The menu only appears in response to a deliberate choice of
- * destination, so taking focus is what the player just asked for.
+ * The post-move menu takes focus as soon as it opens, so the next key lands on
+ * the menu rather than back on the board. The menu only appears in response to
+ * a deliberate choice of destination, so taking focus is what the player just
+ * asked for.
+ *
+ * It lands on the first *enabled* row — a greyed-out action would make Enter do
+ * nothing and look broken — but **never on the Move/Wait row that ends the
+ * activation**. The keyboard opens this menu with Enter on a tile, so an Enter
+ * held a beat too long, or pressed twice out of habit, would arrive here and
+ * commit an action with no undo (§10.4) that the player never asked for. When
+ * Move/Wait is the only thing legal here the focus falls through to Cancel,
+ * which is the last button in the menu and always enabled: the stray key then
+ * costs a re-open instead of the unit's whole turn.
  */
 function useActionMenuFocus(open: boolean): void {
   useEffect(() => {
     if (!open) return;
-    // The first *enabled* row: landing on a greyed-out action would make Enter
-    // do nothing and look broken.
-    document
-      .querySelector<HTMLButtonElement>(
-        "[data-action-menu] button:not([disabled])",
-      )
-      ?.focus();
+    const menu = document.querySelector("[data-action-menu]");
+    if (menu === null) return;
+    const rows = [
+      ...menu.querySelectorAll<HTMLButtonElement>("button:not([disabled])"),
+    ];
+    rows.find((row) => row.dataset.commit === undefined)?.focus();
   }, [open]);
 }
 
@@ -103,6 +112,7 @@ export function ActionPanel({
   unitName,
   attacker = null,
   funds = 0,
+  busy = false,
 }: {
   state: InteractionState;
   handlers: ActionPanelHandlers;
@@ -114,112 +124,135 @@ export function ActionPanel({
   attacker?: CombatAttacker | null;
   /** The viewer's funds — shown in the build popup's roster header. */
   funds?: number;
+  /** An action is in flight — the panel is sealed until it reconciles. */
+  busy?: boolean;
 }) {
   useActionMenuFocus(state.kind === "action-menu");
 
-  if (state.kind === "production-menu") {
-    return (
-      <BuildMenu
-        options={state.options}
-        funds={funds}
-        onProduce={handlers.onProduce}
-        onCancel={handlers.onCancel}
-      />
-    );
-  }
+  // Every panel below commits with no undo, and each stays mounted from the
+  // click until the reconciling refetch deselects it — a window wide enough for
+  // a second click to land. So each one takes `busy` and goes dead for it,
+  // Cancel included: stepping the interaction back out from under a decision
+  // already on the wire is no safer than sending it twice.
+  return panel();
 
-  if (state.kind === "action-menu") {
-    return (
-      <ActionMenu
-        options={state.options}
-        menu={state.menu}
-        destination={state.destination}
-        unitOrigin={unitOrigin}
-        unitName={unitName}
-        handlers={handlers}
-        onKeyDown={onMenuKeyDown}
-      />
-    );
-  }
+  function panel() {
+    if (state.kind === "production-menu") {
+      return (
+        <BuildMenu
+          options={state.options}
+          funds={funds}
+          onProduce={handlers.onProduce}
+          onCancel={handlers.onCancel}
+          busy={busy}
+        />
+      );
+    }
 
-  if (state.kind === "combat-preview") {
-    return (
-      <CombatPreviewPanel
-        attacker={attacker}
-        defender={state.defender}
-        minDamage={state.preview.minDamage}
-        maxDamage={state.preview.maxDamage}
-        counter={state.preview.counter ?? null}
-        onConfirm={handlers.onConfirmAttack}
-        onCancel={handlers.onCancel}
-      />
-    );
-  }
+    if (state.kind === "action-menu") {
+      return (
+        <ActionMenu
+          options={state.options}
+          menu={state.menu}
+          destination={state.destination}
+          unitOrigin={unitOrigin}
+          unitName={unitName}
+          handlers={handlers}
+          onKeyDown={onMenuKeyDown}
+          busy={busy}
+        />
+      );
+    }
 
-  if (state.kind === "unload-cargo") {
+    if (state.kind === "combat-preview") {
+      return (
+        <CombatPreviewPanel
+          attacker={attacker}
+          defender={state.defender}
+          minDamage={state.preview.minDamage}
+          maxDamage={state.preview.maxDamage}
+          counter={state.preview.counter ?? null}
+          onConfirm={handlers.onConfirmAttack}
+          onCancel={handlers.onCancel}
+          busy={busy}
+        />
+      );
+    }
+
+    if (state.kind === "unload-cargo") {
+      return (
+        <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
+          <CardHeader>
+            <CardTitle>Unload</CardTitle>
+            <CardDescription>Choose a unit to drop</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            <div className="flex flex-col gap-1.5">
+              {state.cargo.map((c) => (
+                <Button
+                  key={c.unitId}
+                  variant="secondary"
+                  className="h-auto justify-start gap-2 py-2"
+                  disabled={busy}
+                  onClick={() => handlers.onChooseCargo(c.unitId)}
+                >
+                  <PixelSprite sprite={c.sprite} box={28} />
+                  <span>{c.displayName}</span>
+                </Button>
+              ))}
+            </div>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={handlers.onCancel}
+            >
+              Cancel
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (state.kind === "unload-drop") {
+      return (
+        <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
+          <CardHeader>
+            <CardTitle>Unload</CardTitle>
+            <CardDescription>
+              Click an adjacent tile to drop · no undo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="outline"
+              disabled={busy}
+              onClick={handlers.onCancel}
+            >
+              Cancel
+            </Button>
+          </CardContent>
+        </Card>
+      );
+    }
+
+    if (state.kind !== "select-target") return null;
+
     return (
       <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
         <CardHeader>
-          <CardTitle>Unload</CardTitle>
-          <CardDescription>Choose a unit to drop</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1.5">
-            {state.cargo.map((c) => (
-              <Button
-                key={c.unitId}
-                variant="secondary"
-                className="h-auto justify-start gap-2 py-2"
-                onClick={() => handlers.onChooseCargo(c.unitId)}
-              >
-                <PixelSprite sprite={c.sprite} box={28} />
-                <span>{c.displayName}</span>
-              </Button>
-            ))}
-          </div>
-          <Button variant="outline" onClick={handlers.onCancel}>
-            Cancel
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (state.kind === "unload-drop") {
-    return (
-      <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
-        <CardHeader>
-          <CardTitle>Unload</CardTitle>
-          <CardDescription>
-            Click an adjacent tile to drop · no undo
-          </CardDescription>
+          <CardTitle>Choose target</CardTitle>
+          <CardDescription>Select an enemy to attack</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={handlers.onCancel}>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handlers.onCancel}
+          >
             Cancel
           </Button>
         </CardContent>
       </Card>
     );
   }
-
-  if (state.kind !== "select-target") return null;
-
-  return (
-    <Card className="pointer-events-auto absolute right-6 top-24 w-64 border-[3px] border-[#1c2b45] shadow-[0_5px_0_rgba(28,43,69,0.32)]">
-      <CardHeader>
-        <CardTitle>Choose target</CardTitle>
-        <CardDescription>Select an enemy to attack</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handlers.onCancel}
-        >
-          Cancel
-        </Button>
-      </CardContent>
-    </Card>
-  );
 }

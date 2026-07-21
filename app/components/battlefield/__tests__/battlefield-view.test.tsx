@@ -176,17 +176,20 @@ describe("BattlefieldView", () => {
     expect(screen.getByText("Tank")).toBeInTheDocument();
   });
 
-  it("confirms Move when re-clicking the chosen destination tile", async () => {
+  it("never commits from a board click — a double click leaves the menu open", async () => {
     const fetchMock = stubFetch(view());
 
     render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
     await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
-    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // open menu
+    await userEvent.dblClick(screen.getByLabelText("Tile 3, 1")); // open menu, twice
+
     expect(screen.getByRole("group", { name: /actions/i })).toBeInTheDocument();
+    expect(
+      fetchMock.mock.calls.find((c) => String(c[0]).includes("/actions")),
+    ).toBeUndefined();
 
-    // Re-click the same destination — commits move_and_wait (no Move button).
-    await userEvent.click(screen.getByLabelText("Tile 3, 1"));
-
+    // The menu is still the only way to commit.
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
     await waitFor(() => {
       const submit = fetchMock.mock.calls.find((c) =>
         String(c[0]).includes("/actions"),
@@ -195,6 +198,66 @@ describe("BattlefieldView", () => {
       expect(
         JSON.parse((submit![1] as RequestInit).body as string),
       ).toMatchObject({ type: "move_and_wait", unitId: "u1" });
+    });
+  });
+
+  it("does not commit Wait when the selected unit's own tile is clicked twice", async () => {
+    const fetchMock = stubFetch(view());
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // menu at origin
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // "deselect" gesture
+
+    expect(
+      fetchMock.mock.calls.find((c) => String(c[0]).includes("/actions")),
+    ).toBeUndefined();
+    expect(screen.getByRole("group", { name: /actions/i })).toBeInTheDocument();
+  });
+
+  it("seals the action menu while a submit is in flight", async () => {
+    // Hold the submit open, so the menu is still mounted when the second click
+    // lands — the real double-click window, which resolves too fast to observe
+    // when the stub answers immediately.
+    let releaseSubmit = (): void => {};
+    const pending = new Promise<void>((resolve) => {
+      releaseSubmit = resolve;
+    });
+    const fetchMock = stubFetch(view());
+    fetchMock.mockImplementation(async (url) => {
+      if (String(url).includes("/actions")) await pending;
+      return {
+        ok: true,
+        status: 200,
+        json: async () =>
+          String(url).includes("/actions")
+            ? { stateVersion: 5, status: "active" }
+            : String(url).includes("/events")
+              ? { matchId: "m1", events: [] }
+              : view(),
+      } as Response;
+    });
+
+    render(<BattlefieldView matchView={view()} gameData={fixtureGameData()} />);
+    await userEvent.click(screen.getByLabelText("Tile 2, 1")); // select tank
+    await userEvent.click(screen.getByLabelText("Tile 3, 1")); // open menu
+    await userEvent.click(screen.getByRole("button", { name: "Move" }));
+
+    // Every row is dead while the action is on the wire — Cancel included.
+    const move = screen.getByRole("button", { name: "Move" });
+    expect(move).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+
+    await userEvent.click(move);
+    expect(
+      fetchMock.mock.calls.filter((c) => String(c[0]).includes("/actions")),
+    ).toHaveLength(1);
+
+    releaseSubmit();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("group", { name: /actions/i }),
+      ).not.toBeInTheDocument();
     });
   });
 
